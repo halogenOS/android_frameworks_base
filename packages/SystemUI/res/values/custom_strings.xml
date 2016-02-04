@@ -5,4 +5,9 @@
     <!-- Charging limit QS tile -->
     <string name="quick_settings_charging_limit_label">Charge limit</string>
     <string name="quick_settings_charging_limit_off">Off</string>
+
+    <!-- Caffeine QS tile -->
+    <string name="quick_settings_caffeine_label">Caffeine</string>
+    <string name="accessibility_quick_settings_caffeine_off">Caffeine off.</string>
+    <string name="accessibility_quick_settings_caffeine_on">Caffeine on.</string>
 </resources>

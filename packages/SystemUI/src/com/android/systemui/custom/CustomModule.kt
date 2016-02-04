@@ -8,6 +8,7 @@ import com.android.systemui.qs.QsEventLogger
 import com.android.systemui.qs.pipeline.shared.TileSpec
 import com.android.systemui.qs.shared.model.TileCategory
 import com.android.systemui.qs.tileimpl.QSTileImpl
+import com.android.systemui.qs.tiles.CaffeineTile
 import com.android.systemui.qs.tiles.ChargingLimitTile
 import com.android.systemui.qs.tiles.base.shared.model.QSTileConfig
 import com.android.systemui.qs.tiles.base.shared.model.QSTileUIConfig
@@ -27,8 +28,15 @@ interface CustomModule {
     @StringKey(ChargingLimitTile.TILE_SPEC)
     fun bindChargingLimitTile(chargingLimitTile: ChargingLimitTile): QSTileImpl<*>
 
+    /** Inject CaffeineTile into tileMap in QSModule */
+    @Binds
+    @IntoMap
+    @StringKey(CaffeineTile.TILE_SPEC)
+    fun bindCaffeineTile(caffeineTile: CaffeineTile): QSTileImpl<*>
+
     companion object {
         const val CHARGING_LIMIT_TILE_SPEC = "charging_limit"
+        const val CAFFEINE_TILE_SPEC = "caffeine"
 
         @Provides
         @IntoMap
@@ -43,6 +51,21 @@ interface CustomModule {
                     ),
                 instanceId = uiEventLogger.getNewInstanceId(),
                 category = TileCategory.UTILITIES,
+            )
+
+        @Provides
+        @IntoMap
+        @StringKey(CAFFEINE_TILE_SPEC)
+        fun provideCaffeineTileConfig(uiEventLogger: QsEventLogger): QSTileConfig =
+            QSTileConfig(
+                tileSpec = TileSpec.create(CAFFEINE_TILE_SPEC),
+                uiConfig =
+                    QSTileUIConfig.Resource(
+                        iconRes = R.drawable.ic_qs_caffeine,
+                        labelRes = R.string.quick_settings_caffeine_label
+                    ),
+                instanceId = uiEventLogger.getNewInstanceId(),
+                category = TileCategory.DISPLAY,
             )
     }
 }
