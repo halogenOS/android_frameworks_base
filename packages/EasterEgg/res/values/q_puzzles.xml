@@ -15,7 +15,7 @@
         <item>android:drawable/stat_sys_phone_call</item>
         <item>android:drawable/stat_sys_certificate_info</item>
         <item>android:drawable/stat_sys_data_bluetooth</item>
-        <item>android:drawable/stat_sys_data_usb</item>
+        <item>android:drawable/ic_usb_48dp</item>
         <item>android:drawable/stat_sys_download</item>
         <item>android:drawable/stat_sys_gps_on</item>
         <item>android:drawable/stat_sys_phone_call</item>

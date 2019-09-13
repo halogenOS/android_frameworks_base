@@ -84,7 +84,7 @@ class MtpNotificationManager {
                 new Notification.Builder(mContext, SystemNotificationChannels.USB)
                         .setContentTitle(title)
                         .setContentText(description)
-                        .setSmallIcon(com.android.internal.R.drawable.stat_sys_data_usb)
+                        .setSmallIcon(com.android.internal.R.drawable.ic_usb_48dp)
                         .setCategory(Notification.CATEGORY_SYSTEM);
 
         final Intent intent = new Intent(ACTION_OPEN_IN_APPS);

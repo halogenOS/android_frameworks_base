@@ -879,7 +879,7 @@ public class UsbAuthManager implements IBinder.DeathRecipient {
             Notification.Builder builder =
                     new Notification.Builder(mContext, USB_AUTHORIZATION_CHANNEL)
                             .setOngoing(true)
-                            .setSmallIcon(com.android.internal.R.drawable.stat_sys_data_usb)
+                            .setSmallIcon(com.android.internal.R.drawable.ic_usb_48dp)
                             .setDeleteIntent(deletePendingIntent)
                             .setContentTitle(title)
                             .setContentText(message)
@@ -942,7 +942,7 @@ public class UsbAuthManager implements IBinder.DeathRecipient {
             Notification.Builder builder =
                     new Notification.Builder(mContext, USB_AUTHORIZATION_CHANNEL)
                             .setOngoing(true)
-                            .setSmallIcon(com.android.internal.R.drawable.stat_sys_data_usb)
+                            .setSmallIcon(com.android.internal.R.drawable.ic_usb_48dp)
                             .setContentTitle(title)
                             .setContentText(message)
                             .setVisibility(Notification.VISIBILITY_PUBLIC)

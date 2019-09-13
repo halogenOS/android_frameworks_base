@@ -206,7 +206,7 @@ constructor(
         params.mView = view
 
         // Assign alert params
-        params.mIconId = com.android.internal.R.drawable.stat_sys_data_usb
+        params.mIconId = com.android.internal.R.drawable.ic_usb_48dp
         params.mTitle =
             resources.getString(
                 if (pendingDevices.size > 1) R.string.usb_authorization_title_multi
