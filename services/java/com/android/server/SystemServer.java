@@ -914,6 +914,8 @@ public final class SystemServer implements Dumpable {
                         uptimeMillis);
             }
 
+            Slog.i("halogenOS", "Welcome to halogenOS! Ready to roll the Cinnamon Buns!");
+
             // In case the runtime switched since last boot (such as when
             // the old runtime was removed in an OTA), set the system
             // property so that it is in sync. We can't do this in
