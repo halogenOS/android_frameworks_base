@@ -108,6 +108,7 @@ class ScreenRecordPermissionContentManager(
 
     private lateinit var tapsSwitch: Switch
     private lateinit var audioSwitch: Switch
+    private lateinit var longerDurationSwitch: Switch
     private lateinit var tapsView: View
     private lateinit var options: Spinner
 
@@ -157,6 +158,8 @@ class ScreenRecordPermissionContentManager(
     private fun initRecordOptionsView() {
         audioSwitch = containerView.requireViewById(R.id.screenrecord_audio_switch)
         tapsSwitch = containerView.requireViewById(R.id.screenrecord_taps_switch)
+        longerDurationSwitch =
+            containerView.requireViewById(R.id.screenrecord_longer_timeout_switch)
 
         tapsView = containerView.requireViewById(R.id.show_taps)
         updateTapsViewVisibility()
@@ -165,6 +168,7 @@ class ScreenRecordPermissionContentManager(
         // within its target region, to meet accessibility requirements
         audioSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
         tapsSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
+        longerDurationSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
 
         options = containerView.requireViewById(R.id.screen_recording_options)
         val a: ArrayAdapter<*> =
@@ -218,6 +222,7 @@ class ScreenRecordPermissionContentManager(
         val audioMode =
             if (audioSwitch.isChecked) options.selectedItem as ScreenRecordingAudioSource
             else ScreenRecordingAudioSource.NONE
+        val longerDuration = longerDurationSwitch.isChecked
 
         controller.startCountdown(
             DELAY_MS,
@@ -229,6 +234,7 @@ class ScreenRecordPermissionContentManager(
                         audioSource = audioMode,
                         displayId = displayId,
                         shouldShowTaps = showTaps,
+                        longerDuration = longerDuration,
                     )
                 )
             },

@@ -83,6 +83,7 @@ public class ScreenMediaRecorder {
     private static final int AUDIO_SAMPLE_RATE = 44100;
     private static final int MAX_DURATION_MS = (int) DateUtils.HOUR_IN_MILLIS;
     private static final long MAX_FILESIZE_BYTES = 5000000000L;
+    private static final long MAX_FILESIZE_BYTES_LONGER = 16106100000L; // 15 GiB
 
     private static final String TAG = "ScreenMediaRecorder";
 
@@ -103,6 +104,8 @@ public class ScreenMediaRecorder {
 
     private String mAvcProfileLevel;
 
+    private boolean mLongerDuration;
+
     private Context mContext;
     ScreenMediaRecorderListener mListener;
 
@@ -114,6 +117,19 @@ public class ScreenMediaRecorder {
             MediaProjectionCaptureTarget captureRegion,
             int displayId,
             ScreenMediaRecorderListener listener) {
+        this(context, handler, uid, audioSource, captureRegion,
+                displayId, listener, false);
+    }
+
+    public ScreenMediaRecorder(
+            Context context,
+            Handler handler,
+            int uid,
+            ScreenRecordingAudioSource audioSource,
+            MediaProjectionCaptureTarget captureRegion,
+            int displayId,
+            ScreenMediaRecorderListener listener,
+            boolean longerDuration) {
         mContext = context;
         mHandler = handler;
         mUid = uid;
@@ -121,8 +137,13 @@ public class ScreenMediaRecorder {
         mListener = listener;
         mAudioSource = audioSource;
         mDisplayId = displayId;
+        mLongerDuration = longerDuration;
         mAvcProfileLevel = mContext.getResources().getString(
                 com.android.systemui.res.R.string.config_screenRecorderAVCProfileLevel);
+    }
+
+    public void setLongerDuration(boolean longer) {
+        mLongerDuration = longer;
     }
 
     private void prepare() throws IOException, RemoteException, RuntimeException {
@@ -178,8 +199,9 @@ public class ScreenMediaRecorder {
         mMediaRecorder.setVideoSize(videoParameters.mWidth, videoParameters.mHeight);
         mMediaRecorder.setVideoFrameRate(videoParameters.mRefreshRate);
         mMediaRecorder.setVideoEncodingBitRate(videoParameters.bitrate());
-        mMediaRecorder.setMaxDuration(MAX_DURATION_MS);
-        mMediaRecorder.setMaxFileSize(MAX_FILESIZE_BYTES);
+        mMediaRecorder.setMaxDuration(mLongerDuration ? 0 : MAX_DURATION_MS);
+        mMediaRecorder.setMaxFileSize(
+                mLongerDuration ? MAX_FILESIZE_BYTES_LONGER : MAX_FILESIZE_BYTES);
 
         // Set up audio
         if (mAudioSource == MIC) {

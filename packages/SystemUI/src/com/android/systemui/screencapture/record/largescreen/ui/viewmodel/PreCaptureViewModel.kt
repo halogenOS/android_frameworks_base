@@ -376,6 +376,7 @@ constructor(
                     audioSource = toolbarViewModel.recordParametersViewModel.audioSource,
                     displayId = displayId,
                     shouldShowTaps = toolbarViewModel.recordParametersViewModel.shouldShowTaps,
+                    longerDuration = toolbarViewModel.recordParametersViewModel.longerDuration,
                 )
             )
         }

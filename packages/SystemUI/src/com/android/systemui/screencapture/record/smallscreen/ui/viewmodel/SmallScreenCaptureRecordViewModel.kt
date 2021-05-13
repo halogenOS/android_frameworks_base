@@ -253,6 +253,7 @@ constructor(
     private suspend fun startRecording() {
         val audioSource = recordDetailsParametersViewModel.audioSource
         val target = captureTargetModel?.currentTargetModel?.screenCaptureTarget ?: return
+        val longerDuration = recordDetailsParametersViewModel.longerDuration
         when (target) {
             is ScreenCaptureTarget.Fullscreen -> {
                 val shouldShowTaps = recordDetailsParametersViewModel.shouldShowTaps
@@ -262,6 +263,7 @@ constructor(
                         displayId = target.displayId,
                         shouldShowTaps = shouldShowTaps,
                         audioSource = audioSource,
+                        longerDuration = longerDuration,
                     )
                 )
             }
@@ -298,6 +300,7 @@ constructor(
                         displayId = displayId,
                         shouldShowTaps = false,
                         audioSource = audioSource,
+                        longerDuration = longerDuration,
                     )
                 )
             }

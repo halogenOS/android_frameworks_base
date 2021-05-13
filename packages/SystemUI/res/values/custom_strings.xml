@@ -18,4 +18,8 @@
     <string name="screenshot_delete_label">Delete</string>
     <!-- Content description indicating that tapping the element will allow deleting the screenshot [CHAR LIMIT=NONE] -->
     <string name="screenshot_delete_description">Delete screenshot</string>
+
+    <!-- Screen record -->
+    <string name="screenrecord_longer_timeout_switch_label">Larger file size limit</string>
+    <string name="screenrecord_longer_timeout_switch_summary">Limit recording size to 15 GB</string>
 </resources>
