@@ -13,5 +13,7 @@
     </staging-public-group>
 
     <staging-public-group type="string" first-id="0x0198f000">
+        <!-- @hide -->
+        <public name="config_systemTelephonyPackage"/>
     </staging-public-group>
 </resources>
