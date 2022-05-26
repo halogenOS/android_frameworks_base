@@ -212,6 +212,11 @@ public class KeyguardSliceView extends LinearLayout {
                 i--;
             }
         }
+        for (int i = 0; i < mRow.getChildCount(); i++) {
+            if (mRow.getChildAt(i) instanceof KeyguardSliceTextView item) {
+                item.setIndented(i > 0);
+            }
+        }
 
         if (mContentChangeListener != null) {
             mContentChangeListener.run();
@@ -423,6 +428,8 @@ public class KeyguardSliceView extends LinearLayout {
         @StyleRes
         private static int sStyleId = R.style.TextAppearance_Keyguard_Secondary;
 
+        private boolean mIndented;
+
         KeyguardSliceTextView(Context context) {
             super(context, null /* attrs */, 0 /* styleAttr */, sStyleId);
             onDensityOrFontScaleChanged();
@@ -443,15 +450,25 @@ public class KeyguardSliceView extends LinearLayout {
             updatePadding();
         }
 
+        /** Sets whether the item keeps a gap to the item before it in the row. */
+        void setIndented(boolean indented) {
+            if (mIndented == indented) {
+                return;
+            }
+            mIndented = indented;
+            updatePadding();
+        }
+
         private void updatePadding() {
             boolean hasText = !TextUtils.isEmpty(getText());
             int padding = (int) getContext().getResources()
                     .getDimension(R.dimen.widget_horizontal_padding) / 2;
+            int iconPadding = (int) mContext.getResources()
+                    .getDimension(R.dimen.widget_icon_padding);
             // orientation is vertical, so add padding to top & bottom
-            setPadding(0, padding, 0, hasText ? padding : 0);
+            setPaddingRelative(mIndented ? iconPadding : 0, padding, 0, hasText ? padding : 0);
 
-            setCompoundDrawablePadding((int) mContext.getResources()
-                    .getDimension(R.dimen.widget_icon_padding));
+            setCompoundDrawablePadding(iconPadding);
         }
 
         @Override
