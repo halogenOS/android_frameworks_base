@@ -117,6 +117,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.GosPackageState;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManagerInternal;
@@ -3825,6 +3826,26 @@ public final class ProcessList extends ProcessListInternal
                 } catch (RemoteException ex) {
                     Slog.w(TAG, "Failed to handle trust storage update for: " +
                             r.info.processName);
+                }
+            }
+        }
+    }
+
+    @GuardedBy("mService")
+    void dispatchGosPackageStateChangedLOSP(int uid) {
+        for (int i = mLruProcesses.size() - 1; i >= 0; i--) {
+            ProcessRecord r = mLruProcesses.get(i);
+            if (r.uid != uid) {
+                // isolated processes are skipped intentionally (they run in separate UIDs)
+                continue;
+            }
+            final IApplicationThread thread = r.getThread();
+            if (thread != null) {
+                try {
+                    thread.onGosPackageStateChanged();
+                } catch (RemoteException ex) {
+                    Slog.i(TAG, "onGosPackageStateChanged failed; uid " + uid
+                            + ", processName " + r.info.processName, ex);
                 }
             }
         }

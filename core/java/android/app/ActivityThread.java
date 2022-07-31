@@ -2512,6 +2512,11 @@ public final class ActivityThread extends ClientTransactionHandler
                 throw e.rethrowFromSystemServer();
             }
         }
+
+        @Override
+        public void onGosPackageStateChanged() {
+            ActivityThreadHooks.onGosPackageStateChanged(null);
+        }
     }
 
     private @NonNull SafeCancellationTransport createSafeCancellationTransport(

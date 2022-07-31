@@ -1509,6 +1509,9 @@ public abstract class PackageManagerInternal {
     public abstract boolean isUpgradingFromLowerThanBySdkVersionFull(
             @Build.SdkIntFull int sdkVersionFull);
 
+    @NonNull
+    public abstract GosPackageState getGosPackageState(String packageName, int userId);
+
     /**
      * Returns the component access policy for a given package, which declares the set of
      * other components the app is allowed to associate with.

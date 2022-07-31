@@ -866,4 +866,8 @@ interface IPackageManager {
     List<String> getAllApexDirectories();
 
     int getAppUidForPrivateComputeCoreUid(int pccUid);
+
+    android.content.pm.GosPackageState getGosPackageState(String packageName, int userId);
+
+    boolean setGosPackageState(String packageName, int userId, in android.content.pm.GosPackageState updatedPs, int editorFlags);
 }

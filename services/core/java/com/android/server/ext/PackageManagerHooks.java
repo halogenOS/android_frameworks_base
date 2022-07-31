@@ -3,6 +3,8 @@ package com.android.server.ext;
 import android.annotation.Nullable;
 import android.annotation.UserIdInt;
 import android.app.AppBindArgs;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.GosPackageState;
 import android.content.Context;
 import android.content.pm.PackageManagerInternal;
 import android.os.Bundle;
@@ -11,8 +13,11 @@ import android.util.ArraySet;
 import android.util.Slog;
 
 import com.android.server.pm.Computer;
+import com.android.server.pm.GosPackageStatePmHooks;
 import com.android.server.pm.pkg.AndroidPackage;
 import com.android.server.pm.pkg.PackageStateInternal;
+
+import static java.util.Objects.requireNonNull;
 
 public class PackageManagerHooks {
 
@@ -67,9 +72,18 @@ public class PackageManagerHooks {
         // isSystem() remains true even if isUpdatedSystemApp() is true
         final boolean isUserApp = !pkgState.isSystem();
 
+        GosPackageState unfilteredGosPs = pkgState.getUserStateOrDefault(userId).getGosPackageState();
+        // GosPackageState that is filtered for the target app
+        GosPackageState gosPs = GosPackageStatePmHooks.getFiltered(pmComputer, pkgState, unfilteredGosPs,
+                appUid, pid, userId);
+
+        ApplicationInfo appInfo =
+                requireNonNull(pmComputer.getApplicationInfo(packageName, 0L, userId));
+
         int[] flagsArr = new int[AppBindArgs.FLAGS_ARRAY_LEN];
 
         var b = new Bundle();
+        b.putParcelable(AppBindArgs.KEY_GOS_PACKAGE_STATE, gosPs);
         b.putIntArray(AppBindArgs.KEY_FLAGS_ARRAY, flagsArr);
 
         return b;

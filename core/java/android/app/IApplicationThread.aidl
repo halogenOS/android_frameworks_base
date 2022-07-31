@@ -190,5 +190,8 @@ oneway interface IApplicationThread {
     void schedulePing(in RemoteCallback pong);
     void getExecutableMethodFileOffsets(in MethodDescriptor methodDescriptor,
             in IOffsetCallback resultCallback);
+
+    void onGosPackageStateChanged();
+
     void requestHandoffActivityData(in IBinder requestToken, in List<IBinder> activityTokens);
 }

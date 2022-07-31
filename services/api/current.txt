@@ -84,7 +84,9 @@ package com.android.server.permission {
 package com.android.server.pm {
 
   public interface PackageManagerLocal {
+    method public void addGosPackageStateChangeCallback(@NonNull com.android.server.pm.PackageManagerLocal.GosPackageStateChangeCallback);
     method public void reconcileSdkData(@Nullable String, @NonNull String, @NonNull java.util.List<String>, int, int, int, @NonNull String, int) throws java.io.IOException;
+    method public boolean removeGosPackageStateChangeCallback(@NonNull com.android.server.pm.PackageManagerLocal.GosPackageStateChangeCallback);
     method @NonNull public com.android.server.pm.PackageManagerLocal.FilteredSnapshot withFilteredSnapshot();
     method @NonNull public com.android.server.pm.PackageManagerLocal.FilteredSnapshot withFilteredSnapshot(int, @NonNull android.os.UserHandle);
     method @NonNull public com.android.server.pm.PackageManagerLocal.UnfilteredSnapshot withUnfilteredSnapshot();
@@ -96,6 +98,11 @@ package com.android.server.pm {
     method public void close();
     method @Nullable public com.android.server.pm.pkg.PackageState getPackageState(@NonNull String);
     method @NonNull public java.util.Map<String, com.android.server.pm.pkg.PackageState> getPackageStates();
+  }
+
+  public abstract static class PackageManagerLocal.GosPackageStateChangeCallback {
+    ctor public PackageManagerLocal.GosPackageStateChangeCallback(@NonNull android.os.Handler);
+    method public abstract void onGosPackageStateChanged(int, @NonNull android.content.pm.GosPackageState, int);
   }
 
   public static interface PackageManagerLocal.UnfilteredSnapshot extends AutoCloseable {
