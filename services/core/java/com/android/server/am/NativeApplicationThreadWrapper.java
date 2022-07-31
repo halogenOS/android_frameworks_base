@@ -39,6 +39,7 @@ import android.content.IIntentReceiver;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.GosPackageState;
 import android.content.pm.PackageManager;
 import android.content.pm.ParceledListSlice;
 import android.content.pm.ProviderInfo;
@@ -522,6 +523,12 @@ public class NativeApplicationThreadWrapper implements IApplicationThread {
     @Override
     public void getExecutableMethodFileOffsets(
             @NonNull MethodDescriptor methodDescriptor, @NonNull IOffsetCallback resultCallback) {}
+
+    @Override
+    public void onGosPackageStateChanged() {
+        // native processes run in isolated UIDs, onGosPackageStateChanged() is never called for them
+        Slog.wtf(TAG, "onGosPackageStateChanged called");
+    }
 
     @NeverCompile
     @Override

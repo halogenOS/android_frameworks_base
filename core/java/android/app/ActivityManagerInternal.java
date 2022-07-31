@@ -1476,4 +1476,6 @@ public abstract class ActivityManagerInternal {
      * @param clientUid the UID that has a bound client
      */
     public abstract boolean hasServiceBindingOrProviderUse(int uid, int clientUid);
+
+    public abstract void dispatchGosPackageStateCallbacks(int uid);
 }
