@@ -917,6 +917,24 @@ public class ExternalStorageProvider extends FileSystemProvider {
         Bundle bundle = super.call(method, arg, extras);
         if (bundle == null && !TextUtils.isEmpty(method)) {
             switch (method) {
+                case android.app.StorageScope.EXTERNAL_STORAGE_PROVIDER_METHOD_CONVERT_DOC_ID_TO_PATH: {
+                    // only PermissionController is expected to call this method
+                    getContext().enforceCallingPermission(
+                            android.Manifest.permission.GRANT_RUNTIME_PERMISSIONS, null);
+
+                    String docId = arg;
+                    String path;
+                    try {
+                        path = getFileForDocId(docId, true).getAbsolutePath();
+                    } catch (Exception e) {
+                        Log.d(TAG, method + " failed", e);
+                        return null;
+                    }
+
+                    final Bundle out = new Bundle();
+                    out.putString(DocumentsContract.EXTRA_RESULT, path);
+                    return out;
+                }
                 case "getDocIdForFileCreateNewDir": {
                     getContext().enforceCallingPermission(
                             android.Manifest.permission.MANAGE_DOCUMENTS, null);
