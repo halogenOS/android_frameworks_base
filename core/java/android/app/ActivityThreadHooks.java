@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Process;
 import android.util.Log;
 
+import com.android.internal.app.StorageScopesAppHooks;
 import com.android.internal.util.Preconditions;
 
 import java.util.Objects;
@@ -82,6 +83,7 @@ class ActivityThreadHooks {
                 state = GosPackageState.getForSelf(ctx);
             }
         }
+        StorageScopesAppHooks.maybeEnable(state);
     }
 
     static Service instantiateService(String className) {
