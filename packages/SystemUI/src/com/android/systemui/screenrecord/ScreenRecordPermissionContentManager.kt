@@ -110,6 +110,7 @@ class ScreenRecordPermissionContentManager(
     private lateinit var audioSwitch: Switch
     private lateinit var longerDurationSwitch: Switch
     private lateinit var skipTimeSwitch: Switch
+    private lateinit var hevcSwitch: Switch
     private lateinit var tapsView: View
     private lateinit var options: Spinner
 
@@ -162,6 +163,7 @@ class ScreenRecordPermissionContentManager(
         longerDurationSwitch =
             containerView.requireViewById(R.id.screenrecord_longer_timeout_switch)
         skipTimeSwitch = containerView.requireViewById(R.id.screenrecord_skip_time_switch)
+        hevcSwitch = containerView.requireViewById(R.id.screenrecord_hevc_switch)
 
         tapsView = containerView.requireViewById(R.id.show_taps)
         updateTapsViewVisibility()
@@ -172,6 +174,7 @@ class ScreenRecordPermissionContentManager(
         tapsSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
         longerDurationSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
         skipTimeSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
+        hevcSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
 
         options = containerView.requireViewById(R.id.screen_recording_options)
         val a: ArrayAdapter<*> =
@@ -227,6 +230,7 @@ class ScreenRecordPermissionContentManager(
             else ScreenRecordingAudioSource.NONE
         val longerDuration = longerDurationSwitch.isChecked
         val skipTime = skipTimeSwitch.isChecked
+        val hevc = hevcSwitch.isChecked
 
         controller.startCountdown(
             if (skipTime) NO_DELAY else DELAY_MS,
@@ -239,6 +243,7 @@ class ScreenRecordPermissionContentManager(
                         displayId = displayId,
                         shouldShowTaps = showTaps,
                         longerDuration = longerDuration,
+                        hevc = hevc,
                     )
                 )
             },

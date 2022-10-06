@@ -75,6 +75,8 @@ constructor(
 
     val longerDuration: Boolean by interactor::longerDuration
 
+    val hevc: Boolean by interactor::hevc
+
     var shouldRecordDevice: Boolean
         get() =
             with(interactor) {
@@ -148,6 +150,10 @@ constructor(
 
     fun setLongerDuration(longerDuration: Boolean) {
         interactor.longerDuration = longerDuration
+    }
+
+    fun setHevc(hevc: Boolean) {
+        interactor.hevc = hevc
     }
 
     @AssistedFactory

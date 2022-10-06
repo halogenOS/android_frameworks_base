@@ -250,6 +250,7 @@ open class ScreenRecordingService : ComponentService() {
                             parameters.displayId,
                             screenMediaRecorderListener,
                             parameters.longerDuration,
+                            parameters.hevc,
                         ),
                 )
             context.startRecording()

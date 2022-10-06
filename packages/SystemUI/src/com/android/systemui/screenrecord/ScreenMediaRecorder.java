@@ -105,6 +105,7 @@ public class ScreenMediaRecorder {
     private String mAvcProfileLevel;
 
     private boolean mLongerDuration;
+    private boolean mHEVC;
 
     private Context mContext;
     ScreenMediaRecorderListener mListener;
@@ -118,7 +119,7 @@ public class ScreenMediaRecorder {
             int displayId,
             ScreenMediaRecorderListener listener) {
         this(context, handler, uid, audioSource, captureRegion,
-                displayId, listener, false);
+                displayId, listener, false, false);
     }
 
     public ScreenMediaRecorder(
@@ -129,7 +130,8 @@ public class ScreenMediaRecorder {
             MediaProjectionCaptureTarget captureRegion,
             int displayId,
             ScreenMediaRecorderListener listener,
-            boolean longerDuration) {
+            boolean longerDuration,
+            boolean hevc) {
         mContext = context;
         mHandler = handler;
         mUid = uid;
@@ -138,12 +140,17 @@ public class ScreenMediaRecorder {
         mAudioSource = audioSource;
         mDisplayId = displayId;
         mLongerDuration = longerDuration;
+        mHEVC = hevc;
         mAvcProfileLevel = mContext.getResources().getString(
                 com.android.systemui.res.R.string.config_screenRecorderAVCProfileLevel);
     }
 
     public void setLongerDuration(boolean longer) {
         mLongerDuration = longer;
+    }
+
+    public void setHEVC(boolean hevc) {
+        mHEVC = hevc;
     }
 
     private void prepare() throws IOException, RemoteException, RuntimeException {
@@ -192,10 +199,17 @@ public class ScreenMediaRecorder {
         int refreshRate = (int) display.getRefreshRate();
         VideoParameters videoParameters = getSupportedSize(metrics.widthPixels,
                 metrics.heightPixels, refreshRate);
-        mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-        mMediaRecorder.setVideoEncodingProfileLevel(
-                MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
-                getAvcProfileLevelCodeByName(mAvcProfileLevel));
+        if (!mHEVC) {
+            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+            mMediaRecorder.setVideoEncodingProfileLevel(
+                    MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
+                    getAvcProfileLevelCodeByName(mAvcProfileLevel));
+        } else {
+            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.HEVC);
+            mMediaRecorder.setVideoEncodingProfileLevel(
+                    MediaCodecInfo.CodecProfileLevel.HEVCProfileMain,
+                    MediaCodecInfo.CodecProfileLevel.HEVCHighTierLevel41);
+        }
         mMediaRecorder.setVideoSize(videoParameters.mWidth, videoParameters.mHeight);
         mMediaRecorder.setVideoFrameRate(videoParameters.mRefreshRate);
         mMediaRecorder.setVideoEncodingBitRate(videoParameters.bitrate());
@@ -270,7 +284,7 @@ public class ScreenMediaRecorder {
     private VideoParameters getSupportedSize(final int screenWidth, final int screenHeight,
             int refreshRate)
             throws IOException {
-        String videoType = MediaFormat.MIMETYPE_VIDEO_AVC;
+        String videoType = mHEVC ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC;
 
         // Get max size from the decoder, to ensure recordings will be playable on device
         MediaCodec decoder = MediaCodec.createDecoderByType(videoType);

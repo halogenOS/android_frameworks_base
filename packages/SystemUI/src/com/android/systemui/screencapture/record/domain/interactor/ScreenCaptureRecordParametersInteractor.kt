@@ -68,6 +68,12 @@ constructor(
         }
         get() = repository.longerDuration
 
+    var hevc: Boolean
+        set(value) {
+            repository.hevc = value
+        }
+        get() = repository.hevc
+
     val canChangeAudioSource: StateFlow<Boolean> =
         serviceInteractor.status
             .map { it.canChangeAudioSource() }
