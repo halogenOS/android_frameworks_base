@@ -3,9 +3,9 @@ package com.android.server.ext;
 import android.annotation.Nullable;
 import android.annotation.UserIdInt;
 import android.app.AppBindArgs;
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.GosPackageState;
-import android.content.Context;
 import android.content.pm.PackageManagerInternal;
 import android.os.Bundle;
 import android.os.UserHandle;
@@ -15,6 +15,7 @@ import android.util.Slog;
 import com.android.server.pm.Computer;
 import com.android.server.pm.GosPackageStatePmHooks;
 import com.android.server.pm.ext.PackageHooks;
+import com.android.server.pm.permission.SpecialRuntimePermUtils;
 import com.android.server.pm.pkg.AndroidPackage;
 import com.android.server.pm.pkg.PackageStateInternal;
 
@@ -82,6 +83,8 @@ public class PackageManagerHooks {
                 requireNonNull(pmComputer.getApplicationInfo(packageName, 0L, userId));
 
         int[] flagsArr = new int[AppBindArgs.FLAGS_ARRAY_LEN];
+        flagsArr[AppBindArgs.FLAGS_IDX_SPECIAL_RUNTIME_PERMISSIONS] =
+                SpecialRuntimePermUtils.getFlags(pkg, pkgState, userId);
 
         var b = new Bundle();
         b.putParcelable(AppBindArgs.KEY_GOS_PACKAGE_STATE, gosPs);
