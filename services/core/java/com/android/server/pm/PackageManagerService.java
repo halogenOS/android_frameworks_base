@@ -242,6 +242,7 @@ import com.android.server.pm.permission.LegacyPermissionManagerService;
 import com.android.server.pm.permission.LegacyPermissionSettings;
 import com.android.server.pm.permission.PermissionManagerService;
 import com.android.server.pm.permission.PermissionManagerServiceInternal;
+import com.android.server.pm.permission.SpecialRuntimePermUtils;
 import com.android.server.pm.pkg.AndroidPackage;
 import com.android.server.pm.pkg.ArchiveState;
 import com.android.server.pm.pkg.PackageStateInternal;
