@@ -8154,6 +8154,19 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
             return;
         }
 
+        final PackageStateInternal recipientPsi = snapshot.getPackageStateInternal(
+                recipientPackage.getPackageName(), Process.SYSTEM_UID);
+        final PackageStateInternal visiblePsi = snapshot.getPackageStateInternal(
+                visiblePackage.getPackageName(), Process.SYSTEM_UID);
+        if (recipientPsi == null || visiblePsi == null) {
+            return;
+        }
+
+        if (PackageManagerHooks.shouldFilterApplication(recipientPsi, null, userId,
+                visiblePsi, UserHandle.getUserId(visibleUid))) {
+            return;
+        }
+
         final boolean instantApp = snapshot.isInstantAppInternal(
                 visiblePackage.getPackageName(), userId, visibleUid);
         final boolean accessGranted;
