@@ -30,6 +30,7 @@ import android.annotation.Nullable;
 import android.annotation.SuppressLint;
 import android.annotation.TestApi;
 import android.app.AppOpsManager;
+import android.app.compat.gms.GmsCompat;
 import android.app.compat.CompatChanges;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledSince;
@@ -52,6 +53,7 @@ import android.util.SparseIntArray;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.gmscompat.GmsHooks;
 import com.android.internal.util.ArrayUtils;
 
 import dalvik.annotation.optimization.CriticalNative;
@@ -3363,6 +3365,13 @@ public final class Parcel {
                     "Remote stack trace:\n" + remoteStackTrace, null, false, false);
             ExceptionUtils.appendCause(e, cause);
         }
+
+        if (GmsCompat.isEnabled()) {
+            if (GmsHooks.interceptException(e, this)) {
+                return;
+            }
+        }
+
         SneakyThrow.sneakyThrow(e);
     }
 
@@ -3490,6 +3499,12 @@ public final class Parcel {
                                 | FLAG_PROPAGATE_ALLOW_BLOCKING)) {
             Binder.allowBlocking(result);
         }
+        if (mCallMaybeOverrideBinder && result != null) {
+            IBinder override = GmsHooks.maybeOverrideBinder(result);
+            if (override != null) {
+                return override;
+            }
+        }
         return result;
     }
 
@@ -3509,6 +3524,9 @@ public final class Parcel {
     public final CharSequence readCharSequence() {
         return TextUtils.CHAR_SEQUENCE_CREATOR.createFromParcel(this);
     }
+
+    /** {@hide} */
+    boolean mCallMaybeOverrideBinder;
 
     /**
      * Read an object from the parcel at the current dataPosition().

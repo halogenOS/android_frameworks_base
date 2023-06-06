@@ -28,6 +28,8 @@ import android.util.Log;
 import android.util.SparseIntArray;
 
 import com.android.internal.annotations.GuardedBy;
+import com.android.internal.gmscompat.GmsCompatLib;
+import com.android.internal.gmscompat.IGmsCompatLib;
 import com.android.internal.os.BinderInternal;
 
 import libcore.util.NativeAllocationRegistry;
@@ -534,11 +536,27 @@ public final class BinderProxy implements IBinder {
     @RavenwoodKeep
     public native boolean isBinderAlive();
 
+    private IInterface mLocalInterface;
+    private static final IInterface NO_LOCAL_INTERFACE = () -> null;
+
     /**
      * Retrieve a local interface - always null in case of a proxy
      */
     @RavenwoodKeep
     public IInterface queryLocalInterface(String descriptor) {
+        IGmsCompatLib gmcLib = GmsCompatLib.get();
+        if (gmcLib != null) {
+            synchronized (this) {
+                IInterface cache = mLocalInterface;
+                if (cache != null) {
+                    return cache == NO_LOCAL_INTERFACE ? null : cache;
+                }
+                IInterface res = gmcLib.maybeProvideBinderProxyInterface(this, descriptor);
+                mLocalInterface = res != null ? res : NO_LOCAL_INTERFACE;
+                return res;
+            }
+
+        }
         return null;
     }
 
@@ -775,6 +793,13 @@ public final class BinderProxy implements IBinder {
      */
     @RavenwoodKeep
     public void dump(FileDescriptor fd, String[] args) throws RemoteException {
+        IGmsCompatLib gmcLib = GmsCompatLib.get();
+        if (gmcLib != null) {
+            if (gmcLib.maybeInterceptBinderProxyDump(this, fd, args, false)) {
+                return;
+            }
+        }
+
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         data.writeFileDescriptor(fd);
@@ -797,6 +822,13 @@ public final class BinderProxy implements IBinder {
      */
     @RavenwoodKeep
     public void dumpAsync(FileDescriptor fd, String[] args) throws RemoteException {
+        IGmsCompatLib gmcLib = GmsCompatLib.get();
+        if (gmcLib != null) {
+            if (gmcLib.maybeInterceptBinderProxyDump(this, fd, args, true)) {
+                return;
+            }
+        }
+
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         data.writeFileDescriptor(fd);

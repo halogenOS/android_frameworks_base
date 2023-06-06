@@ -20,12 +20,14 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.SystemApi;
 import android.app.AppOpsManager;
+import android.app.compat.gms.GmsCompat;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.ravenwood.annotation.RavenwoodKeepWholeClass;
 import android.util.ExceptionUtils;
 import android.util.Log;
 import android.util.Slog;
 
+import com.android.internal.gmscompat.GmsHooks;
 import com.android.internal.os.BinderCallHeavyHitterWatcher;
 import com.android.internal.os.BinderCallHeavyHitterWatcher.BinderCallHeavyHitterListener;
 import com.android.internal.os.BinderInternal;
@@ -746,7 +748,19 @@ public class Binder implements IBinder {
     public void attachInterface(@Nullable IInterface owner, @Nullable String descriptor) {
         mOwner = owner;
         mDescriptor = descriptor;
+
+        // Interface that is used when obtaining a binder from GmsCore
+        mIsIGmsCallbacks = "com.google.android.gms.common.internal.IGmsCallbacks".equals(descriptor);
+
+        if (GmsCompat.isGmsCore()) {
+            mIsGmsServiceBroker = GmsHooks.GMS_SERVICE_BROKER_INTERFACE_DESCRIPTOR.equals(descriptor);
+            mIsGmsConstellationService = GmsHooks.GMS_CONSTELLATION_SERVICE_INTERFACE_DESCRIPTOR.equals(descriptor);
+        }
     }
+
+    private boolean mIsIGmsCallbacks;
+    private boolean mIsGmsServiceBroker;
+    private boolean mIsGmsConstellationService;
 
     /**
      * Default implementation returns an empty interface name.
@@ -1299,6 +1313,8 @@ public class Binder implements IBinder {
         sWorkSourceProvider = workSourceProvider;
     }
 
+    private volatile int mPreviousUid;
+
     // Entry point from android_util_Binder.cpp's onTransact.
     @UnsupportedAppUsage
     private boolean execTransact(int code, long dataObj, long replyObj,
@@ -1318,6 +1334,16 @@ public class Binder implements IBinder {
         final int callingUid = data.isForRpc() ? -1 : Binder.getCallingUid();
         final long origWorkSource = callingUid == -1
                 ? -1 : ThreadLocalWorkSource.setUid(callingUid);
+
+        if (GmsCompat.isEnabled() && callingUid != -1) {
+            if (callingUid != mPreviousUid) {
+                // harmless race
+                mPreviousUid = callingUid;
+                if (Process.isApplicationUid(callingUid)) {
+                    GmsHooks.onBinderTransaction(Binder.getCallingPid(), callingUid);
+                }
+            }
+        }
 
         try {
             return execTransactInternal(code, data, reply, flags, callingUid);
@@ -1346,7 +1372,14 @@ public class Binder implements IBinder {
         // Log any exceptions as warnings, don't silently suppress them.
         // If the call was {@link IBinder#FLAG_ONEWAY} then these exceptions
         // disappear into the ether.
+        data.mCallMaybeOverrideBinder = mIsIGmsCallbacks;
+        boolean onBeginGmsServiceBrokerCallRet = false;
         try {
+            if (mIsGmsServiceBroker) {
+                onBeginGmsServiceBrokerCallRet = GmsHooks.onBeginGmsServiceBrokerCall(code, data);
+            } else if (mIsGmsConstellationService) {
+                GmsHooks.onBeginGmsConstellationServiceCall(code, data);
+            }
             // TODO(b/299356201) - this logic should not be in Java - it should be in native
             // code in libbinder so that it works for all binder users.
             final BinderCallHeavyHitterWatcher heavyHitterWatcher = sHeavyHitterWatcher;
@@ -1394,6 +1427,10 @@ public class Binder implements IBinder {
             }
             res = true;
         } finally {
+            data.mCallMaybeOverrideBinder = false;
+            if (onBeginGmsServiceBrokerCallRet) {
+                GmsHooks.onEndGmsServiceBrokerCall();
+            }
             if (observer != null) {
                 // The parcel RPC headers have been called during onTransact so we can now access
                 // the worksource UID from the parcel.
