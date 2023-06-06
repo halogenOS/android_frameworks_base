@@ -67,6 +67,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
+import android.ext.PackageId;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -1183,6 +1184,12 @@ public class ParsingPackageUtils {
         if (PackageManager.ENABLE_SHARED_UID_MIGRATION) {
             int max = anInteger(0, R.styleable.AndroidManifest_sharedUserMaxSdkVersion, sa);
             leaving = (max != 0) && (max < Build.VERSION.RESOURCES_SDK_INT);
+
+            if (android.ext.PackageId.GMS_CORE_NAME.equals(pkg.getPackageName())) {
+                // Ignore sharedUid for fresh installs of GmsCore. On existing installs, sharedUid
+                // is needed for access to GSF.
+                leaving = true;
+            }
         }
 
         return input.success(pkg
@@ -2443,6 +2450,13 @@ public class ParsingPackageUtils {
             }
         }
 
+        if (gmsCompatClientServiceSupplier != null) {
+            ParsedService gmsCompatClientSvc = gmsCompatClientServiceSupplier.apply(pkg);
+            if (gmsCompatClientSvc != null) {
+                pkg.addService(gmsCompatClientSvc);
+            }
+        }
+
         if (hasServiceOrder) {
             pkg.sortServices();
         }
@@ -2451,6 +2465,8 @@ public class ParsingPackageUtils {
 
         return input.success(pkg);
     }
+
+    public static Function<ParsingPackage, ParsedService> gmsCompatClientServiceSupplier;
 
     // Must be run after the entire {@link ApplicationInfo} has been fully processed and after
     // every activity info has had a chance to set it from its attributes.
@@ -2559,6 +2575,12 @@ public class ParsingPackageUtils {
             pkg.setEnabled(false);
         } else if (enabledOverride == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
             pkg.setEnabled(true);
+        }
+
+        if (PackageId.GSF_NAME.equals(pkg.getPackageName())) {
+            // GSF is a hasCode=false package on GMS Android 15+. GrapheneOS doesn't include GSF as a
+            // preinstalled app, so pre-35 GSF remains after update from pre-Android 15.
+            pkg.setDeclaredHavingCode(false);
         }
     }
 

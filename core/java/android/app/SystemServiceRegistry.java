@@ -45,6 +45,7 @@ import android.app.appfunctions.AppFunctionManagerConfiguration;
 import android.app.appfunctions.IAppFunctionManager;
 import android.app.appsearch.AppSearchManagerFrameworkInitializer;
 import android.app.blob.BlobStoreManagerFrameworkInitializer;
+import android.app.compat.gms.GmsCompat;
 import android.app.contentrestriction.ContentRestrictionManager;
 import android.app.contentrestriction.IContentRestrictionManager;
 import android.app.contentsafety.ContentSafetyManager;
@@ -327,6 +328,7 @@ import com.android.internal.app.IBatteryStats;
 import com.android.internal.app.ISoundTriggerService;
 import com.android.internal.app.IVoiceInteractionManagerService;
 import com.android.internal.appwidget.IAppWidgetService;
+import com.android.internal.gmscompat.sysservice.GmcUserManager;
 import com.android.internal.graphics.fonts.IFontManager;
 import com.android.internal.net.INetworkWatchlistManager;
 import com.android.internal.os.IBinaryTransparencyService;
@@ -666,7 +668,17 @@ public final class SystemServiceRegistry {
             @Override
             public InputMethodManager getService(ContextImpl ctx) {
                 return InputMethodManager.forContext(ctx.getOuterContext());
-            }});
+            }
+
+            @Override
+            public void clearCache(ContextImpl ctx) {
+                // clearCache() is expected to be called at an early phase of app process init,
+                // before InputMethodManager is fetched
+                if (!InputMethodManager.isInstanceCacheEmpty()) {
+                    Log.e(TAG, "ignoring clearCache() for INPUT_METHOD_SERVICE");
+                }
+            }
+        });
 
         registerService(Context.TEXT_SERVICES_MANAGER_SERVICE, TextServicesManager.class,
                 new CachedServiceFetcher<TextServicesManager>() {
@@ -1036,6 +1048,11 @@ public final class SystemServiceRegistry {
             public UserManager createService(ContextImpl ctx) throws ServiceNotFoundException {
                 IBinder b = ServiceManager.getServiceOrThrow(Context.USER_SERVICE);
                 IUserManager service = IUserManager.Stub.asInterface(b);
+
+                if (GmsCompat.isEnabled()) {
+                    return new GmcUserManager(ctx, service);
+                }
+
                 return new UserManager(ctx, service);
             }});
 
@@ -2256,6 +2273,15 @@ public final class SystemServiceRegistry {
         return new Object[sServiceCacheSize];
     }
 
+    /** @hide */
+    public static void clearServiceCache(Context ctx) {
+        for (ServiceFetcher fetcher : SYSTEM_SERVICE_FETCHERS.values()) {
+            if (ctx instanceof ContextImpl ctxImpl) {
+                fetcher.clearCache(ctxImpl);
+            }
+        }
+    }
+
     @RavenwoodRedirect
     private static void onUnknownSystemServiceError(String name) {
         if (sEnableServiceNotFoundWtf) {
@@ -2688,6 +2714,8 @@ public final class SystemServiceRegistry {
     static abstract interface ServiceFetcher<T> {
         T getService(ContextImpl ctx);
 
+        void clearCache(ContextImpl ctx);
+
         /**
          * Should this service fetcher support being fetched via {@link #getSystemService(String)},
          * without a Context?
@@ -2823,6 +2851,15 @@ public final class SystemServiceRegistry {
             return ret;
         }
 
+        @Override
+        public void clearCache(ContextImpl ctx) {
+            final Object[] cache = ctx.mServiceCache;
+            synchronized (cache) {
+                cache[mCacheIndex] = null;
+                ctx.mServiceInitializationStateArray[mCacheIndex] = ContextImpl.STATE_UNINITIALIZED;
+            }
+        }
+
         public abstract T createService(ContextImpl ctx) throws ServiceNotFoundException;
 
         // Services that explicitly use a Context can never be fetched without one.
@@ -2872,6 +2909,13 @@ public final class SystemServiceRegistry {
                     }
                 }
                 return mCachedInstance;
+            }
+        }
+
+        @Override
+        public void clearCache(ContextImpl ctx) {
+            synchronized (StaticServiceFetcher.this) {
+                mCachedInstance = null;
             }
         }
 
