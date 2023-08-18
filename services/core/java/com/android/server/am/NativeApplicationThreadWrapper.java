@@ -246,6 +246,7 @@ public class NativeApplicationThreadWrapper implements IApplicationThread {
 
     @Override
     public final void bindApplication(
+            Bundle extraArgs,
             String processName,
             ApplicationInfo appInfo,
             String sdkSandboxClientAppVolumeUuid,

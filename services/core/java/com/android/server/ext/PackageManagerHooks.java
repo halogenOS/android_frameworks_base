@@ -1,13 +1,18 @@
 package com.android.server.ext;
 
-import android.Manifest;
 import android.annotation.Nullable;
 import android.annotation.UserIdInt;
+import android.app.AppBindArgs;
+import android.content.Context;
 import android.content.pm.PackageManagerInternal;
+import android.os.Bundle;
+import android.os.UserHandle;
 import android.util.ArraySet;
+import android.util.Slog;
 
+import com.android.server.pm.Computer;
+import com.android.server.pm.pkg.AndroidPackage;
 import com.android.server.pm.pkg.PackageStateInternal;
-import com.android.server.pm.pkg.parsing.ParsingPackage;
 
 public class PackageManagerHooks {
 
@@ -24,6 +29,50 @@ public class PackageManagerHooks {
             PackageManagerInternal pm, String permName, String packageName, int userId)
     {
         return false;
+    }
+
+    @Nullable
+    public static Bundle getExtraAppBindArgs(Context context, PackageManagerInternal pm,
+                                             String packageName, int appUid, int pid) {
+        if (android.os.Flags.isDevBuild()) {
+            Slog.d("AppBindArgs", "obtaining args for pkgName " + packageName
+                    + ", appUid " + appUid + ", pid " + pid);
+        }
+
+        // Note that:
+        // - app UID differs from process UID for isolated processes
+        // - for android:externalService processes (e.g. WebView processes), app UID and package
+        // name values are client's, not host's
+
+        final int appId = UserHandle.getAppId(appUid);
+        final int userId = UserHandle.getUserId(appUid);
+
+        Computer pmComputer = (Computer) pm.snapshot();
+
+        PackageStateInternal pkgState = pmComputer.getPackageStateInternal(packageName);
+        if (pkgState == null) {
+            return null;
+        }
+
+        if (pkgState.getAppId() != appId) {
+            return null;
+        }
+
+        AndroidPackage pkg = pkgState.getPkg();
+
+        if (pkg == null) {
+            return null;
+        }
+
+        // isSystem() remains true even if isUpdatedSystemApp() is true
+        final boolean isUserApp = !pkgState.isSystem();
+
+        int[] flagsArr = new int[AppBindArgs.FLAGS_ARRAY_LEN];
+
+        var b = new Bundle();
+        b.putIntArray(AppBindArgs.KEY_FLAGS_ARRAY, flagsArr);
+
+        return b;
     }
 
     // Called when AppsFilter decides whether to restrict package visibility
