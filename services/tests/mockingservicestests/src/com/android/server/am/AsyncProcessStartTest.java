@@ -201,7 +201,7 @@ public class AsyncProcessStartTest {
             return null;
         }).when(thread).bindApplication(
                 any(), any(),
-                any(), any(), anyBoolean(),
+                any(), any(), any(), anyBoolean(),
                 any(), any(),
                 any(), any(),
                 any(),
@@ -262,7 +262,7 @@ public class AsyncProcessStartTest {
         mProcessList.handleProcessStartedLocked(app, app.getPid(), /* usingWrapper */ false,
                 /* expectedStartSeq */ 0, /* procAttached */ false);
 
-        app.getThread().bindApplication(PACKAGE, appInfo,
+        app.getThread().bindApplication(null, PACKAGE, appInfo,
                 null, null, false,
                 null,
                 null,

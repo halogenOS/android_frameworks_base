@@ -83,7 +83,7 @@ oneway interface IApplicationThread {
             in CompatibilityInfo compatInfo, int processState);
     @UnsupportedAppUsage
     void scheduleStopService(IBinder token);
-    void bindApplication(in String packageName, in ApplicationInfo info,
+    void bindApplication(in Bundle extraArgs, in String packageName, in ApplicationInfo info,
             in String sdkSandboxClientAppVolumeUuid, in String sdkSandboxClientAppPackage,
             in boolean isSdkInSandbox,
             in ProviderInfoList providerList, in ComponentName testName,

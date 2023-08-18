@@ -1017,6 +1017,7 @@ public final class ActivityThread extends ClientTransactionHandler
         @UnsupportedAppUsage
         AppBindData() {
         }
+        Bundle extraArgs;
         @UnsupportedAppUsage
         LoadedApk info;
         @UnsupportedAppUsage
@@ -1423,6 +1424,7 @@ public final class ActivityThread extends ClientTransactionHandler
         @Override
         @RavenwoodThrow(comment = "See ActivityThread_ravenwood for initialization on Ravenwood")
         public final void bindApplication(
+                Bundle extraArgs,
                 String processName,
                 ApplicationInfo appInfo,
                 String sdkSandboxClientAppVolumeUuid,
@@ -1509,6 +1511,7 @@ public final class ActivityThread extends ClientTransactionHandler
             }
 
             AppBindData data = new AppBindData();
+            data.extraArgs = extraArgs;
             data.processName = processName;
             data.appInfo = appInfo;
             data.sdkSandboxClientAppVolumeUuid = sdkSandboxClientAppVolumeUuid;
@@ -5612,8 +5615,14 @@ public final class ActivityThread extends ClientTransactionHandler
             } else {
                 cl = packageInfo.getClassLoader();
             }
-            service = packageInfo.getAppFactory()
-                    .instantiateService(cl, data.info.name, data.intent);
+            {
+                String className = data.info.name;
+                service = ActivityThreadHooks.instantiateService(className);
+                if (service == null) {
+                    service = packageInfo.getAppFactory()
+                            .instantiateService(cl, className, data.intent);
+                }
+            }
             ContextImpl context = ContextImpl.getImpl(service
                     .createServiceBaseContext(this, packageInfo));
             if (data.info.splitName != null) {
@@ -7972,6 +7981,8 @@ public final class ActivityThread extends ClientTransactionHandler
     @UnsupportedAppUsage
     @RavenwoodThrow(comment = "See ActivityThread_ravenwood for initialization on Ravenwood")
     private void handleBindApplication(AppBindData data) {
+        final Bundle extraAppBindArgs = ActivityThreadHooks.onBind(data);
+
         mDdmSyncStageUpdater.next(Stage.Bind);
 
         // Register the UI Thread as a sensitive thread to the runtime.
@@ -8233,6 +8244,10 @@ public final class ActivityThread extends ClientTransactionHandler
             // Small heap, clamp to the current growth limit and let the heap release
             // pages after the growth limit to the non growth limit capacity. b/18387825
             dalvik.system.VMRuntime.getRuntime().clampGrowthLimit();
+        }
+
+        if (extraAppBindArgs != null) {
+            ActivityThreadHooks.onBind2(appContext, extraAppBindArgs);
         }
 
         // Allow disk access during application and provider setup. This could
