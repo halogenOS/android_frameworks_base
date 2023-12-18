@@ -3455,6 +3455,10 @@
       android:protectionLevel="signature|privileged"
       android:featureFlag="com.android.internal.telephony.flags.new_sim_auth_permission" />
 
+    <!--- @hide -->
+    <permission android:name="android.permission.READ_DEVICE_SERIAL_NUMBER"
+        android:protectionLevel="internal" />
+
     <!-- @SystemApi Allows read access to emergency number information for ongoing calls or SMS
          sessions.
          @hide Used internally. -->
