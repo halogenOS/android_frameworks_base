@@ -512,6 +512,19 @@ class UsbUserPermissionManager {
      * @return {@code true} if caller has permssion
      */
     boolean hasPermission(@NonNull UsbAccessory accessory, String packageName, int pid, int uid) {
+        // keep in sync with res/xml/car_usb_accessory_filter.xml inside Android Auto
+        if ("Android".equals(accessory.getManufacturer())) {
+            switch (accessory.getModel()) {
+                case "Android", "Android Auto", "Android Open Automotive Protocol" -> {
+                    String perm = android.Manifest.permission.MANAGE_USB_ANDROID_AUTO;
+                    if (mContext.checkPermission(perm, pid, uid) == PackageManager.PERMISSION_GRANTED) {
+                        Slog.d(TAG, "allowed Android Auto access to " + accessory);
+                        return true;
+                    }
+                }
+            }
+        }
+
         if (android.hardware.usb.flags.Flags.enablePersistentUsbDevicePermissions()) {
             return hasPermissionInternal(accessory, packageName, pid, uid);
         } else {

@@ -3254,6 +3254,10 @@
     <permission android:name="android.permission.MANAGE_USB"
         android:protectionLevel="signature|privileged" />
 
+    <!--- @hide -->
+    <permission android:name="android.permission.MANAGE_USB_ANDROID_AUTO"
+        android:protectionLevel="internal" />
+
     <!-- Allows an application to manage app accesses for peripheral serial ports
          @hide -->
     <permission android:name="android.permission.MANAGE_SERIAL_PORTS"
