@@ -31,6 +31,7 @@ import android.util.ArraySet;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
 
+import com.android.internal.pm.parsing.pkg.PackageExtIface;
 import com.android.internal.pm.parsing.pkg.ParsedPackage;
 import com.android.internal.pm.pkg.component.ParsedActivity;
 import com.android.internal.pm.pkg.component.ParsedAllowComponentAccessPolicy;
@@ -412,6 +413,8 @@ public interface ParsingPackage {
 
     ParsingPackage setVersionCodeMajor(int vesionCodeMajor);
 
+    long getLongVersionCode();
+
     ParsingPackage setVersionName(String versionName);
 
     ParsingPackage setCompileSdkVersion(int compileSdkVersion);
@@ -630,4 +633,14 @@ public interface ParsingPackage {
      * Returns the intent matching flags.
      */
     int getIntentMatchingFlags();
+
+    boolean isPartiallyDirectBootAware();
+
+    void initPackageParsingHooks();
+
+    default PackageParsingHooks getPackageParsingHooks() {
+        return PackageParsingHooks.DEFAULT;
+    }
+
+    void setPackageExt(@Nullable PackageExtIface ext);
 }

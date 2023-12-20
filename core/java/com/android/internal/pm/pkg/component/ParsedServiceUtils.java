@@ -204,6 +204,8 @@ public class ParsedServiceUtils {
             service.setExported(hasIntentFilters);
         }
 
+        pkg.getPackageParsingHooks().amendParsedService(service);
+
         return input.success(service);
     }
 }
