@@ -48,6 +48,7 @@ import android.util.SparseArray;
 import android.util.SparseIntArray;
 
 import com.android.internal.R;
+import com.android.internal.pm.parsing.pkg.PackageExtIface;
 import com.android.internal.pm.pkg.component.ParsedActivity;
 import com.android.internal.pm.pkg.component.ParsedAllowComponentAccessPolicy;
 import com.android.internal.pm.pkg.component.ParsedApexSystemService;
@@ -1554,6 +1555,10 @@ public interface AndroidPackage {
      * @hide
      */
     int getIntentMatchingFlags();
+
+    /** @hide */
+    @Immutable.Ignore
+    PackageExtIface ext();
 
     /**
      * Returns true if this application has any component that should run in

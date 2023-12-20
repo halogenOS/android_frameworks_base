@@ -4,6 +4,8 @@
     </staging-public-group>
 
     <staging-public-group type="bool" first-id="0x018bf000">
+        <!-- @hide -->
+        <public name="setting_default_allow_disabling_hardening_via_app_compat_config"/>
     </staging-public-group>
 
     <staging-public-group type="drawable" first-id="0x0194f000">
