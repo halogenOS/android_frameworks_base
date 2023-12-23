@@ -7142,6 +7142,24 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
             return gosPackageStatePmHooks.set(callingUid, callingPid, packageName, userId,
                     updatedPs, editorFlags);
         }
+
+        @Override
+        public void sendBootCompletedBroadcastToPackage(String packageName, boolean includeStopped,
+                                                    int userId) {
+            mContext.enforceCallingPermission(Manifest.permission.GRANT_RUNTIME_PERMISSIONS, null);
+
+            if (userId != UserHandle.getUserId(Binder.getCallingUid())) {
+                throw new SecurityException("userId mismatch");
+            }
+
+            final long token = Binder.clearCallingIdentity();
+            try {
+                mBroadcastHelper.sendBootCompletedBroadcastToSystemApp(packageName, includeStopped,
+                        userId);
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
     }
 
     @VisibleForTesting
