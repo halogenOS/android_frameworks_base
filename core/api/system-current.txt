@@ -388,6 +388,7 @@ package android {
     field public static final String READ_PRINT_SERVICES = "android.permission.READ_PRINT_SERVICES";
     field public static final String READ_PRINT_SERVICE_RECOMMENDATIONS = "android.permission.READ_PRINT_SERVICE_RECOMMENDATIONS";
     field public static final String READ_PRIVILEGED_PHONE_STATE = "android.permission.READ_PRIVILEGED_PHONE_STATE";
+    field public static final String READ_PRIVILEGED_PHONE_STATE_ANDROID_AUTO = "android.permission.READ_PRIVILEGED_PHONE_STATE_ANDROID_AUTO";
     field public static final String READ_PROJECTION_STATE = "android.permission.READ_PROJECTION_STATE";
     field @FlaggedApi("android.companion.task_continuity") public static final String READ_REMOTE_TASKS = "android.permission.READ_REMOTE_TASKS";
     field public static final String READ_RESTRICTED_STATS = "android.permission.READ_RESTRICTED_STATS";
