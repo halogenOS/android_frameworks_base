@@ -105,6 +105,8 @@ constructor(
 
     override fun isAvailable(): Boolean = dataInteractor.isAvailable()
 
+    override fun isAllowedWhenLocked(action: QSTileImpl.Action): Boolean = true
+
     override fun getTileLabel() = mContext.getString(config.uiConfig.labelRes)
 
     override fun handleClick(expandable: Expandable?) {
