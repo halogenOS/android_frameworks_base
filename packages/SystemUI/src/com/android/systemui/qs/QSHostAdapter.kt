@@ -30,6 +30,7 @@ import com.android.systemui.qs.pipeline.domain.interactor.CurrentTilesInteractor
 import com.android.systemui.qs.pipeline.shared.QSPipelineFlagsRepository
 import com.android.systemui.qs.pipeline.shared.TileSpec
 import com.android.systemui.shade.ShadeDisplayAware
+import com.android.systemui.statusbar.policy.KeyguardStateController
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -52,6 +53,7 @@ constructor(
     @ShadeDisplayAware private val context: Context,
     private val tileServiceRequestControllerBuilder: TileServiceRequestController.Builder,
     @Application private val scope: CoroutineScope,
+    private val keyguardStateController_: KeyguardStateController,
     dumpManager: DumpManager,
 ) : QSHost {
 
@@ -70,6 +72,8 @@ constructor(
     override fun getTiles(): Collection<QSTile> {
         return interactor.currentQSTiles
     }
+
+    override fun getKeyguardStateController() = keyguardStateController_
 
     override fun getSpecs(): List<String> {
         return interactor.currentTilesSpecs.map { it.spec }
