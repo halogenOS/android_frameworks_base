@@ -94,6 +94,7 @@ class HighBrightnessModeController {
     private boolean mIsTimeAvailable = false;
     private boolean mIsAutoBrightnessEnabled = false;
     private boolean mIsAutoBrightnessOffByState = false;
+    private boolean mForceAllowHBM = false;
 
     // The following values are typically reported by DisplayPowerController.
     // This value includes brightness throttling effects.
@@ -401,9 +402,9 @@ class HighBrightnessModeController {
             // Assumed that HBM is being handled externally.
             return mHbmData != null && mBrightness > mHbmData.transitionPoint;
         }
-        return !mIsHdrLayerPresent
+        return mForceAllowHBM || ( !mIsHdrLayerPresent
                 && (mIsAutoBrightnessEnabled && mIsTimeAvailable && mIsInAllowedAmbientRange
-                && !mIsBlockedByLowPowerMode);
+                && !mIsBlockedByLowPowerMode) );
     }
 
     /**
@@ -704,6 +705,8 @@ class HighBrightnessModeController {
     private final class SettingsObserver extends ContentObserver {
         private final Uri mLowPowerModeSetting = Settings.Global.getUriFor(
                 Settings.Global.LOW_POWER_MODE);
+        private final Uri mForceAllowHBMSetting = Settings.Global.getUriFor(
+                Settings.Global.FORCE_ALLOW_HBM);
         private boolean mStarted;
 
         SettingsObserver(Handler handler) {
@@ -712,15 +715,23 @@ class HighBrightnessModeController {
 
         @Override
         public void onChange(boolean selfChange, Uri uri) {
-            updateLowPower();
+            if (mLowPowerModeSetting.equals(uri)) {
+                updateLowPower();
+            }
+            if (mForceAllowHBMSetting.equals(uri)) {
+                updateForceAllowHBM();
+            }
         }
 
         void startObserving() {
             if (!mStarted) {
                 mContext.getContentResolver().registerContentObserver(mLowPowerModeSetting,
                         false /*notifyForDescendants*/, this, UserHandle.USER_ALL);
+                mContext.getContentResolver().registerContentObserver(mForceAllowHBMSetting,
+                        false /*notifyForDescendants*/, this, UserHandle.USER_ALL);
                 mStarted = true;
                 updateLowPower();
+                updateForceAllowHBM();
             }
         }
 
@@ -745,9 +756,19 @@ class HighBrightnessModeController {
             updateHbmMode();
         }
 
+        private void updateForceAllowHBM() {
+            mForceAllowHBM = isHBMForceAllowed();
+            updateHbmMode();
+        }
+
         private boolean isLowPowerMode() {
             return Settings.Global.getInt(
                     mContext.getContentResolver(), Settings.Global.LOW_POWER_MODE, 0) != 0;
+        }
+
+        private boolean isHBMForceAllowed() {
+            return Settings.Global.getInt(
+                    mContext.getContentResolver(), Settings.Global.FORCE_ALLOW_HBM, 0) != 0;
         }
     }
 
