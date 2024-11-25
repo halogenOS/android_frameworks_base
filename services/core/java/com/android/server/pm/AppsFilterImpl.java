@@ -47,6 +47,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManagerInternal;
 import android.content.pm.SigningDetails;
 import android.content.pm.UserInfo;
+import android.ext.PackageId;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.os.SystemProperties;
@@ -592,7 +593,8 @@ public final class AppsFilterImpl extends AppsFilterLocked implements Watchable,
             }
         }
 
-        final boolean isGmsApp = GmsCompat.isEnabledFor(PackageExt.get(newPkg).getPackageId(), newPkgSetting.isPrivileged());
+        final int packageId = PackageExt.get(newPkg).getPackageId();
+        final boolean isGmsApp = GmsCompat.isEnabledFor(packageId, newPkgSetting.isPrivileged());
 
         final boolean newIsForceQueryable;
         synchronized (mForceQueryableLock) {
@@ -600,6 +602,7 @@ public final class AppsFilterImpl extends AppsFilterLocked implements Watchable,
                             /* shared user that is already force queryable */
                             || newPkgSetting.isForceQueryableOverride() /* adb override */
                             || isGmsApp
+                            || packageId == PackageId.G_TEXT_TO_SPEECH
                             || (newPkgSetting.isSystem() && (mSystemAppsQueryable
                             || newPkg.isForceQueryable()
                             || ArrayUtils.contains(mForceQueryableByDevicePackageNames,
