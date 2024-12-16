@@ -206,6 +206,16 @@ cc_library_static {
     apex_available: ["com.android.webapp"],
 }
 
+java_library_host {
+    name: "aapt2_proto_java",
+    srcs: [
+        "*.proto",
+    ],
+    proto: {
+        type: "full",
+    },
+}
+
 // ==========================================================
 // Build the host tests: aapt2_tests
 // ==========================================================
