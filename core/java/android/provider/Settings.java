@@ -65,6 +65,7 @@ import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.ext.KnownSystemPackage;
 import android.location.ILocationManager;
 import android.location.LocationManager;
 import android.media.AudioManager;
@@ -3757,7 +3758,9 @@ public final class Settings {
             mReadableFieldsWithMaxTargetSdk = new ArrayMap<>();
             mReadableFieldsWithRedactedValue = new ArrayMap<>();
             getPublicSettingsForClass(callerClass, mAllFields, mReadableFields,
-                    mReadableFieldsWithMaxTargetSdk, mReadableFieldsWithRedactedValue);
+                    mReadableFieldsWithMaxTargetSdk, mReadableFieldsWithRedactedValue,
+                    // skip obtaining protectedSettings map, it's not needed for NameValueCache
+                    null);
         }
 
         // Returns last path component of the relevant Uri.
@@ -4359,10 +4362,55 @@ public final class Settings {
         String redactedValue() default "";
     }
 
+    @Target({ ElementType.FIELD })
+    @Retention(RetentionPolicy.RUNTIME)
+    private @interface Protected {
+        // read() and readWrite() are required to be empty if immutableValue is non-empty
+        String immutableValue() default "";
+        // Ignored if immutableValue is non-empty
+        boolean restrictReads() default true;
+        // IDs of system packages that are allowed read-only access. Should be empty if
+        // immutableValue is non-empty or restrictReads is false.
+        @KnownSystemPackage.Enum int[] read() default {};
+        // IDs of system packages that are allowed read and write access. Should be empty if
+        // immutableValue is non-empty
+        @KnownSystemPackage.Enum int[] readWrite() default {};
+    }
+
+    /** @hide */
+    public record ProtectedSetting(String key,
+                                   @Nullable String immutableValue,
+                                   boolean restrictReads,
+                                   @KnownSystemPackage.Enum int[] readableBy,
+                                   @KnownSystemPackage.Enum int[] readWritableBy) {
+
+        static ProtectedSetting fromAnnotation(String key, Protected anno) {
+            int[] readableBy = anno.read();
+            int[] readWritableBy = anno.readWrite();
+
+            String immutableValue = anno.immutableValue();
+            if (!immutableValue.isEmpty()) {
+                if (readableBy.length != 0 || readWritableBy.length != 0) {
+                    throw new IllegalArgumentException(key);
+                }
+                return new ProtectedSetting(key, immutableValue, false, readableBy, readWritableBy);
+            }
+
+            boolean restrictReads = anno.restrictReads();
+            if (!restrictReads && readableBy.length != 0) {
+                throw new IllegalArgumentException(key);
+            }
+
+            return new ProtectedSetting(key, null, anno.restrictReads(),
+                    readableBy, readWritableBy);
+        }
+    }
+
     private static <T extends NameValueTable> void getPublicSettingsForClass(
             Class<T> callerClass, Set<String> allKeys, Set<String> readableKeys,
             ArrayMap<String, Integer> keysWithMaxTargetSdk,
-            ArrayMap<String, String> keysWithRedactedValue) {
+            ArrayMap<String, String> keysWithRedactedValue,
+            @Nullable ArrayMap<String, ProtectedSetting> protectedSettings) {
         final Field[] allFields = callerClass.getDeclaredFields();
         try {
             for (int i = 0; i < allFields.length; i++) {
@@ -4374,11 +4422,11 @@ public final class Settings {
                 if (!value.getClass().equals(String.class)) {
                     continue;
                 }
-                allKeys.add((String) value);
+                final String key = (String) value;
+                allKeys.add(key);
                 final Readable annotation = field.getAnnotation(Readable.class);
 
                 if (annotation != null) {
-                    final String key = (String) value;
                     final int maxTargetSdk = annotation.maxTargetSdk();
                     final String redactedValue = annotation.redactedValue();
                     readableKeys.add(key);
@@ -4387,6 +4435,13 @@ public final class Settings {
                     }
                     if (redactedValue != null && !redactedValue.isEmpty()) {
                         keysWithRedactedValue.put(key, redactedValue);
+                    }
+                }
+
+                if (protectedSettings != null) {
+                    final Protected anno = field.getAnnotation(Protected.class);
+                    if (anno != null) {
+                        protectedSettings.put(key, ProtectedSetting.fromAnnotation(key, anno));
                     }
                 }
             }
@@ -4612,9 +4667,10 @@ public final class Settings {
         /** @hide */
         public static void getPublicSettings(Set<String> allKeys, Set<String> readableKeys,
                 ArrayMap<String, Integer> readableKeysWithMaxTargetSdk,
-                ArrayMap<String, String> readableKeysWithRedactedValue) {
+                ArrayMap<String, String> readableKeysWithRedactedValue,
+                ArrayMap<String, ProtectedSetting> protectedSettings) {
             getPublicSettingsForClass(System.class, allKeys, readableKeys,
-                    readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue);
+                    readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue, protectedSettings);
         }
 
         /**
@@ -7609,9 +7665,10 @@ public final class Settings {
         /** @hide */
         public static void getPublicSettings(Set<String> allKeys, Set<String> readableKeys,
                 ArrayMap<String, Integer> readableKeysWithMaxTargetSdk,
-                ArrayMap<String, String> readableKeysWithRedactedValue) {
+                ArrayMap<String, String> readableKeysWithRedactedValue,
+                ArrayMap<String, ProtectedSetting> protectedSettings) {
             getPublicSettingsForClass(Secure.class, allKeys, readableKeys,
-                    readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue);
+                    readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue, protectedSettings);
         }
 
         /**
@@ -19738,14 +19795,15 @@ public final class Settings {
         /** @hide */
         public static void getPublicSettings(Set<String> allKeys, Set<String> readableKeys,
                 ArrayMap<String, Integer> readableKeysWithMaxTargetSdk,
-                ArrayMap<String, String> readableKeysWithRedactedValue) {
+                ArrayMap<String, String> readableKeysWithRedactedValue,
+                ArrayMap<String, ProtectedSetting> protectedSettings) {
             getPublicSettingsForClass(Global.class, allKeys, readableKeys,
-                    readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue);
+                    readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue, protectedSettings);
             // Add Global.Wearable keys on watches.
             if (ActivityThread.currentApplication().getApplicationContext().getPackageManager()
                     .hasSystemFeature(PackageManager.FEATURE_WATCH)) {
                 getPublicSettingsForClass(Global.Wearable.class, allKeys, readableKeys,
-                        readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue);
+                        readableKeysWithMaxTargetSdk, readableKeysWithRedactedValue, protectedSettings);
             }
         }
 
