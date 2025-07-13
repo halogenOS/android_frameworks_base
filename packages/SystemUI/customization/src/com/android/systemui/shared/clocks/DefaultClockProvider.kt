@@ -73,7 +73,9 @@ constructor(
         val clockSettings = settings.copy(axes = ClockAxisStyle(fontAxes))
         val typefaceCache =
             TypefaceCache<Unit>(buffers.infraMessageBuffer, NUM_CLOCK_FONT_ANIMATION_STEPS) {
-                FLEX_TYPEFACE
+                Typeface.create(resources.getString(
+                    com.android.internal.R.string.config_clockFontFamily
+                ), Typeface.NORMAL)
             }
         return FlexClockController(
             FlexClockContext(
@@ -120,10 +122,5 @@ constructor(
         // 750ms @ 120hz -> 90 frames of animation
         // In practice, 30 looks good enough and limits our memory usage
         const val NUM_CLOCK_FONT_ANIMATION_STEPS = 30
-
-        val FLEX_TYPEFACE: Typeface by lazy {
-            // TODO(b/364680873): Move constant to config_clockFontFamily when shipping
-            Typeface.create("google-sans-flex-clock", Typeface.NORMAL)
-        }
     }
 }
