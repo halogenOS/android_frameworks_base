@@ -20,6 +20,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.hardware.display.DisplayManager
+import android.media.MediaCodecList
+import android.media.MediaFormat
 import android.media.projection.StopReason
 import android.os.Build
 import android.os.Bundle
@@ -38,6 +40,7 @@ import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Switch
 import androidx.annotation.LayoutRes
+import com.android.systemui.Prefs
 import com.android.systemui.mediaprojection.MediaProjectionCaptureTarget
 import com.android.systemui.mediaprojection.MediaProjectionMetricsLogger
 import com.android.systemui.mediaprojection.appselector.MediaProjectionAppSelectorActivity
@@ -189,6 +192,12 @@ class ScreenRecordPermissionContentManager(
             audioSwitch.isChecked = true
         }
 
+        // Disable HEVC when hardware accelerated codec is not available
+        if (!hasHevcHwEncoder()) {
+            Prefs.putInt(containerView.context, PREF_HEVC, 0)
+            containerView.requireViewById<View>(R.id.show_hevc).visibility = View.GONE
+        }
+
         // disable redundant Touch & Hold accessibility action for Switch Access
         options.accessibilityDelegate =
             object : View.AccessibilityDelegate() {
@@ -251,6 +260,24 @@ class ScreenRecordPermissionContentManager(
         )
     }
 
+    private fun hasHevcHwEncoder(): Boolean {
+        val mediaCodecList = MediaCodecList(MediaCodecList.REGULAR_CODECS)
+
+        for (codecInfo in mediaCodecList.getCodecInfos()) {
+            if (!codecInfo.isEncoder() || !codecInfo.isHardwareAccelerated()) {
+                continue
+            }
+
+            for (type in codecInfo.getSupportedTypes()) {
+                if (type.equals(MediaFormat.MIMETYPE_VIDEO_HEVC, ignoreCase = true)) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     private inner class CaptureTargetResultReceiver :
         ResultReceiver(Handler(Looper.getMainLooper())) {
         override fun onReceiveResult(resultCode: Int, resultData: Bundle) {
@@ -278,6 +305,8 @@ class ScreenRecordPermissionContentManager(
         private const val DELAY_MS: Long = 3000
         private const val NO_DELAY: Long = 100
         private const val INTERVAL_MS: Long = 1000
+
+        private const val PREF_HEVC = "screenrecord_use_hevc"
 
         fun createOptionList(displayManager: DisplayManager): List<ScreenShareOption> {
             val connectedDisplays = getConnectedDisplays(displayManager)
