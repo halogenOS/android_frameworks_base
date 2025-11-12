@@ -32,8 +32,8 @@ class ConvertCommand : public Command {
     SetDescription("Converts an apk between binary and proto formats.");
     AddRequiredFlag("-o", "Output path", &output_path_, Command::kPath);
     AddOptionalFlag("--output-format", android::base::StringPrintf("Format of the output. "
-            "Accepted values are '%s' and '%s'. When not set, defaults to '%s'.",
-        kOutputFormatProto, kOutputFormatBinary, kOutputFormatBinary), &output_format_);
+            "Accepted values are '%s', '%s' and '%s'. When not set, defaults to '%s'.",
+        kOutputFormatProto, kOutputFormatProtoAdevtool, kOutputFormatBinary, kOutputFormatBinary), &output_format_);
     AddOptionalSwitch(
         "--enable-sparse-encoding",
         "Enables sparse encoding of resource entries.\n"
@@ -82,6 +82,7 @@ class ConvertCommand : public Command {
 
  private:
   const static char* kOutputFormatProto;
+  const static char* kOutputFormatProtoAdevtool;
   const static char* kOutputFormatBinary;
 
   TableFlattenerOptions table_flattener_options_;
@@ -97,7 +98,7 @@ class ConvertCommand : public Command {
 
 int Convert(IAaptContext* context, LoadedApk* input, IArchiveWriter* output_writer,
             ApkFormat output_format,TableFlattenerOptions table_flattener_options,
-            XmlFlattenerOptions xml_flattener_options);
+            XmlFlattenerOptions xml_flattener_options, bool for_adevtool);
 
 }  // namespace aapt
 
