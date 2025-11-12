@@ -19,6 +19,7 @@
 
 #include <set>
 
+#include "BriefPackageInfo.pb.h"
 #include "Configuration.pb.h"
 #include "ResourceTable.h"
 #include "ResourceValues.h"

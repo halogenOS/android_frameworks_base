@@ -191,6 +191,7 @@ cc_library_static {
         "xml/XmlPullParser.cpp",
         "xml/XmlUtil.cpp",
         "ApkInfo.proto",
+        "BriefPackageInfo.proto",
         "Configuration.proto",
         "Resources.proto",
         "ResourceMetadata.proto",
@@ -266,6 +267,7 @@ genrule {
     tools: [":soong_zip"],
     srcs: [
         "ApkInfo.proto",
+        "BriefPackageInfo.proto",
         "Configuration.proto",
         "ResourcesInternal.proto",
         "ResourceMetadata.proto",
