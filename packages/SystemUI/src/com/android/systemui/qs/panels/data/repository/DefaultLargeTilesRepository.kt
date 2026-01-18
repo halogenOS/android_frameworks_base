@@ -34,18 +34,15 @@ interface DefaultLargeTilesRepository {
 @SuppressLint("ShadeDisplayAwareContextChecker")
 class DefaultLargeTilesRepositoryImpl @Inject constructor(@Main resources: Resources) :
     DefaultLargeTilesRepository {
-    override val defaultLargeTiles =
-        if (QsSplitInternetTile.isEnabled) {
-            resources
-                .getStringArray(R.array.quick_settings_large_tiles_default_split)
-                .map(TileSpec::create)
-                .toSet()
-        } else {
-            setOf(
-                TileSpec.create("internet"),
-                TileSpec.create("bt"),
-                TileSpec.create("dnd"),
-                TileSpec.create("cast"),
+    override val defaultLargeTiles: Set<TileSpec> =
+        resources
+            .getStringArray(
+                if (QsSplitInternetTile.isEnabled) {
+                    R.array.quick_settings_large_tiles_default_split
+                } else {
+                    R.array.quick_settings_tiles_default_large
+                }
             )
-        }
+            .map(TileSpec::create)
+            .toSet()
 }

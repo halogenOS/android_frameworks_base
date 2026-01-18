@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright (C) 2026 The halogenOS Project -->
+<resources>
+    <!-- Tiles that should be displayed as large (2 columns) by default -->
+    <string-array name="quick_settings_tiles_default_large" translatable="false">
+        <item>internet</item>
+        <item>bt</item>
+        <item>dnd</item>
+        <item>cast</item>
+    </string-array>
+</resources>
