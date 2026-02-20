@@ -3179,4 +3179,12 @@ class PermissionService(private val service: AccessCheckingService) :
 
         private const val MAX_ALLOWED_BPF_PERMISSIONS = Int.SIZE_BITS
     }
+
+    override fun updatePermissions(pkgState: PackageState, userId: Int) {
+        service.mutateState {
+            with(policy) {
+                evaluateAllPermissionStatesForPackageAndUser(pkgState, userId, null)
+            }
+        }
+    }
 }

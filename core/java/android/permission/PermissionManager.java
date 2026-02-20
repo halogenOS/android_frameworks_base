@@ -2282,4 +2282,13 @@ public final class PermissionManager {
                     + '}';
         }
     }
+
+    /** @hide */
+    public void updatePermissionStateAndInvalidateCache(@NonNull String packageName, int userId) {
+        try {
+            mPermissionManager.updatePermissionStateAndInvalidateCache(packageName, userId);
+        } catch (RemoteException e) {
+            e.rethrowFromSystemServer();
+        }
+    }
 }
