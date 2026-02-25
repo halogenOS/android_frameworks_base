@@ -33,7 +33,7 @@ class GmsCoreHooks extends GmsCompatPackageHooks {
             return superRes;
         }
 
-        if (android.os.Flags.isDevBuild()) {
+        if (android.os.Build.IS_ENG) {
             if (SystemProperties.getBoolean("sys.gmscore_grant." + permission, false)) {
                 return PERMISSION_OVERRIDE_GRANT;
             }
