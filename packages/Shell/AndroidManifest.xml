@@ -1157,6 +1157,9 @@
     <uses-permission android:name="android.permission.ACCESS_ATTENTION_LISTENER"
         android:featureFlag="com.android.input.flags.enable_attention_service_apis" />
 
+    <!--  Permission required for GrapheneOS package state updates -->
+    <uses-permission android:name="android.permission.UPDATE_AND_INVALIDATE_PERMISSION_STATE" />
+
     <application
         android:label="@string/app_label"
         android:theme="@android:style/Theme.DeviceDefault.DayNight"
