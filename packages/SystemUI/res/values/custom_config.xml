@@ -51,4 +51,7 @@
           <item>2047,46</item>
           <item>4095,0</item>
     </string-array>
+
+    <!-- Whether to show the volume panel on the left side of the screen. -->
+    <bool name="config_volumePanelOnLeft">false</bool>
 </resources>
