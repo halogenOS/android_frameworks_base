@@ -206,7 +206,7 @@ public class NotificationIconContainer extends ViewGroup {
             View child = getChildAt(i);
             measureChild(child, childWidthSpec, heightMeasureSpec);
             if (i <= maxVisibleIcons) {
-                totalWidth += child.getMeasuredWidth();
+                totalWidth += (int) (child.getMeasuredWidth() * getDrawingScale(child));
             }
         }
         final int measuredWidth = resolveSize(totalWidth, widthMeasureSpec);
