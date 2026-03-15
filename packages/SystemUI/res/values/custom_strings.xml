@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: The halogenOS Project -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<resources>
+    <!-- Charging limit QS tile -->
+    <string name="quick_settings_charging_limit_label">Charge limit</string>
+    <string name="quick_settings_charging_limit_off">Off</string>
+</resources>

@@ -572,6 +572,7 @@ android_library {
         "SurfaceEffectsComposeLib",
         "uilatencystats_flags_core_java_lib",
         "personalcontext_ace_visualizer",
+        "custom.system.service.charging",
     ],
     enable_ksp: true,
     annotation_processor_flags: [

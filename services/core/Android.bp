@@ -19,7 +19,9 @@ filegroup {
 
 filegroup {
     name: "services.core-sources",
-    srcs: ["java/**/*.java"],
+    srcs: [
+        "java/**/*.java",
+    ],
     exclude_srcs: [
         ":services.core-sources-am-wm",
     ],
@@ -274,6 +276,8 @@ java_library_static {
         "android.content.flags-aconfig-java",
         "trust_token",
         "ambientcontext_flags_lib",
+        "custom.system.service.charging",
+        "vendor.lineage.health-V2-java",
     ],
     javac_shard_size: 50,
     javacflags: [
