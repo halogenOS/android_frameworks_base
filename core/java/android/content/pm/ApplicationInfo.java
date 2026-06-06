@@ -3221,4 +3221,32 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
     public @NonNull AppInfoExt ext() {
         return ext;
     }
+
+    private static volatile Boolean hasPlayStoreSourceStamp;
+
+    /** @hide */
+    public boolean hasPlayStoreSourceStamp() {
+        Boolean cache = hasPlayStoreSourceStamp;
+        if (cache != null) {
+            return cache.booleanValue();
+        }
+
+        var apkPaths = new ArrayList<String>();
+        apkPaths.add(Objects.requireNonNull(sourceDir));
+        String[] splits = splitSourceDirs;
+        if (splits != null) {
+            for (String splitPath : splits) {
+                apkPaths.add(Objects.requireNonNull(splitPath));
+            }
+        }
+        byte[] playStoreSourceStampCertDigest = java.util.HexFormat.of().parseHex(
+                "3257d599a49d2c961a471ca9843f59d341a405884583fc087df4237b733bbd6d");
+        boolean result = android.util.apk.SourceStampVerifier
+                .verify(apkPaths, /* requiredSourceStamp */ playStoreSourceStampCertDigest)
+                .isVerified();
+        hasPlayStoreSourceStamp = Boolean.valueOf(result);
+        android.util.Log.d("PlayStoreSourceStampCheck",
+                "result for " + packageName + ": " + result);
+        return result;
+    }
 }
