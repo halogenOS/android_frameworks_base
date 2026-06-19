@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <staging-public-group type="array" first-id="0x0195f000">
+    </staging-public-group>
+
+    <staging-public-group type="bool" first-id="0x018bf000">
+    </staging-public-group>
+
+    <staging-public-group type="drawable" first-id="0x0194f000">
+    </staging-public-group>
+
+    <staging-public-group type="integer" first-id="0x018ef000">
+    </staging-public-group>
+
+    <staging-public-group type="string" first-id="0x0198f000">
+    </staging-public-group>
+</resources>
