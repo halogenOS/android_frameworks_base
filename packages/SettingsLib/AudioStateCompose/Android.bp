@@ -1,0 +1,31 @@
+//
+// SPDX-FileCopyrightText: The halogenOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+package {
+    default_applicable_licenses: ["frameworks_base_license"],
+}
+
+// Compose rendering of an AudioStateSnapshot for the SystemUI Quick Settings dialog and the
+// Settings "Audio information" page.
+android_library {
+    name: "AudioStateCompose",
+
+    srcs: ["src/**/*.kt"],
+    use_resource_processor: true,
+    static_libs: [
+        "SettingsLibAudioState",
+        "androidx.compose.material3_material3",
+        "androidx.compose.material_material-icons-extended",
+        "androidx.compose.runtime_runtime",
+    ],
+    kotlincflags: [
+        "-Xjvm-default=all",
+    ],
+
+    visibility: [
+        "//frameworks/base/packages/SystemUI:__subpackages__",
+        "//packages/apps/Settings:__subpackages__",
+    ],
+}

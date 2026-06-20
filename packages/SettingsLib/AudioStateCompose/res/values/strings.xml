@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: The halogenOS Project -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Audio information: description of the progress indicator shown while the audio state loads -->
+    <string name="audio_state_loading">Loading audio information</string>
+    <!-- Audio information: title shown when no audio is playing -->
+    <string name="audio_state_no_active_streams">No active streams</string>
+    <!-- Audio information: line under the title shown when no audio is playing -->
+    <string name="audio_state_nothing_playing">Nothing is playing audio right now.</string>
+    <!-- Audio information: title shown when the audio paths cannot be read from the audio service -->
+    <string name="audio_state_paths_unavailable">Audio path details unavailable</string>
+    <!-- Audio information: the audio service is not registered, e.g. while it restarts -->
+    <string name="audio_state_paths_service_missing">The audio service is not running. Reopen this page after it restarts.</string>
+    <!-- Audio information: the audio service refused the app that shows the page -->
+    <string name="audio_state_paths_permission_denied">This app is not allowed to read audio path details.</string>
+    <!-- Audio information: the audio service failed to answer -->
+    <string name="audio_state_paths_query_failed">The audio service did not answer. Reopen this page to try again.</string>
+    <!-- Audio information: shown in the microphone section when the microphone list cannot be read -->
+    <string name="audio_state_microphones_unavailable">Microphone details unavailable</string>
+
+    <!-- Audio information: section header of the recordings in progress -->
+    <string name="audio_state_section_capture">Capture</string>
+    <!-- Audio information: section header of the list of output devices -->
+    <string name="audio_state_section_output_devices">Output devices</string>
+    <!-- Audio information: section header of the list of input devices -->
+    <string name="audio_state_section_input_devices">Input devices</string>
+    <!-- Audio information: section header of the list of microphones -->
+    <string name="audio_state_section_microphones">Microphones</string>
+
+    <!-- Audio information: title of the stage where audio enters the path, an app's track -->
+    <string name="audio_state_stage_source">Source</string>
+    <!-- Audio information: title of the stage of the platform audio mixer service -->
+    <string name="audio_state_stage_audioflinger" translatable="false">AudioFlinger</string>
+    <!-- Audio information: title of the stage of the device the audio plays on -->
+    <string name="audio_state_stage_output_device">Output device</string>
+    <!-- Audio information: title of the stage of the device that records -->
+    <string name="audio_state_stage_input_device">Input device</string>
+    <!-- Audio information: subtitle of an audio effect that is turned off -->
+    <string name="audio_state_effect_disabled">Disabled</string>
+
+    <!-- Audio information: the output thread mixes the tracks of several apps -->
+    <string name="audio_state_path_mixer">Mixer</string>
+    <!-- Audio information: the output thread mixes and plays through several other outputs -->
+    <string name="audio_state_path_duplicating">Duplicating mixer</string>
+    <!-- Audio information: the output thread renders spatial audio -->
+    <string name="audio_state_path_spatializer">Spatializer</string>
+    <!-- Audio information: the output thread can pass one track to the device unchanged -->
+    <string name="audio_state_path_bit_perfect">Bit-perfect thread</string>
+    <!-- Audio information: the output passes one app's audio to the device without mixing -->
+    <string name="audio_state_path_direct">Direct</string>
+    <!-- Audio information: the output hands compressed audio to the hardware decoder -->
+    <string name="audio_state_path_offload">Offload</string>
+    <!-- Audio information: the output shares a memory buffer with the hardware -->
+    <string name="audio_state_path_mmap" translatable="false">MMAP</string>
+
+    <!-- Audio information: subtitle of the output device stage of a thread that plays through several outputs -->
+    <string name="audio_state_sink_duplicated">Several outputs</string>
+    <!-- Audio information: line of the output device stage of a thread that plays through several outputs -->
+    <string name="audio_state_sink_duplicated_line">This thread plays through several output threads</string>
+    <!-- Audio information: subtitle of the output device stage of a thread routed nowhere -->
+    <string name="audio_state_sink_not_patched">No output device</string>
+    <!-- Audio information: line of the output device stage of a thread routed nowhere -->
+    <string name="audio_state_sink_not_patched_line">This thread is not routed to any output device</string>
+    <!-- Audio information: subtitle of the output device stage of a device that is not in the device list -->
+    <string name="audio_state_sink_unidentified">Unidentified</string>
+    <!-- Audio information: line of the output device stage of a device that is not in the device list -->
+    <string name="audio_state_sink_unidentified_line">Routed to a device that could not be identified</string>
+    <!-- Audio information: title of a collapsed idle thread that plays through several outputs -->
+    <string name="audio_state_idle_duplicated">Duplicated output</string>
+    <!-- Audio information: title of a collapsed idle mixer thread that is routed nowhere -->
+    <string name="audio_state_idle_disconnected_mixer">Disconnected mixer thread</string>
+    <!-- Audio information: title of a collapsed idle thread routed to a device that is not in the device list -->
+    <string name="audio_state_idle_unidentified">Unidentified output device</string>
+    <!-- Audio information: joins the device kinds of one thread, e.g. "Speaker + Earpiece" -->
+    <string name="audio_state_device_join"><xliff:g id="first" example="Speaker">%1$s</xliff:g> + <xliff:g id="second" example="Earpiece">%2$s</xliff:g></string>
+
+    <!-- Audio information: chip on a thread that plays nothing -->
+    <string name="audio_state_idle">Idle</string>
+    <!-- Audio information: badge on a device audio is routed to -->
+    <string name="audio_state_active">ACTIVE</string>
+    <!-- Audio information: name shown for the phone's own speaker, earpiece and microphones -->
+    <string name="audio_state_this_device">This device</string>
+    <!-- Audio information: subtitle of the input device stage when the recording names no device -->
+    <string name="audio_state_unknown_input_device">Unknown input device</string>
+    <!-- Audio information: action read by screen readers to open an idle thread -->
+    <string name="audio_state_expand">Expand</string>
+    <!-- Audio information: action read by screen readers to close an idle thread -->
+    <string name="audio_state_collapse">Collapse</string>
+    <!-- Audio information: state read by screen readers of an open idle thread -->
+    <string name="audio_state_expanded">Expanded</string>
+    <!-- Audio information: state read by screen readers of a closed idle thread -->
+    <string name="audio_state_collapsed">Collapsed</string>
+
+    <!-- Audio information: row label of the kind of connection of a device -->
+    <string name="audio_state_label_interface">Interface</string>
+    <!-- Audio information: row label of the hardware address of a device -->
+    <string name="audio_state_label_address">Address</string>
+    <!-- Audio information: row label of the sample rate the device receives -->
+    <string name="audio_state_label_sample_rate">Sample rate</string>
+    <!-- Audio information: row label of the sample format the device receives -->
+    <string name="audio_state_label_format">Format</string>
+    <!-- Audio information: row label of the bit depth on its way through the mixer -->
+    <string name="audio_state_label_bit_depth">Bit depth</string>
+    <!-- Audio information: row label of whether the mixer converts the sample rate -->
+    <string name="audio_state_label_resampling">Resampling</string>
+    <!-- Audio information: row label of whether the samples reach the device unchanged -->
+    <string name="audio_state_label_bit_perfect">Bit-perfect</string>
+    <!-- Audio information: row label of the output flags of a thread -->
+    <string name="audio_state_label_flags">Flags</string>
+    <!-- Audio information: row label of the output latency -->
+    <string name="audio_state_label_latency">Latency</string>
+    <!-- Audio information: row label of the sample rates a device takes -->
+    <string name="audio_state_label_sample_rates">Sample rates</string>
+    <!-- Audio information: row label of the channel counts a device takes -->
+    <string name="audio_state_label_channels">Channels</string>
+    <!-- Audio information: row label of the encodings a device takes -->
+    <string name="audio_state_label_formats">Formats</string>
+    <!-- Audio information: row label of where a microphone sits -->
+    <string name="audio_state_label_location">Location</string>
+    <!-- Audio information: row label of the pickup pattern of a microphone -->
+    <string name="audio_state_label_directionality">Directionality</string>
+
+    <!-- Audio information: answer yes in a row -->
+    <string name="audio_state_yes">Yes</string>
+    <!-- Audio information: answer no in a row -->
+    <string name="audio_state_no">No</string>
+    <!-- Audio information: resampling answer with the rate conversion, e.g. "Yes (44.1 kHz → 48 kHz)" -->
+    <string name="audio_state_yes_with">Yes (<xliff:g id="conversion" example="44.1 kHz → 48 kHz">%1$s</xliff:g>)</string>
+    <!-- Audio information: a device that adapts to whatever it is fed -->
+    <string name="audio_state_dynamic">Dynamic</string>
+    <!-- Audio information: latency value -->
+    <string name="audio_state_latency_ms"><xliff:g id="milliseconds" example="20">%1$d</xliff:g> ms</string>
+    <!-- Audio information: a sample rate, e.g. "44.1 kHz" -->
+    <string name="audio_state_rate_khz"><xliff:g id="rate" example="44.1">%1$s</xliff:g> kHz</string>
+    <!-- Audio information: a conversion from one or more rates to another, e.g. "44.1 kHz → 48 kHz" -->
+    <string name="audio_state_conversion"><xliff:g id="from" example="44.1 kHz">%1$s</xliff:g> → <xliff:g id="to" example="48 kHz">%2$s</xliff:g></string>
+    <!-- Audio information: one mono channel -->
+    <string name="audio_state_mono">Mono</string>
+    <!-- Audio information: two stereo channels -->
+    <string name="audio_state_stereo">Stereo</string>
+    <!-- Audio information: more than two channels -->
+    <string name="audio_state_channels"><xliff:g id="count" example="6">%1$d</xliff:g> channels</string>
+    <!-- Audio information: integer bit depth of a sample, e.g. "16 bit" -->
+    <string name="audio_state_bits"><xliff:g id="bits" example="16">%1$d</xliff:g> bit</string>
+    <!-- Audio information: floating point bit depth of a sample, e.g. "32 bit float" -->
+    <string name="audio_state_bits_float"><xliff:g id="bits" example="32">%1$d</xliff:g> bit float</string>
+    <!-- Audio information: short floating point bit depth in a chip, e.g. "32 float" -->
+    <string name="audio_state_bits_float_short"><xliff:g id="bits" example="32">%1$d</xliff:g> float</string>
+    <!-- Audio information: encoding family of linear PCM samples -->
+    <string name="audio_state_pcm" translatable="false">PCM</string>
+    <!-- Audio information: integer PCM encoding of a device, e.g. "PCM 16-bit" -->
+    <string name="audio_state_pcm_bits">PCM <xliff:g id="bits" example="16">%1$d</xliff:g>-bit</string>
+    <!-- Audio information: floating point PCM encoding of a device -->
+    <string name="audio_state_pcm_float">PCM float</string>
+    <!-- Audio information: a recording whose format is not reported -->
+    <string name="audio_state_format_unavailable">Format unavailable</string>
+    <!-- Audio information: bit depth of a sample as it enters the mixer, e.g. "in 16" -->
+    <string name="audio_state_depth_in">in <xliff:g id="depth" example="16">%1$s</xliff:g></string>
+    <!-- Audio information: bit depth the mixer sums in, e.g. "mix 32 float" -->
+    <string name="audio_state_depth_mix">mix <xliff:g id="depth" example="32 float">%1$s</xliff:g></string>
+    <!-- Audio information: bit depth the mixer writes, e.g. "out 16" -->
+    <string name="audio_state_depth_out">out <xliff:g id="depth" example="16">%1$s</xliff:g></string>
+    <!-- Audio information: integer bit depth inside the mixer row, e.g. "16" -->
+    <string name="audio_state_depth"><xliff:g id="bits" example="16">%1$d</xliff:g></string>
+    <!-- Audio information: floating point bit depth inside the mixer row, e.g. "32 float" -->
+    <string name="audio_state_depth_float"><xliff:g id="bits" example="32">%1$d</xliff:g> float</string>
+    <!-- Audio information: a source sample of which the float mixer keeps fewer bits, e.g. "32, 24 kept" -->
+    <string name="audio_state_depth_kept"><xliff:g id="bits" example="32">%1$d</xliff:g>, <xliff:g id="kept" example="24">%2$d</xliff:g> kept</string>
+    <!-- Audio information: the output flags an app's track got, e.g. "Track: FAST" -->
+    <string name="audio_state_track_flags">Track: <xliff:g id="flags" example="FAST">%1$s</xliff:g></string>
+    <!-- Audio information: battery level of an accessory -->
+    <string name="audio_state_battery_percent"><xliff:g id="percent" example="80">%1$d</xliff:g>%%</string>
+    <!-- Audio information: one reason in the list under the bit-perfect row -->
+    <string name="audio_state_reason_item">· <xliff:g id="reason" example="Resampling to device rate">%1$s</xliff:g></string>
+
+    <!-- Audio information: the samples are not bit-perfect because the thread mixes -->
+    <string name="audio_state_reason_mixer_stage">Mixed path (float re-mix)</string>
+    <!-- Audio information: the samples are not bit-perfect because several tracks play -->
+    <string name="audio_state_reason_multiple_tracks">Mixing <xliff:g id="count" example="2">%1$d</xliff:g> active tracks</string>
+    <!-- Audio information: the samples are not bit-perfect because a track is resampled -->
+    <string name="audio_state_reason_resampling">Resampling to device rate</string>
+
+    <!-- Audio information: kinds of playback -->
+    <string name="audio_state_usage_media">Media</string>
+    <string name="audio_state_usage_call">Call</string>
+    <string name="audio_state_usage_alarm">Alarm</string>
+    <string name="audio_state_usage_notification">Notification</string>
+    <string name="audio_state_usage_ringtone">Ringtone</string>
+    <string name="audio_state_usage_game">Game</string>
+    <string name="audio_state_usage_assistant">Assistant</string>
+    <string name="audio_state_usage_other">Audio</string>
+    <!-- Audio information: joins two kinds of playback on one output, e.g. "Media · Game" -->
+    <string name="audio_state_usage_join"><xliff:g id="first" example="Media">%1$s</xliff:g> · <xliff:g id="second" example="Game">%2$s</xliff:g></string>
+
+    <!-- Audio information: what a recording captures -->
+    <string name="audio_state_capture_mic">Microphone</string>
+    <string name="audio_state_capture_voice_recognition">Voice recognition</string>
+    <string name="audio_state_capture_voice_communication">Voice call</string>
+    <string name="audio_state_capture_camcorder">Camcorder</string>
+    <string name="audio_state_capture_unprocessed">Unprocessed</string>
+    <string name="audio_state_capture_voice_uplink">Voice uplink</string>
+    <string name="audio_state_capture_voice_downlink">Voice downlink</string>
+    <string name="audio_state_capture_voice_call">Voice call (up + down)</string>
+    <string name="audio_state_capture_voice_performance">Voice performance</string>
+    <string name="audio_state_capture_remote_submix">Remote submix</string>
+    <string name="audio_state_capture_other">Audio</string>
+
+    <!-- Audio information: where a microphone sits -->
+    <string name="audio_state_mic_main_body">Main body</string>
+    <string name="audio_state_mic_main_body_movable">Main body (movable)</string>
+    <string name="audio_state_mic_peripheral">Peripheral</string>
+
+    <!-- Audio information: pickup pattern of a microphone -->
+    <string name="audio_state_mic_omni">Omnidirectional</string>
+    <string name="audio_state_mic_bi_directional">Bi-directional</string>
+    <string name="audio_state_mic_cardioid">Cardioid</string>
+    <string name="audio_state_mic_hyper_cardioid">Hyper-cardioid</string>
+    <string name="audio_state_mic_super_cardioid">Super-cardioid</string>
+
+    <!-- Audio information: kinds of audio device -->
+    <string name="audio_state_device_earpiece">Earpiece</string>
+    <string name="audio_state_device_speaker">Speaker</string>
+    <string name="audio_state_device_speaker_safe">Speaker (limited)</string>
+    <string name="audio_state_device_builtin_mic">Built-in mic</string>
+    <string name="audio_state_device_telephony">Telephony</string>
+    <string name="audio_state_device_remote_submix">Remote submix</string>
+    <string name="audio_state_device_fm_tuner">FM tuner</string>
+    <string name="audio_state_device_tv_tuner">TV tuner</string>
+    <string name="audio_state_device_echo_reference">Echo reference</string>
+    <string name="audio_state_device_wired_headset">Wired headset</string>
+    <string name="audio_state_device_wired_headphones">Wired headphones</string>
+    <string name="audio_state_device_line_analog">Line (analog)</string>
+    <string name="audio_state_device_line_digital">Line (digital)</string>
+    <string name="audio_state_device_aux_line">AUX line</string>
+    <string name="audio_state_device_bluetooth_sco">Bluetooth SCO</string>
+    <string name="audio_state_device_bluetooth_a2dp">Bluetooth A2DP</string>
+    <string name="audio_state_device_ble_headset">Bluetooth LE headset</string>
+    <string name="audio_state_device_ble_speaker">Bluetooth LE speaker</string>
+    <string name="audio_state_device_ble_broadcast">Bluetooth LE broadcast</string>
+    <string name="audio_state_device_hearing_aid">Hearing aid</string>
+    <string name="audio_state_device_usb_device">USB</string>
+    <string name="audio_state_device_usb_accessory">USB accessory</string>
+    <string name="audio_state_device_usb_headset">USB headset</string>
+    <string name="audio_state_device_hdmi" translatable="false">HDMI</string>
+    <string name="audio_state_device_hdmi_arc" translatable="false">HDMI ARC</string>
+    <string name="audio_state_device_hdmi_earc" translatable="false">HDMI eARC</string>
+    <string name="audio_state_device_dock">Dock</string>
+    <string name="audio_state_device_dock_analog">Dock (analog)</string>
+    <string name="audio_state_device_fm" translatable="false">FM</string>
+    <string name="audio_state_device_ip" translatable="false">IP</string>
+    <string name="audio_state_device_bus">Bus</string>
+    <string name="audio_state_device_multichannel_group">Multichannel group</string>
+    <string name="audio_state_device_unknown">Unknown device</string>
+</resources>

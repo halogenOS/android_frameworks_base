@@ -19,6 +19,10 @@
     <!-- Content description indicating that tapping the element will allow deleting the screenshot [CHAR LIMIT=NONE] -->
     <string name="screenshot_delete_description">Delete screenshot</string>
 
+    <!-- Audio information QS tile -->
+    <string name="quick_settings_audio_info_label">Audio info</string>
+    <string name="quick_settings_more">More details</string>
+
     <!-- Screen record -->
     <string name="screenrecord_longer_timeout_switch_label">Larger file size limit</string>
     <string name="screenrecord_longer_timeout_switch_summary">Limit recording size to 15 GB</string>

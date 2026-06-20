@@ -1,0 +1,27 @@
+//
+// SPDX-FileCopyrightText: The halogenOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+package {
+    default_applicable_licenses: ["frameworks_base_license"],
+}
+
+// The audio state model and the repository that reads it from AudioManager and audioserver.
+android_library {
+    name: "SettingsLibAudioState",
+
+    srcs: ["src/**/*.kt"],
+    static_libs: [
+        "SettingsLib",
+        "custom.media.audio_information-java",
+        "kotlinx_coroutines",
+    ],
+    kotlincflags: ["-Xjvm-default=all"],
+
+    visibility: [
+        "//frameworks/base/packages/SettingsLib/AudioStateCompose",
+        "//frameworks/base/packages/SystemUI:__subpackages__",
+        "//packages/apps/Settings:__subpackages__",
+    ],
+}
