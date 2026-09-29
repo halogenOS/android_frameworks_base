@@ -145,6 +145,7 @@ public class DisplayModeDirector {
     private final DisplayObserver mDisplayObserver;
     private final UdfpsObserver mUdfpsObserver;
     private final ProximitySensorObserver mSensorObserver;
+    private final LtpoObserver mLtpoObserver;
     private final HbmObserver mHbmObserver;
     private final SkinThermalStatusObserver mSkinThermalStatusObserver;
     private final ModeChangeObserver mModeChangeObserver;
@@ -229,6 +230,7 @@ public class DisplayModeDirector {
         mDisplayObserver = new DisplayObserver(context, handler, mVotesStorage, injector,
                 modeRequestManager);
         mSensorObserver = new ProximitySensorObserver(mVotesStorage, injector);
+        mLtpoObserver = new LtpoObserver(mVotesStorage, injector);
         mSkinThermalStatusObserver = new SkinThermalStatusObserver(injector, mVotesStorage,
                 mDisplayDeviceConfigProvider);
         mModeChangeObserver = mInjector.getModeChangeObserver(mVotesStorage, handler.getLooper());
@@ -254,6 +256,7 @@ public class DisplayModeDirector {
         mSettingsObserver.observe();
         mBrightnessObserver.observe(sensorManager);
         mSensorObserver.observe();
+        mLtpoObserver.observe();
         mHbmObserver.observe();
         mSkinThermalStatusObserver.observe();
         mModeChangeObserver.observe();
@@ -629,6 +632,7 @@ public class DisplayModeDirector {
         }
         mVotesStorage.dump(pw);
         mSensorObserver.dump(pw);
+        mLtpoObserver.dump(pw);
     }
 
     @GuardedBy("mLock")
