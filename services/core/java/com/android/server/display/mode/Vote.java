@@ -98,58 +98,64 @@ interface Vote {
     // render rate vote can still apply
     int PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE = 10;
 
+    // LTPO panels vary their refresh rate by skipping frames of their highest display mode,
+    // so while an LTPO mode is active the physical refresh rate is held at that mode. It sits
+    // above the user settings, which would otherwise stop LTPO silently, and below every
+    // hardware or safety limit.
+    int PRIORITY_LTPO_REFRESH_RATE = 11;
+
     // Restrict all displays physical refresh rate to 60Hz when external display is connected.
     // It votes [59Hz, 61Hz].
-    int PRIORITY_SYNCHRONIZED_REFRESH_RATE = 11;
+    int PRIORITY_SYNCHRONIZED_REFRESH_RATE = 12;
 
     // PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE has a higher priority than
     // PRIORITY_SYNCHRONIZED_REFRESH_RATE and will limit render rate to [59Hz, 61Hz].
     // In case physical refresh rate vote discarded (due to physical refresh rate not supported),
     // render rate vote can still apply.
-    int PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE = 12;
+    int PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE = 13;
 
     // Restrict displays max available resolution and refresh rates. It votes [0, LIMIT]
-    int PRIORITY_LIMIT_MODE = 13;
+    int PRIORITY_LIMIT_MODE = 14;
 
     // To avoid delay in switching between 60HZ -> 90HZ when activating LHBM, set refresh
     // rate to max value (same as for PRIORITY_UDFPS) on lock screen
-    int PRIORITY_AUTH_OPTIMIZER_RENDER_FRAME_RATE = 14;
+    int PRIORITY_AUTH_OPTIMIZER_RENDER_FRAME_RATE = 15;
 
     // For concurrent displays we want to limit refresh rate on all displays
-    int PRIORITY_LAYOUT_LIMITED_REFRESH_RATE = 15;
+    int PRIORITY_LAYOUT_LIMITED_REFRESH_RATE = 16;
 
     // For concurrent displays we want to limit refresh rate on all displays
-    int PRIORITY_LAYOUT_LIMITED_FRAME_RATE = 16;
+    int PRIORITY_LAYOUT_LIMITED_FRAME_RATE = 17;
 
     // For internal application to limit display modes to specific ids
-    int PRIORITY_SYSTEM_REQUESTED_MODES = 17;
+    int PRIORITY_SYSTEM_REQUESTED_MODES = 18;
 
     // PRIORITY_LOW_POWER_MODE_MODES limits display modes to specific refreshRate-vsync pairs if
     // Settings.Global.LOW_POWER_MODE is on.
     // Lower priority that PRIORITY_LOW_POWER_MODE_RENDER_RATE and if discarded (due to other
     // higher priority votes), render rate limit can still apply
-    int PRIORITY_LOW_POWER_MODE_MODES = 18;
+    int PRIORITY_LOW_POWER_MODE_MODES = 19;
 
     // PRIORITY_LOW_POWER_MODE_RENDER_RATE force the render frame rate to [0, 60HZ] if
     // Settings.Global.LOW_POWER_MODE is on.
-    int PRIORITY_LOW_POWER_MODE_RENDER_RATE = 19;
+    int PRIORITY_LOW_POWER_MODE_RENDER_RATE = 20;
 
     // PRIORITY_FLICKER_REFRESH_RATE_SWITCH votes for disabling refresh rate switching. If the
     // higher priority voters' result is a range, it will fix the rate to a single choice.
     // It's used to avoid refresh rate switches in certain conditions which may result in the
     // user seeing the display flickering when the switches occur.
-    int PRIORITY_FLICKER_REFRESH_RATE_SWITCH = 20;
+    int PRIORITY_FLICKER_REFRESH_RATE_SWITCH = 21;
 
     // Force display to [0, 60HZ] if skin temperature is at or above CRITICAL.
-    int PRIORITY_SKIN_TEMPERATURE = 21;
+    int PRIORITY_SKIN_TEMPERATURE = 22;
 
     // The proximity sensor needs the refresh rate to be locked in order to function, so this is
     // set to a high priority.
-    int PRIORITY_PROXIMITY = 22;
+    int PRIORITY_PROXIMITY = 23;
 
     // The Under-Display Fingerprint Sensor (UDFPS) needs the refresh rate to be locked in order
     // to function, so this needs to be the highest priority of all votes.
-    int PRIORITY_UDFPS = 23;
+    int PRIORITY_UDFPS = 24;
 
     @IntDef(prefix = { "PRIORITY_" }, value = {
             PRIORITY_DEFAULT_RENDER_FRAME_RATE,
@@ -163,6 +169,7 @@ interface Vote {
             PRIORITY_REJECTED_MODES,
             PRIORITY_USER_SETTING_PEAK_REFRESH_RATE,
             PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE,
+            PRIORITY_LTPO_REFRESH_RATE,
             PRIORITY_SYNCHRONIZED_REFRESH_RATE,
             PRIORITY_SYNCHRONIZED_RENDER_FRAME_RATE,
             PRIORITY_LIMIT_MODE,
@@ -298,6 +305,8 @@ interface Vote {
                 return "PRIORITY_USER_SETTING_PEAK_REFRESH_RATE";
             case PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE:
                 return "PRIORITY_USER_SETTING_PEAK_RENDER_FRAME_RATE";
+            case PRIORITY_LTPO_REFRESH_RATE:
+                return "PRIORITY_LTPO_REFRESH_RATE";
             case PRIORITY_AUTH_OPTIMIZER_RENDER_FRAME_RATE:
                 return "PRIORITY_AUTH_OPTIMIZER_RENDER_FRAME_RATE";
             case PRIORITY_LAYOUT_LIMITED_REFRESH_RATE:
