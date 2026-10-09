@@ -19,10 +19,12 @@ public class PackageHooksRegistry {
     }
 
     public static PackageHooks getHooks(int packageId) {
+        GmsCompatPackageHooks gmsCompatHooks = GmsCompatPackageHooks.maybeGet(packageId);
+        if (gmsCompatHooks != null) {
+            return gmsCompatHooks;
+        }
+
         return switch (packageId) {
-            case PackageId.G_CARRIER_SETTINGS -> new GCarrierSettingsHooks();
-            case PackageId.ANDROID_AUTO -> new AndroidAutoHooks();
-            case PackageId.GMS_CORE -> new GmsCoreHooks();
             default -> PackageHooks.DEFAULT;
         };
     }

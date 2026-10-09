@@ -110,7 +110,7 @@ import android.view.WindowManager.LayoutParams;
 import android.widget.Editor;
 
 import com.android.internal.annotations.GuardedBy;
-import com.android.internal.gmscompat.GmsCompatApp;
+import com.android.internal.gmscompat.GmcPrivSettingsHooks;
 import com.android.internal.util.Preconditions;
 
 import java.io.IOException;
@@ -3761,7 +3761,7 @@ public final class Settings {
         }
 
         // Returns last path component of the relevant Uri.
-        // Keep in sync with GmsCompatApp#registerObserver
+        // Keep in sync with GmcPrivSettingsHooks#maybeRegisterObserver
         private String maybeGetGmsCompatNamespace() {
             Uri uri = mUri;
             // no need to use expensive equals() method in this case
@@ -3780,7 +3780,7 @@ public final class Settings {
             if (GmsCompat.isEnabled()) {
                 String ns = maybeGetGmsCompatNamespace();
                 if (ns != null && !mAllFields.contains(name)) {
-                    return GmsCompatApp.putString(ns, name, value);
+                    return GmcPrivSettingsHooks.putString(ns, name, value);
                 }
                 return false;
             }
@@ -3862,7 +3862,7 @@ public final class Settings {
                 String ns = maybeGetGmsCompatNamespace();
                 if (ns != null) {
                     if (!mAllFields.contains(name) && !name.startsWith("gmscompat")) {
-                        return GmsCompatApp.getString(ns, name);
+                        return GmcPrivSettingsHooks.getString(ns, name);
                     }
                 }
             }
