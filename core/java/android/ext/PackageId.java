@@ -54,4 +54,9 @@ public interface PackageId {
 
     /** @hide */ String BUGLE_NAME = "com.google.android.apps.messaging";
     /** @hide */ int BUGLE = 14;
+
+    // These ids are used for GmsCompat testing on dev builds
+    /** @hide */ int GMSCOMPAT_TEST_PACKAGE_1 = 15;
+    /** @hide */ int GMSCOMPAT_TEST_PACKAGE_2 = 16;
+    /** @hide */ int GMSCOMPAT_TEST_PACKAGE_3 = 17;
 }
