@@ -8,4 +8,24 @@
          the sensor embedded in the power key and listening all the time
          causes a poor experience. -->
     <bool name="config_fingerprintWakeAndUnlock">true</bool>
+
+    <!-- System packages that the privacy indicators do not show, in addition to the system
+         itself, the exempted roles and the location providers. Only system packages are used. -->
+    <string-array name="config_indicatorExemptedPackageNames" translatable="false">
+        <!-- Scanning for Bluetooth devices when Bluetooth is enabled is considered
+             to be location access. It shouldn't be shown for the OS implementation
+             of Bluetooth. -->
+        <item>com.android.bluetooth</item>
+        <!-- Phone services (not the Dialer) accesses detailed cellular information
+             which is considered to be location information. It's a base OS component
+             serving the intended purpose and shouldn't trigger spurious location
+             indicator notices every time it retrieves cellular information. -->
+        <item>com.android.phone</item>
+        <!-- Location usage indicator can get triggered when sharing a file to a printer -->
+        <item>com.android.printspooler</item>
+        <!-- indicator pops up when determining location during a geofenced alert -->
+        <item>com.android.cellbroadcastservice</item>
+        <!-- location indicator sometimes gets triggered when turning on Wi-Fi hotspot -->
+        <item>com.android.settings</item>
+    </string-array>
 </resources>
