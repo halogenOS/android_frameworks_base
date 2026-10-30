@@ -2663,8 +2663,7 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
 
     public boolean isDeviceUpgrading() {
         // allow instant applications
-        return mIsUpgrade || mIsMockUpgrade ||
-                Build.VERSION.INCREMENTAL.startsWith("eng.");
+        return mIsUpgrade || mIsMockUpgrade;
     }
 
     @NonNull
