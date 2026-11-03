@@ -50,8 +50,11 @@ import android.util.Log;
 import android.util.Slog;
 import android.util.jar.StrictJarFile;
 
+import com.android.internal.os.BackgroundThread;
 import com.android.internal.util.FrameworkStatsLog;
 import com.android.internal.util.IndentingPrintWriter;
+import com.android.server.BootAnimationReporter;
+import com.android.server.BootAnimationStage;
 import com.android.server.LocalManagerRegistry;
 import com.android.server.LocalServices;
 import com.android.server.art.ArtManagerLocal;
@@ -124,9 +127,13 @@ public final class DexOptHelper {
         }
 
         Log.i(TAG, "Starting boot dexopt for reason " + reason);
+        final BootAnimationReporter bootAnimation =
+                LocalServices.getService(BootAnimationReporter.class);
+        bootAnimation.reach(BootAnimationStage.APP_UPDATE);
 
-        getArtManagerLocal()
-                .onBoot(reason, null /* progressCallbackExecutor */, null /* progressCallback */);
+        // One thread runs the progress callbacks in the order of the progress.
+        getArtManagerLocal().onBoot(reason, BackgroundThread.getExecutor(),
+                progress -> bootAnimation.reportAppUpdate(progress.getPercentage()));
     }
 
      /**

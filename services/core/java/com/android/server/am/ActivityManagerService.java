@@ -496,6 +496,7 @@ import com.android.internal.util.NamedLock;
 import com.android.internal.util.Preconditions;
 import com.android.internal.util.function.pooled.PooledLambda;
 import com.android.server.AlarmManagerInternal;
+import com.android.server.BootAnimationReporter;
 import com.android.server.BootReceiver;
 import com.android.server.DeviceIdleInternal;
 import com.android.server.DisplayThread;
@@ -6007,6 +6008,9 @@ public class ActivityManagerService extends IActivityManager.Stub
                     });
             mUserController.scheduleStartProfiles();
         }
+        // Outside of the global lock: saving a persistent property waits for init to write the
+        // file of persistent properties.
+        LocalServices.getService(BootAnimationReporter.class).save();
         // UART is on if init's console service is running, send a warning notification.
         showConsoleNotificationIfActive();
         showMteOverrideNotificationIfActive();

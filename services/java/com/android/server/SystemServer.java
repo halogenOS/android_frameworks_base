@@ -538,6 +538,7 @@ public final class SystemServer implements Dumpable {
     private boolean mFirstBoot;
     private final int mStartCount;
     private final boolean mRuntimeRestart;
+    private final BootAnimationReporter mBootAnimationReporter;
     private final long mRuntimeStartElapsedTime;
     private final long mRuntimeStartUptime;
 
@@ -740,6 +741,7 @@ public final class SystemServer implements Dumpable {
 
         // Remember if it's runtime restart or reboot.
         mRuntimeRestart = mStartCount > 1;
+        mBootAnimationReporter = new BootAnimationReporter(mRuntimeRestart);
     }
 
     @Override
@@ -907,6 +909,8 @@ public final class SystemServer implements Dumpable {
             Slog.i(TAG, "Entered the Android system server!");
             final long uptimeMillis = SystemClock.elapsedRealtime();
             EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_SYSTEM_RUN, uptimeMillis);
+            LocalServices.addService(BootAnimationReporter.class, mBootAnimationReporter);
+            mBootAnimationReporter.reach(BootAnimationStage.SYSTEM_SERVER);
             if (!mRuntimeRestart) {
                 FrameworkStatsLog.write(FrameworkStatsLog.BOOT_TIME_EVENT_ELAPSED_TIME_REPORTED,
                         FrameworkStatsLog
@@ -2023,6 +2027,7 @@ public final class SystemServer implements Dumpable {
             Watchdog.getInstance().resumeWatchingCurrentThread("dexopt");
         }
         t.traceEnd();
+        mBootAnimationReporter.reach(BootAnimationStage.SERVICES);
 
         t.traceBegin("UpdateMetricsIfNeeded");
         mPackageManagerService.updateMetricsIfNeeded();
@@ -3395,6 +3400,7 @@ public final class SystemServer implements Dumpable {
         // initialization.
         mActivityManagerService.systemReady(() -> {
             Slog.i(TAG, "Making services ready");
+            mBootAnimationReporter.reach(BootAnimationStage.INTERFACE);
             t.traceBegin("StartActivityManagerReadyPhase");
             mSystemServiceManager.startBootPhase(t, SystemService.PHASE_ACTIVITY_MANAGER_READY);
             t.traceEnd();

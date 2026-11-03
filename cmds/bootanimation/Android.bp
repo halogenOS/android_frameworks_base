@@ -7,87 +7,74 @@ package {
     default_applicable_licenses: ["frameworks_base_license"],
 }
 
-aconfig_declarations {
-    name: "bootanimation_flags",
-    package: "com.android.graphics.bootanimation.flags",
-    container: "system",
-    srcs: ["bootanimation_flags.aconfig"],
-}
-
-cc_aconfig_library {
-    name: "libbootanimationflags",
-    aconfig_declarations: "bootanimation_flags",
-}
-
-cc_defaults {
-    name: "bootanimation_defaults",
-
+cc_library_static {
+    name: "libbootanimation_surface",
+    srcs: ["surface/boot_surface.cpp"],
+    shared_libs: [
+        "libbase",
+        "libbinder",
+        "libgui",
+        "liblog",
+        "libui",
+        "libutils",
+    ],
+    export_include_dirs: ["surface"],
     cflags: [
-        "-DGL_GLEXT_PROTOTYPES",
-        "-DEGL_EGLEXT_PROTOTYPES",
-
         "-Wall",
         "-Werror",
         "-Wunused",
         "-Wunreachable-code",
     ],
+}
 
+rust_bindgen {
+    name: "libboot_surface_bindgen",
+    crate_name: "boot_surface_bindgen",
+    wrapper_src: "surface/boot_surface.h",
+    source_stem: "bindings",
+    bindgen_flags: [
+        "--allowlist-function=boot_surface_.*",
+    ],
+}
+
+rust_binary {
+    name: "bootanimation",
+    crate_name: "bootanimation",
+    crate_root: "src/main.rs",
+    srcs: [
+        "src/**/*.rs",
+        "src/shaders/*.glsl",
+    ],
+    edition: "2021",
+    flags: [
+        "-Dclippy::let_underscore_must_use",
+        "-Dclippy::pedantic",
+        "-Dunused_results",
+    ],
+    rustlibs: [
+        "libboot_surface_bindgen",
+        "libgl",
+        "libkhronos_egl",
+        "liblibc",
+        "liblibloading",
+        "liblog_rust",
+        "liblogger",
+        "libnum_traits",
+        "librustutils",
+        "libskrifa",
+    ],
+    static_libs: ["libbootanimation_surface"],
+    // A Rust binary links the shared libraries needed by the C++ static libraries in static_libs
+    // itself.
     shared_libs: [
-        "libandroidfw",
         "libbase",
         "libbinder",
-        "libcutils",
+        "libc++",
+        "libgui",
         "liblog",
+        "libui",
         "libutils",
     ],
-
-    static_libs: [
-        "libbootanimationflags",
-    ],
-}
-
-// bootanimation executable
-// =========================================================
-
-cc_binary {
-    name: "bootanimation",
-    defaults: ["bootanimation_defaults"],
-
-    header_libs: ["jni_headers"],
-
-    shared_libs: [
-        "libOpenSLES",
-        "libbootanimation_preapex",
-    ],
-
-    srcs: [
-        "BootAnimationUtil.cpp",
-
-        "bootanimation_main.cpp",
-        "audioplay.cpp",
-    ],
-
+    required: ["Roboto-Regular.ttf"],
     init_rc: ["bootanim.rc"],
-
-    cflags: [
-        "-Wno-deprecated-declarations",
-    ],
-}
-
-// libbootanimation
-// ===========================================================
-
-cc_library_shared {
-    name: "libbootanimation_preapex",
-    defaults: ["bootanimation_defaults"],
-
-    srcs: ["BootAnimation.cpp"],
-
-    shared_libs: [
-        "libui",
-        "libjnigraphics_preapex",
-        "libEGL",
-        "libGLESv2",
-        "libgui",
-    ],
 }

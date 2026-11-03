@@ -211,6 +211,8 @@ import com.android.modules.utils.TypedXmlPullParser;
 import com.android.modules.utils.TypedXmlSerializer;
 import com.android.permission.persistence.RuntimePermissionsPersistence;
 import com.android.permission.persistence.RuntimePermissionsState;
+import com.android.server.BootAnimationReporter;
+import com.android.server.BootAnimationStage;
 import com.android.server.EventLogTags;
 import com.android.server.FgThread;
 import com.android.server.LocalManagerRegistry;
@@ -2277,6 +2279,8 @@ public class PackageManagerService implements PackageSender, TestUtilityService 
 
             EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_SYSTEM_SCAN_START,
                     startTime);
+            mInjector.getLocalService(BootAnimationReporter.class)
+                    .reach(BootAnimationStage.PACKAGES);
 
             final String bootClassPath = System.getenv("BOOTCLASSPATH");
             final String systemServerClassPath = System.getenv("SYSTEMSERVERCLASSPATH");

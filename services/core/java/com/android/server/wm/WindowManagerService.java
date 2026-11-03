@@ -358,6 +358,7 @@ import com.android.internal.util.LatencyTracker;
 import com.android.internal.util.ToBooleanFunction;
 import com.android.internal.view.WindowManagerPolicyThread;
 import com.android.server.AnimationThread;
+import com.android.server.BootAnimationReporter;
 import com.android.server.DisplayThread;
 import com.android.server.FgThread;
 import com.android.server.LocalServices;
@@ -4385,7 +4386,7 @@ public class WindowManagerService extends IWindowManager.Stub
                 // stop boot animation
                 // formerly we would just kill the process, but we now ask it to exit so it
                 // can choose where to stop the animation.
-                SystemProperties.set("service.bootanim.exit", "1");
+                LocalServices.getService(BootAnimationReporter.class).requestExit();
                 mBootAnimationStopped = true;
             }
 
