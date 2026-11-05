@@ -21,7 +21,7 @@ import dagger.Provides
 import dagger.multibindings.IntoMap
 import dagger.multibindings.StringKey
 
-@Module
+@Module(includes = [ScreenshotTileModule::class])
 interface CustomModule {
     /** Inject ChargingLimitTile into tileMap in QSModule */
     @Binds
