@@ -82,11 +82,11 @@ fn stage_label(stage: BootStage) -> &'static str {
 
 /// The percentage of frame: 100 from the ready report on, and below 100 before it, even when the
 /// bar has crept up to its end.
-fn shown_percent(frame: &Frame) -> Result<u8, Error> {
+fn shown_percent(frame: &Frame) -> u8 {
     if frame.ready.is_some() {
-        Ok(100)
+        100
     } else {
-        Ok(frame.progress.percent()?.min(99))
+        frame.progress.percent().min(99)
     }
 }
 
@@ -129,7 +129,7 @@ impl<'a> BootText<'a> {
             ScreenPoint { x: 0.0, y: BAR_Y - STAGE_DROP }.to_pixels(window),
             Align::Center,
         )?;
-        Ok(Self { program: TextProgram::new(renderer)?, percent, stage_line })
+        Ok(Self { program: TextProgram::new(renderer, window)?, percent, stage_line })
     }
 
     /// Draws the text of frame at moments over the window. Fails on a text whose characters its
@@ -138,7 +138,7 @@ impl<'a> BootText<'a> {
         if moments.text_opacity <= 0.0 {
             return Ok(());
         }
-        self.percent.show(&percent_text(shown_percent(frame)?))?;
+        self.percent.show(&percent_text(shown_percent(frame)))?;
         self.stage_line.show(&StageLine::of(frame).text())?;
         let faded = |[red, green, blue, opacity]: [f32; 4]| {
             [red, green, blue, opacity * moments.text_opacity]

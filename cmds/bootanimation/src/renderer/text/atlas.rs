@@ -3,26 +3,28 @@
 
 //! The bitmaps of glyphs packed into the texels of one texture, in rows.
 
+use std::cmp::Reverse;
+
 use super::rasterizer::Bitmap;
-use crate::error::Error;
 
 /// The empty texels between two bitmaps, so that a sample at the edge of one never reads the next.
 const GAP: usize = 1;
 
-/// Bitmaps packed into the texels of a texture.
+/// Bitmaps packed into the texels of a texture. Only `pack` makes one, so it always has width x
+/// height texels.
 pub struct Atlas {
-    pub width: u16,
-    pub height: u16,
+    width: usize,
+    height: usize,
     /// width x height texels, row by row from the top.
-    pub texels: Vec<u8>,
+    texels: Vec<u8>,
     /// The texel of the top left corner of each bitmap, in the order the bitmaps were given.
-    pub corners: Vec<[u16; 2]>,
+    corners: Vec<[usize; 2]>,
 }
 
 impl Atlas {
     /// Packs bitmaps into rows from the top, the tallest first, in a texture about as wide as it
-    /// is high. Fails when the texture would be more than 65535 texels wide or high.
-    pub fn pack(bitmaps: &[&Bitmap]) -> Result<Self, Error> {
+    /// is high.
+    pub fn pack(bitmaps: &[&Bitmap]) -> Self {
         let size = |bitmap: &Bitmap| [usize::from(bitmap.width), usize::from(bitmap.height)];
         let area: usize = bitmaps
             .iter()
@@ -33,40 +35,51 @@ impl Atlas {
             .sum();
         let widest = bitmaps.iter().map(|bitmap| size(bitmap)[0]).max().unwrap_or_default();
         let width = area.isqrt().max(widest);
-        let mut order: Vec<usize> = (0..bitmaps.len()).collect();
-        order.sort_by_key(|&index| std::cmp::Reverse(size(bitmaps[index])[1]));
+        let mut order: Vec<(usize, &Bitmap)> = bitmaps.iter().copied().enumerate().collect();
+        order.sort_by_key(|&(_, bitmap)| Reverse(bitmap.height));
 
-        let mut corners = vec![[0, 0]; bitmaps.len()];
+        let mut placed = Vec::with_capacity(bitmaps.len());
         let [mut x, mut y, mut row_height] = [0, 0, 0];
-        for index in order {
-            let [bitmap_width, bitmap_height] = size(bitmaps[index]);
+        for (index, bitmap) in order {
+            let [bitmap_width, bitmap_height] = size(bitmap);
             if x + bitmap_width > width {
                 [x, y, row_height] = [0, y + row_height + GAP, 0];
             }
-            corners[index] = [x, y];
+            placed.push((index, [x, y]));
             x += bitmap_width + GAP;
             row_height = row_height.max(bitmap_height);
         }
         let height = y + row_height;
-        // The corners lie inside the texture, so they fit into a u16 whenever its sides do.
-        let to_u16 = |texel: usize| {
-            u16::try_from(texel).map_err(|cause| Error::AtlasTooLarge { width, height, cause })
-        };
-        let sides = [to_u16(width)?, to_u16(height)?];
+        placed.sort_by_key(|&(index, _)| index);
+        let corners: Vec<[usize; 2]> = placed.into_iter().map(|(_, corner)| corner).collect();
 
         let mut texels = vec![0; width * height];
-        for (bitmap, [left, top]) in bitmaps.iter().zip(&corners) {
-            let [bitmap_width, _] = size(bitmap);
-            for (row, coverage) in bitmap.coverage.chunks_exact(bitmap_width).enumerate() {
-                let start = (top + row) * width + left;
-                texels[start..start + bitmap_width].copy_from_slice(coverage);
+        for (bitmap, &[left, top]) in bitmaps.iter().zip(&corners) {
+            let rows = texels.chunks_exact_mut(width).skip(top);
+            for (row, coverage) in rows.zip(bitmap.coverage.chunks_exact(size(bitmap)[0])) {
+                for (texel, &value) in row.iter_mut().skip(left).zip(coverage) {
+                    *texel = value;
+                }
             }
         }
-        let corners = corners
-            .into_iter()
-            .map(|[left, top]| Ok([to_u16(left)?, to_u16(top)?]))
-            .collect::<Result<_, Error>>()?;
-        let [width, height] = sides;
-        Ok(Self { width, height, texels, corners })
+        Self { width, height, texels, corners }
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    /// width x height texels, row by row from the top.
+    pub fn texels(&self) -> &[u8] {
+        &self.texels
+    }
+
+    /// The texel of the top left corner of each bitmap, in the order the bitmaps were given.
+    pub fn corners(&self) -> &[[usize; 2]] {
+        &self.corners
     }
 }

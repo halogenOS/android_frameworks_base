@@ -7,13 +7,13 @@ use std::ffi::CStr;
 use std::num::{ParseIntError, TryFromIntError};
 use std::{fmt, io, iter};
 
-use gl::types::GLenum;
+use gl::types::{GLenum, GLsizei};
 use khronos_egl as egl;
 use rustutils::android::system_properties::PropertyWatcherError;
 use skrifa::outline::DrawError;
 use skrifa::raw::ReadError;
 
-use crate::renderer::{RasterizeError, Stage};
+use crate::renderer::{GlCount, Stage};
 
 /// An operation of the animation that failed.
 #[derive(Debug)]
@@ -22,15 +22,15 @@ pub enum Error {
     Layer {
         status: i32,
     },
-    /// `boot_surface_create` returned 0 but no layer.
+    /// `boot_surface_create` returned 0 and set the layer to null.
     MissingLayer,
-    /// The layer has no window.
+    /// `boot_surface_window` returns null for the layer.
     MissingWindow,
-    /// A side of the window of the layer, width x height pixels, is not from 0 to 65535 pixels.
+    /// A side of the window of the layer, width x height pixels, is outside 1 to `u16::MAX`
+    /// pixels.
     WindowSize {
         width: i32,
         height: i32,
-        cause: TryFromIntError,
     },
     /// The thread that watches the property called name did not start.
     PropertyWatchThread {
@@ -74,23 +74,10 @@ pub enum Error {
         program: &'static str,
         uniform: &'static CStr,
     },
-    /// The shader of stage of the program called program has more parts, or a longer part, than
-    /// OpenGL ES takes.
-    ShaderTooLarge {
-        program: &'static str,
-        stage: Stage,
-        cause: TryFromIntError,
-    },
-    /// A uniform array of length elements is longer than OpenGL ES takes.
-    UniformArrayTooLong {
-        length: usize,
-        cause: TryFromIntError,
-    },
-    /// A mesh of vertices corners, drawn instances times, has more vertices, instances or bytes
-    /// than OpenGL ES takes.
-    MeshTooLarge {
-        vertices: usize,
-        instances: usize,
+    /// The value of what count names is larger than the `GLsizei` and `GLint` of OpenGL ES.
+    GlCount {
+        count: GlCount,
+        value: usize,
         cause: TryFromIntError,
     },
     PropertyRead {
@@ -106,18 +93,11 @@ pub enum Error {
         value: String,
         cause: ParseIntError,
     },
-    /// The texture of the size width x height is larger than limit, the largest side that OpenGL
-    /// ES takes on this device.
+    /// The texture of the size width x height is larger than limit, the largest side it can have.
     TextureTooLarge {
         width: usize,
         height: usize,
         limit: i32,
-    },
-    /// The texels for a texture of width x height texels are texels, another number.
-    TexelCount {
-        width: usize,
-        height: usize,
-        texels: usize,
     },
     /// OpenGL ES cannot draw into a texture through a framebuffer. status is what
     /// `CheckFramebufferStatus` returned.
@@ -140,30 +120,28 @@ pub enum Error {
         character: char,
         cause: DrawError,
     },
-    GlyphRasterize {
+    /// The outline of the glyph of character has the point (x, y), in pixels, with a coordinate
+    /// that is NaN or infinite.
+    GlyphNotFinite {
         character: char,
-        cause: RasterizeError,
+        x: f32,
+        y: f32,
     },
-    /// The glyphs of a label take a texture of width x height texels, more than 65535 on a side.
-    AtlasTooLarge {
-        width: usize,
-        height: usize,
-        cause: TryFromIntError,
+    /// The outline of the glyph of character is more than `u16::MAX` pixels wide or high.
+    GlyphTooLarge {
+        character: char,
+    },
+    /// A point of the outline of the glyph of character, (x, y) in the pixels of the bitmap made
+    /// from it, lies outside that bitmap.
+    GlyphOutsideBitmap {
+        character: char,
+        x: f32,
+        y: f32,
     },
     /// A text to show contains character, which is not one of the texts that its label was made
     /// for.
     UnshownCharacter {
         character: char,
-    },
-    /// The progress at fraction of the boot has no whole percentage from 0 to 255.
-    ProgressPercent {
-        fraction: f32,
-    },
-    /// The count of the dust sprites for a window of width x height device pixels is not a
-    /// number of sprites.
-    DustCount {
-        width: f32,
-        height: f32,
     },
 }
 
@@ -183,11 +161,15 @@ impl fmt::Display for Error {
             Self::Layer { status } => {
                 write!(f, "could not create the layer for the boot animation: status {status}")
             }
-            Self::MissingLayer => write!(f, "the layer was created without a handle to it"),
-            Self::MissingWindow => write!(f, "the layer of the boot animation has no window"),
-            Self::WindowSize { width, height, .. } => {
-                write!(f, "the window of {width} x {height} has a side outside 0 to 65535 pixels")
+            Self::MissingLayer => write!(f, "the layer was created with a null handle"),
+            Self::MissingWindow => {
+                write!(f, "the layer used by the boot animation returned a null window")
             }
+            Self::WindowSize { width, height } => write!(
+                f,
+                "the window of {width} x {height} pixels has a side outside 1 to {} pixels",
+                u16::MAX
+            ),
             Self::PropertyWatchThread { name, .. } => {
                 write!(f, "could not start the thread that watches {name}")
             }
@@ -219,20 +201,9 @@ impl fmt::Display for Error {
             Self::PropertyNotNumber { name, value, .. } => {
                 write!(f, "{name} is {value:?}, which is not a number")
             }
-            Self::ShaderTooLarge { program, stage, .. } => {
-                write!(f, "the {stage} shader of the {program} program is too large for OpenGL ES")
-            }
-            Self::UniformArrayTooLong { length, .. } => {
-                write!(f, "a uniform array of {length} elements is too long for OpenGL ES")
-            }
-            Self::MeshTooLarge { vertices, instances, .. } => {
-                write!(f, "a mesh of {vertices} vertices drawn {instances} times is too large")
-            }
+            Self::GlCount { count, value, .. } => write_gl_count(f, *count, *value),
             Self::TextureTooLarge { width, height, limit } => {
                 write!(f, "a texture of {width} x {height} is larger than the limit of {limit}")
-            }
-            Self::TexelCount { width, height, texels } => {
-                write!(f, "a texture of {width} x {height} was given {texels} texels")
             }
             Self::IncompleteFramebuffer { status } => {
                 write!(f, "could not draw into a texture: framebuffer status {status:#06x}")
@@ -245,20 +216,23 @@ impl fmt::Display for Error {
             Self::GlyphOutline { character, .. } => {
                 write!(f, "could not read the outline of the glyph of {character:?}")
             }
-            Self::GlyphRasterize { character, .. } => {
-                write!(f, "could not rasterize the glyph of {character:?}")
-            }
-            Self::AtlasTooLarge { width, height, .. } => {
-                write!(f, "the glyphs take {width} x {height} texels, more than 65535 on a side")
-            }
+            Self::GlyphNotFinite { character, x, y } => write!(
+                f,
+                "the outline of the glyph of {character:?} has the point ({x}, {y}), with a \
+                 coordinate that is NaN or infinite"
+            ),
+            Self::GlyphTooLarge { character } => write!(
+                f,
+                "the glyph of {character:?} is more than {} pixels wide or high",
+                u16::MAX
+            ),
+            Self::GlyphOutsideBitmap { character, x, y } => write!(
+                f,
+                "the outline of the glyph of {character:?} has a point at ({x}, {y}), outside the \
+                 bitmap made from it"
+            ),
             Self::UnshownCharacter { character } => {
                 write!(f, "the label lacks a glyph for {character:?}")
-            }
-            Self::ProgressPercent { fraction } => {
-                write!(f, "the progress {fraction} has no whole percentage from 0 to 255")
-            }
-            Self::DustCount { width, height } => {
-                write!(f, "could not count the dust for a window of {width} x {height}")
             }
         }
     }
@@ -270,6 +244,7 @@ impl std::error::Error for Error {
             Self::Layer { .. }
             | Self::MissingLayer
             | Self::MissingWindow
+            | Self::WindowSize { .. }
             | Self::Display
             | Self::NoConfig
             | Self::CreateShader { .. }
@@ -278,18 +253,13 @@ impl std::error::Error for Error {
             | Self::LinkProgram { .. }
             | Self::MissingUniform { .. }
             | Self::TextureTooLarge { .. }
-            | Self::TexelCount { .. }
             | Self::IncompleteFramebuffer { .. }
             | Self::GlyphAdvance { .. }
-            | Self::UnshownCharacter { .. }
-            | Self::ProgressPercent { .. }
-            | Self::DustCount { .. } => None,
-            Self::WindowSize { cause, .. }
-            | Self::ShaderTooLarge { cause, .. }
-            | Self::UniformArrayTooLong { cause, .. }
-            | Self::MeshTooLarge { cause, .. }
-            | Self::AtlasTooLarge { cause, .. } => Some(cause),
-            Self::GlyphRasterize { cause, .. } => Some(cause),
+            | Self::GlyphNotFinite { .. }
+            | Self::GlyphTooLarge { .. }
+            | Self::GlyphOutsideBitmap { .. }
+            | Self::UnshownCharacter { .. } => None,
+            Self::GlCount { cause, .. } => Some(cause),
             Self::EglLoad(cause) => Some(cause),
             Self::Initialize(cause)
             | Self::ChooseConfig(cause)
@@ -304,5 +274,39 @@ impl std::error::Error for Error {
             Self::FontParse { cause, .. } => Some(cause),
             Self::GlyphOutline { cause, .. } => Some(cause),
         }
+    }
+}
+
+/// Writes the message of a count of what count names, value, above the `GLsizei` and `GLint` of
+/// OpenGL ES.
+fn write_gl_count(f: &mut fmt::Formatter, count: GlCount, value: usize) -> fmt::Result {
+    let limit = GLsizei::MAX;
+    match count {
+        GlCount::ShaderParts { program, stage } => write!(
+            f,
+            "the {stage} shader of the {program} program has {value} parts, above the \
+                 limit of OpenGL ES of {limit}"
+        ),
+        GlCount::ShaderPartBytes { program, stage } => write!(
+            f,
+            "a part of the {stage} shader of the {program} program has {value} bytes, \
+                 above the limit of OpenGL ES of {limit}"
+        ),
+        GlCount::MeshVertices => {
+            write!(f, "a mesh has {value} vertices, above the limit of OpenGL ES of {limit}")
+        }
+        GlCount::MeshInstances => {
+            write!(f, "a mesh has {value} instances, above the limit of OpenGL ES of {limit}")
+        }
+        GlCount::InstanceBytes => write!(
+            f,
+            "an instance of a mesh has {value} bytes of attributes, above the limit of \
+                 OpenGL ES of {limit}"
+        ),
+        GlCount::UniformArrayElements => write!(
+            f,
+            "a uniform array has {value} elements, above the limit of OpenGL ES of \
+                 {limit}"
+        ),
     }
 }

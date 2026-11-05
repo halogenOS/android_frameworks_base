@@ -16,7 +16,9 @@ use self::random::Mulberry32;
 use super::logo::{Orientation, Piece, Triangle, LOGO_CENTER_Y, LOGO_SIZE};
 use super::{Moments, ScreenPoint, BAR_HALF_WIDTH, BAR_Y, COMMON};
 use crate::error::Error;
-use crate::renderer::{Blending, Mesh, Pixels, Program, Renderer, ShaderConstant, Uniform, Window};
+use crate::renderer::{
+    Blending, Mesh, Pixels, Program, Renderer, ShaderConstant, Uniform, Vec2Array, Window,
+};
 
 const SWARM_VERTEX: &str = include_str!("../../shaders/swarm_vertex.glsl");
 const SWARM_FRAGMENT: &str = include_str!("../../shaders/swarm_fragment.glsl");
@@ -207,16 +209,14 @@ fn tiles(triangle: &Triangle, random: &mut Mulberry32, logo: Pixels) -> Vec<Tile
             [logo.x + random.next_within(star_span(triangle.piece)), random.next_within(STAR_BAND)]
         })
         .collect();
-    let tile_order = order_around_logo(centers.iter().map(|(center, _)| *center));
-    let star_order = order_around_logo(stars.iter().map(|[x, y]| [x - logo.x, y - logo.y]));
-    tile_order
+    let centers = sort_around_logo(centers, |&(center, _)| center);
+    let stars = sort_around_logo(stars, |[x, y]| [x - logo.x, y - logo.y]);
+    centers
         .into_iter()
-        .zip(star_order)
-        .map(|(tile, star)| {
-            let (center, orientation) = centers[tile];
+        .zip(stars)
+        .map(|((center, orientation), star)| {
             let from_tip = triangle.fraction_from_tip(center);
             let home = [logo.x + center[0], logo.y + center[1]];
-            let star = stars[star];
             let away = [home[0] - star[0], home[1] - star[1]];
             let control = [
                 f32::midpoint(home[0], star[0]) - away[1] * FLIGHT_BEND,
@@ -239,34 +239,35 @@ fn tiles(triangle: &Triangle, random: &mut Mulberry32, logo: Pixels) -> Vec<Tile
         .collect()
 }
 
-/// The indices of points relative to the center of the logo in the order of their angle around
-/// it, from -π to π. Points at the same angle keep their order.
-fn order_around_logo(points: impl Iterator<Item = [f32; 2]>) -> Vec<usize> {
-    let angles: Vec<f32> = points.map(|[x, y]| y.atan2(x)).collect();
-    let mut order: Vec<usize> = (0..angles.len()).collect();
-    order.sort_by(|&a, &b| angles[a].total_cmp(&angles[b]));
-    order
+/// items in the order of the angle of their point around the center of the logo, from -π to π,
+/// with point giving the point of an item relative to that center. Items at the same angle stay
+/// in the order they were given.
+fn sort_around_logo<T>(items: Vec<T>, point: impl Fn(&T) -> [f32; 2]) -> Vec<T> {
+    let mut by_angle: Vec<(f32, T)> = items
+        .into_iter()
+        .map(|item| {
+            let [x, y] = point(&item);
+            (y.atan2(x), item)
+        })
+        .collect();
+    by_angle.sort_by(|(a, _), (b, _)| a.total_cmp(b));
+    by_angle.into_iter().map(|(_, item)| item).collect()
 }
 
 /// How many dust sprites drift over device, the window in device pixels.
-fn dust_count(device: Window) -> Result<usize, Error> {
-    (DUST_DENSITY * device.width * device.height)
-        .round()
-        .to_usize()
-        .ok_or(Error::DustCount { width: device.width, height: device.height })
+fn dust_count(device: Window) -> usize {
+    // A window of u16 sides scaled to DEVICE_HEIGHT gets at most about 2 x 10^8 dust sprites, so
+    // the count always converts to a usize.
+    (DUST_DENSITY * device.width * device.height).round().to_usize().unwrap_or_default()
 }
 
 /// The dust at random homes across device, the window in device pixels, the tiles of the
 /// triangles of the logo centered at logo, then the stardust, each with four random seeds. The
 /// random numbers go out in a fixed order, which decides where each sprite starts and flies: the
 /// homes of the dust, the stars and flight times of the tiles of each triangle, then the seeds.
-fn build_sprites(
-    device: Window,
-    logo: Pixels,
-    triangles: &[Triangle],
-) -> Result<Vec<[[f32; 4]; 4]>, Error> {
+fn build_sprites(device: Window, logo: Pixels, triangles: &[Triangle]) -> Vec<[[f32; 4]; 4]> {
     let mut random = Mulberry32::new(SEED);
-    let mut sprites: Vec<Sprite> = (0..dust_count(device)?)
+    let mut sprites: Vec<Sprite> = (0..dust_count(device))
         .map(|_| {
             let home = [
                 -DUST_OVERHANG_X + random.next_fraction() * (device.width + 2.0 * DUST_OVERHANG_X),
@@ -279,10 +280,10 @@ fn build_sprites(
         sprites.extend(tiles(triangle, &mut random, logo).into_iter().map(Sprite::Tile));
     }
     sprites.extend(iter::repeat_n(Sprite::Spark, SPARK_COUNT));
-    Ok(sprites
+    sprites
         .into_iter()
         .map(|sprite| sprite.attributes(array::from_fn(|_| random.next_fraction())))
-        .collect())
+        .collect()
 }
 
 /// The swarm on the window.
@@ -304,6 +305,7 @@ impl<'a> Swarm<'a> {
         let triangles = Triangle::of_logo(logo_size);
         // Dust and stardust take the shape of the tiles of the blue triangle.
         let tile_corners = triangles.each_ref().map(Triangle::tile_corners);
+        let tile_corners = Vec2Array::new(tile_corners.as_flattened())?;
         let bar_left = ScreenPoint { x: -BAR_HALF_WIDTH, y: BAR_Y }.to_pixels(device);
         let bar_right = ScreenPoint { x: BAR_HALF_WIDTH, y: BAR_Y }.to_pixels(device);
 
@@ -320,15 +322,15 @@ impl<'a> Swarm<'a> {
         program.set_uniforms(|set| {
             set.float(pixel, device.height / window.height);
             set.vec2(device_size, [device.width, device.height]);
+            set.vec2_array(tile, &tile_corners);
             set.vec3(logo_place, [logo.x, logo.y, logo_size]);
             set.vec3(bar, [bar_left.x, bar_right.x, bar_left.y]);
-            set.vec2_array(tile, tile_corners.as_flattened())
-        })?;
+        });
         Ok(Self {
             time: program.uniform(c"uTime")?,
             since_exit: program.uniform(c"uSinceExit")?,
             progress: program.uniform(c"uProgress")?,
-            sprites: renderer.quad_sprites(&build_sprites(device, logo, &triangles)?)?,
+            sprites: renderer.quad_sprites(&build_sprites(device, logo, &triangles))?,
             program,
         })
     }

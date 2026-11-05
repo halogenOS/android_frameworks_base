@@ -11,13 +11,12 @@ mod rasterizer;
 
 use std::collections::{BTreeSet, HashMap};
 
-use self::atlas::Atlas;
+pub(super) use self::atlas::Atlas;
 use self::font::Face;
 pub use self::font::Font;
-pub use self::rasterizer::RasterizeError;
 use self::rasterizer::{rasterize, Bitmap};
 use super::texture::Texture;
-use super::{Blending, Mesh, Pixels, Program, Renderer, Uniform};
+use super::{Blending, Mesh, Pixels, Program, Renderer, Uniform, Window};
 use crate::error::Error;
 
 const TEXT_VERTEX: &str = include_str!("../shaders/text_vertex.glsl");
@@ -64,21 +63,32 @@ struct Sprite {
 
 impl Sprite {
     /// The sprite of bitmap, which lies in atlas with its top left corner at the texel corner.
-    fn of(bitmap: &Bitmap, atlas: &Atlas, [left, top]: [u16; 2]) -> Self {
-        let in_texture = |texel: f32, side: u16| texel / f32::from(side);
-        let [left, top] = [f32::from(left), f32::from(top)];
-        let size = [f32::from(bitmap.width), f32::from(bitmap.height)];
-        let [right, bottom] = [left + size[0], top + size[1]];
-        Self {
+    /// Fails when a side of atlas is above `u16::MAX` texels.
+    fn of(bitmap: &Bitmap, atlas: &Atlas, [left, top]: [usize; 2]) -> Result<Self, Error> {
+        // A texel converts to f32 exactly through u16.
+        let in_texture = |texel: usize, side: usize| {
+            let exact = |texels: usize| u16::try_from(texels).ok().map(f32::from);
+            Some(exact(texel)? / exact(side)?)
+        };
+        let [right, bottom] = [left + usize::from(bitmap.width), top + usize::from(bitmap.height)];
+        let edges = [
+            in_texture(left, atlas.width()),
+            in_texture(top, atlas.height()),
+            in_texture(right, atlas.width()),
+            in_texture(bottom, atlas.height()),
+        ];
+        let [Some(left), Some(top), Some(right), Some(bottom)] = edges else {
+            return Err(Error::TextureTooLarge {
+                width: atlas.width(),
+                height: atlas.height(),
+                limit: i32::from(u16::MAX),
+            });
+        };
+        Ok(Self {
             offset: bitmap.offset,
-            size,
-            texture: [
-                in_texture(left, atlas.width),
-                in_texture(top, atlas.height),
-                in_texture(right, atlas.width),
-                in_texture(bottom, atlas.height),
-            ],
-        }
+            size: [f32::from(bitmap.width), f32::from(bitmap.height)],
+            texture: [left, top, right, bottom],
+        })
     }
 }
 
@@ -96,8 +106,7 @@ impl Rasterized {
         let id = face.glyph(character);
         let advance = face.advance(id).ok_or(Error::GlyphAdvance { character })?;
         let outline = face.outline(id).map_err(|cause| Error::GlyphOutline { character, cause })?;
-        let bitmap =
-            rasterize(&outline).map_err(|cause| Error::GlyphRasterize { character, cause })?;
+        let bitmap = rasterize(character, &outline)?;
         Ok(Self { character, advance, bitmap })
     }
 }
@@ -161,18 +170,15 @@ impl<'a> Label<'a> {
             .iter()
             .filter_map(|glyph| Some((glyph.character, glyph.bitmap.as_ref()?)))
             .collect();
-        let atlas =
-            Atlas::pack(&with_bitmap.iter().map(|&(_, bitmap)| bitmap).collect::<Vec<_>>())?;
-        let texture = renderer.single_channel_texture(
-            usize::from(atlas.width),
-            usize::from(atlas.height),
-            &atlas.texels,
-        )?;
-        let sprites: HashMap<char, Sprite> = with_bitmap
+        let atlas = Atlas::pack(&with_bitmap.iter().map(|&(_, bitmap)| bitmap).collect::<Vec<_>>());
+        let texture = renderer.single_channel_texture(&atlas)?;
+        let sprites = with_bitmap
             .iter()
-            .zip(&atlas.corners)
-            .map(|(&(character, bitmap), &corner)| (character, Sprite::of(bitmap, &atlas, corner)))
-            .collect();
+            .zip(atlas.corners())
+            .map(|(&(character, bitmap), &corner)| {
+                Ok((character, Sprite::of(bitmap, &atlas, corner)?))
+            })
+            .collect::<Result<HashMap<char, Sprite>, Error>>()?;
         let glyphs: HashMap<char, Glyph> = rasterized
             .iter()
             .map(|glyph| {
@@ -230,11 +236,10 @@ pub struct TextProgram<'a> {
 }
 
 impl<'a> TextProgram<'a> {
-    /// Builds the program for the window of renderer.
-    pub fn new(renderer: &'a Renderer) -> Result<Self, Error> {
+    /// Builds the program for window, the window of renderer.
+    pub fn new(renderer: &'a Renderer, window: Window) -> Result<Self, Error> {
         let program = renderer.link_program("text", &[TEXT_VERTEX], &[TEXT_FRAGMENT])?;
         let resolution = program.uniform(c"uRes")?;
-        let window = renderer.window()?;
         program.set_uniforms(|set| set.vec2(resolution, [window.width, window.height]));
         Ok(Self { color: program.uniform(c"uColor")?, program })
     }

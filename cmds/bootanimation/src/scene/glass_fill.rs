@@ -144,7 +144,7 @@ pub struct GlassFill<'a> {
 impl<'a> GlassFill<'a> {
     /// Builds the scene for the window of renderer.
     pub fn new(renderer: &'a Renderer) -> Result<Self, Error> {
-        let window = renderer.window()?;
+        let window = renderer.window();
         let constants = shader_constants();
         Ok(Self {
             behind: GlassPass::behind(renderer, &constants, window)?,
