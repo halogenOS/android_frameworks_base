@@ -10,7 +10,7 @@ use gl::types::{GLchar, GLenum, GLint, GLsizei, GLuint};
 
 use super::mesh::Mesh;
 use super::texture::Texture;
-use super::{gl_int, Renderer};
+use super::Renderer;
 use crate::error::Error;
 
 /// The line that starts every shader: the shading language of OpenGL ES 3.0, the version of the
@@ -132,15 +132,21 @@ impl Shader {
             return Err(Error::CreateShader { program, stage });
         }
         let shader = Self(id);
+        let too_large = |cause| Error::ShaderTooLarge { program, stage, cause };
         let parts: Vec<&str> = iter::once(VERSION_LINE).chain(parts.iter().copied()).collect();
         let starts: Vec<*const GLchar> = parts.iter().map(|part| part.as_ptr().cast()).collect();
-        let lengths: Vec<GLint> = parts.iter().map(|part| gl_int(part.len())).collect();
+        let lengths = parts
+            .iter()
+            .map(|part| GLint::try_from(part.len()))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(too_large)?;
+        let count = GLsizei::try_from(parts.len()).map_err(too_large)?;
         // SAFETY: ShaderSource reads as many pointers from starts and lengths from lengths as the
         // count passed, which is the length of both, and from each pointer as many bytes as its
         // length. Each pointer points to a string of that length, which outlives the call. A string
         // with a length needs no terminating NUL.
         unsafe {
-            gl::ShaderSource(id, gl_int(parts.len()), starts.as_ptr(), lengths.as_ptr());
+            gl::ShaderSource(id, count, starts.as_ptr(), lengths.as_ptr());
             gl::CompileShader(id);
         }
         if parameter(id, gl::COMPILE_STATUS, gl::GetShaderiv) == GLint::from(gl::TRUE) {
@@ -232,11 +238,11 @@ impl Program<'_> {
         }
     }
 
-    /// Calls set with the setter of the uniforms of this program. The uniforms keep their values
-    /// until they are set again.
-    pub fn set_uniforms(&self, set: impl FnOnce(&Uniforms)) {
+    /// Calls set with the setter of the uniforms of this program and returns what set returns.
+    /// The uniforms keep their values until they are set again.
+    pub fn set_uniforms<R>(&self, set: impl FnOnce(&Uniforms) -> R) -> R {
         self.use_program();
-        set(&Uniforms { program: self.id });
+        set(&Uniforms { program: self.id })
     }
 
     /// Draws mesh with this program.
@@ -299,13 +305,17 @@ impl Uniforms {
         unsafe { gl::Uniform4f(location, x, y, z, w) };
     }
 
-    /// Sets the vec2 array uniform to values, from its first element on.
-    pub fn vec2_array(&self, uniform: Uniform, values: &[[f32; 2]]) {
+    /// Sets the vec2 array uniform to values, from its first element on. Fails when OpenGL ES
+    /// takes no array this long.
+    pub fn vec2_array(&self, uniform: Uniform, values: &[[f32; 2]]) -> Result<(), Error> {
         let location = self.location_of(uniform);
+        let count = GLsizei::try_from(values.len())
+            .map_err(|cause| Error::UniformArrayTooLong { length: values.len(), cause })?;
         // SAFETY: Uniforms exist only inside Program::set_uniforms, which asserts that the context
         // is current on this thread. Uniform2fv reads two floats for each of the count passed, the
         // length of values, from the pointer to the floats of values.
-        unsafe { gl::Uniform2fv(location, gl_int(values.len()), values.as_flattened().as_ptr()) };
+        unsafe { gl::Uniform2fv(location, count, values.as_flattened().as_ptr()) };
+        Ok(())
     }
 
     /// The location of uniform, which has to be one of the program in use.

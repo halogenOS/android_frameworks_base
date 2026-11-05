@@ -78,16 +78,16 @@ pub struct BootReports {
 }
 
 impl BootReports {
-    /// Starts to watch the reports of the system.
-    pub fn watch() -> Self {
+    /// Starts to watch the reports of the system. Fails when a watcher cannot start.
+    pub fn watch() -> Result<Self, Error> {
         // Each watcher waits until the frame loop takes its value, so it reads the next change only
         // after that.
         let (sender, changes) = mpsc::sync_channel(0);
-        properties::watch(COMPILE_PROPERTY, sender.clone(), Change::Compile);
-        properties::watch(STAGE_PROPERTY, sender.clone(), Change::Stage);
-        properties::watch(STEP_PROPERTY, sender.clone(), Change::Step);
-        properties::watch(EXIT_PROPERTY, sender, Change::Exit);
-        Self { changes, latest: BootReport::default() }
+        properties::watch(COMPILE_PROPERTY, sender.clone(), Change::Compile)?;
+        properties::watch(STAGE_PROPERTY, sender.clone(), Change::Stage)?;
+        properties::watch(STEP_PROPERTY, sender.clone(), Change::Step)?;
+        properties::watch(EXIT_PROPERTY, sender, Change::Exit)?;
+        Ok(Self { changes, latest: BootReport::default() })
     }
 
     /// The reports up to now: the last ones, with every change since then applied in order.

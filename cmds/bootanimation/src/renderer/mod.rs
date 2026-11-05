@@ -15,13 +15,12 @@ mod texture;
 use std::ffi::c_void;
 use std::ptr;
 
-use gl::types::GLint;
 use khronos_egl as egl;
 
 pub use self::mesh::Mesh;
 pub use self::program::{Blending, Program, ShaderConstant, Stage, Uniform};
 pub use self::render_target::RenderTarget;
-pub use self::text::{Align, Font, Label, Style, TextProgram};
+pub use self::text::{Align, Font, Label, RasterizeError, Style, TextProgram};
 pub use self::texture::Texture;
 use crate::error::Error;
 use crate::surface::Surface;
@@ -75,6 +74,7 @@ pub struct Renderer {
 impl Renderer {
     /// Makes an OpenGL ES 3.0 context current on the window of layer, with one swap per vsync.
     pub fn new(layer: Surface) -> Result<Self, Error> {
+        let window = layer.window()?;
         // SAFETY: load_required is unsafe because loading a library runs its initializers.
         // libEGL.so is the EGL of the system, and its initializers need nothing from the caller.
         let egl = unsafe { egl::DynamicInstance::<egl::EGL1_4>::load_required() }
@@ -93,10 +93,9 @@ impl Renderer {
         // SAFETY: create_window_surface is unsafe because EGL draws into the native window it is
         // given. The window belongs to layer, which this Renderer owns, and Drop destroys the
         // EGL surface before the layer is released.
-        let surface = unsafe {
-            egl.create_window_surface(display, config, layer.window().as_ptr().cast(), None)
-        }
-        .map_err(Error::WindowSurface)?;
+        let surface =
+            unsafe { egl.create_window_surface(display, config, window.as_ptr().cast(), None) }
+                .map_err(Error::WindowSurface)?;
         let renderer = Self { egl, display, context, surface, layer };
         renderer
             .egl
@@ -113,15 +112,13 @@ impl Renderer {
     }
 
     /// The size of the window in pixels.
-    pub fn window(&self) -> Window {
-        let (width, height) = self.size();
-        let side =
-            |side| f32::from(u16::try_from(side).expect("a window side from 0 to 65535 pixels"));
-        Window { width: side(width), height: side(height) }
+    pub fn window(&self) -> Result<Window, Error> {
+        let (width, height) = self.size()?;
+        Ok(Window { width: f32::from(width), height: f32::from(height) })
     }
 
     /// The width and height of the window in pixels.
-    fn size(&self) -> (i32, i32) {
+    fn size(&self) -> Result<(u16, u16), Error> {
         self.layer.size()
     }
 
@@ -164,10 +161,4 @@ impl Drop for Renderer {
         log_failure("terminate the EGL display", self.egl.terminate(self.display));
         log_failure("release the EGL thread", self.egl.release_thread());
     }
-}
-
-/// value as the `GLint` or `GLsizei` that OpenGL ES takes for counts and sizes. The counts and
-/// sizes here are those of the fixed data of the scenes, far below the limit.
-fn gl_int(value: usize) -> GLint {
-    GLint::try_from(value).expect("a count or size above the limit of OpenGL ES")
 }

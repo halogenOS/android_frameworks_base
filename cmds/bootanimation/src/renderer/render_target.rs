@@ -22,9 +22,8 @@ impl Renderer {
     /// blue from 0.0 to 1.0 and is sampled with linear filtering. Fails when OpenGL ES takes no
     /// texture this large or cannot draw into it.
     pub fn window_render_target(&self) -> Result<RenderTarget<'_>, Error> {
-        let (width, height) = self.size();
-        let side = |side: i32| usize::try_from(side).expect("a window side of 0 pixels or more");
-        let texture = self.drawable_texture(side(width), side(height))?;
+        let (width, height) = self.size()?;
+        let texture = self.drawable_texture(usize::from(width), usize::from(height))?;
         let mut framebuffer = 0;
         // SAFETY: The context is current on this thread, asserted by drawable_texture.
         // GenFramebuffers writes one name through the pointer, which points to the local

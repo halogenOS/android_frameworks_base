@@ -4,7 +4,7 @@
 //! The operations of the animation that can fail, each with the error that caused it.
 
 use std::ffi::CStr;
-use std::num::ParseIntError;
+use std::num::{ParseIntError, TryFromIntError};
 use std::{fmt, io, iter};
 
 use gl::types::GLenum;
@@ -13,7 +13,7 @@ use rustutils::android::system_properties::PropertyWatcherError;
 use skrifa::outline::DrawError;
 use skrifa::raw::ReadError;
 
-use crate::renderer::Stage;
+use crate::renderer::{RasterizeError, Stage};
 
 /// An operation of the animation that failed.
 #[derive(Debug)]
@@ -21,6 +21,21 @@ pub enum Error {
     /// `SurfaceFlinger` did not create the layer. status is the negative `status_t` of libgui.
     Layer {
         status: i32,
+    },
+    /// `boot_surface_create` returned 0 but no layer.
+    MissingLayer,
+    /// The layer has no window.
+    MissingWindow,
+    /// A side of the window of the layer, width x height pixels, is not from 0 to 65535 pixels.
+    WindowSize {
+        width: i32,
+        height: i32,
+        cause: TryFromIntError,
+    },
+    /// The thread that watches the property called name did not start.
+    PropertyWatchThread {
+        name: &'static str,
+        cause: io::Error,
     },
     EglLoad(egl::LoadError<libloading::Error>),
     /// EGL returned no display for `EGL_DEFAULT_DISPLAY`.
@@ -59,6 +74,25 @@ pub enum Error {
         program: &'static str,
         uniform: &'static CStr,
     },
+    /// The shader of stage of the program called program has more parts, or a longer part, than
+    /// OpenGL ES takes.
+    ShaderTooLarge {
+        program: &'static str,
+        stage: Stage,
+        cause: TryFromIntError,
+    },
+    /// A uniform array of length elements is longer than OpenGL ES takes.
+    UniformArrayTooLong {
+        length: usize,
+        cause: TryFromIntError,
+    },
+    /// A mesh of vertices corners, drawn instances times, has more vertices, instances or bytes
+    /// than OpenGL ES takes.
+    MeshTooLarge {
+        vertices: usize,
+        instances: usize,
+        cause: TryFromIntError,
+    },
     PropertyRead {
         name: &'static str,
         cause: PropertyWatcherError,
@@ -78,6 +112,12 @@ pub enum Error {
         width: usize,
         height: usize,
         limit: i32,
+    },
+    /// The texels for a texture of width x height texels are texels, another number.
+    TexelCount {
+        width: usize,
+        height: usize,
+        texels: usize,
     },
     /// OpenGL ES cannot draw into a texture through a framebuffer. status is what
     /// `CheckFramebufferStatus` returned.
@@ -100,14 +140,30 @@ pub enum Error {
         character: char,
         cause: DrawError,
     },
-    /// The outline of the glyph of character is more than 65535 pixels wide or high.
-    GlyphTooLarge {
+    GlyphRasterize {
         character: char,
+        cause: RasterizeError,
+    },
+    /// The glyphs of a label take a texture of width x height texels, more than 65535 on a side.
+    AtlasTooLarge {
+        width: usize,
+        height: usize,
+        cause: TryFromIntError,
     },
     /// A text to show contains character, which is not one of the texts that its label was made
     /// for.
     UnshownCharacter {
         character: char,
+    },
+    /// The progress at fraction of the boot has no whole percentage from 0 to 255.
+    ProgressPercent {
+        fraction: f32,
+    },
+    /// The count of the dust sprites for a window of width x height device pixels is not a
+    /// number of sprites.
+    DustCount {
+        width: f32,
+        height: f32,
     },
 }
 
@@ -126,6 +182,14 @@ impl fmt::Display for Error {
         match self {
             Self::Layer { status } => {
                 write!(f, "could not create the layer for the boot animation: status {status}")
+            }
+            Self::MissingLayer => write!(f, "the layer was created without a handle to it"),
+            Self::MissingWindow => write!(f, "the layer of the boot animation has no window"),
+            Self::WindowSize { width, height, .. } => {
+                write!(f, "the window of {width} x {height} has a side outside 0 to 65535 pixels")
+            }
+            Self::PropertyWatchThread { name, .. } => {
+                write!(f, "could not start the thread that watches {name}")
             }
             Self::EglLoad(_) => write!(f, "could not load libEGL"),
             Self::Display => write!(f, "could not get an EGL display"),
@@ -155,8 +219,20 @@ impl fmt::Display for Error {
             Self::PropertyNotNumber { name, value, .. } => {
                 write!(f, "{name} is {value:?}, which is not a number")
             }
+            Self::ShaderTooLarge { program, stage, .. } => {
+                write!(f, "the {stage} shader of the {program} program is too large for OpenGL ES")
+            }
+            Self::UniformArrayTooLong { length, .. } => {
+                write!(f, "a uniform array of {length} elements is too long for OpenGL ES")
+            }
+            Self::MeshTooLarge { vertices, instances, .. } => {
+                write!(f, "a mesh of {vertices} vertices drawn {instances} times is too large")
+            }
             Self::TextureTooLarge { width, height, limit } => {
                 write!(f, "a texture of {width} x {height} is larger than the limit of {limit}")
+            }
+            Self::TexelCount { width, height, texels } => {
+                write!(f, "a texture of {width} x {height} was given {texels} texels")
             }
             Self::IncompleteFramebuffer { status } => {
                 write!(f, "could not draw into a texture: framebuffer status {status:#06x}")
@@ -169,11 +245,20 @@ impl fmt::Display for Error {
             Self::GlyphOutline { character, .. } => {
                 write!(f, "could not read the outline of the glyph of {character:?}")
             }
-            Self::GlyphTooLarge { character } => {
-                write!(f, "the glyph of {character:?} is too large to rasterize")
+            Self::GlyphRasterize { character, .. } => {
+                write!(f, "could not rasterize the glyph of {character:?}")
+            }
+            Self::AtlasTooLarge { width, height, .. } => {
+                write!(f, "the glyphs take {width} x {height} texels, more than 65535 on a side")
             }
             Self::UnshownCharacter { character } => {
                 write!(f, "the label lacks a glyph for {character:?}")
+            }
+            Self::ProgressPercent { fraction } => {
+                write!(f, "the progress {fraction} has no whole percentage from 0 to 255")
+            }
+            Self::DustCount { width, height } => {
+                write!(f, "could not count the dust for a window of {width} x {height}")
             }
         }
     }
@@ -183,6 +268,8 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Layer { .. }
+            | Self::MissingLayer
+            | Self::MissingWindow
             | Self::Display
             | Self::NoConfig
             | Self::CreateShader { .. }
@@ -191,10 +278,18 @@ impl std::error::Error for Error {
             | Self::LinkProgram { .. }
             | Self::MissingUniform { .. }
             | Self::TextureTooLarge { .. }
+            | Self::TexelCount { .. }
             | Self::IncompleteFramebuffer { .. }
             | Self::GlyphAdvance { .. }
-            | Self::GlyphTooLarge { .. }
-            | Self::UnshownCharacter { .. } => None,
+            | Self::UnshownCharacter { .. }
+            | Self::ProgressPercent { .. }
+            | Self::DustCount { .. } => None,
+            Self::WindowSize { cause, .. }
+            | Self::ShaderTooLarge { cause, .. }
+            | Self::UniformArrayTooLong { cause, .. }
+            | Self::MeshTooLarge { cause, .. }
+            | Self::AtlasTooLarge { cause, .. } => Some(cause),
+            Self::GlyphRasterize { cause, .. } => Some(cause),
             Self::EglLoad(cause) => Some(cause),
             Self::Initialize(cause)
             | Self::ChooseConfig(cause)
@@ -205,7 +300,7 @@ impl std::error::Error for Error {
             | Self::Swap(cause) => Some(cause),
             Self::PropertyRead { cause, .. } | Self::PropertyWait { cause, .. } => Some(cause),
             Self::PropertyNotNumber { cause, .. } => Some(cause),
-            Self::FontRead { cause, .. } => Some(cause),
+            Self::PropertyWatchThread { cause, .. } | Self::FontRead { cause, .. } => Some(cause),
             Self::FontParse { cause, .. } => Some(cause),
             Self::GlyphOutline { cause, .. } => Some(cause),
         }

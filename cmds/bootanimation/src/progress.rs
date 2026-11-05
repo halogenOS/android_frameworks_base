@@ -5,6 +5,8 @@
 
 use num_traits::ToPrimitive;
 
+use crate::error::Error;
+
 /// The part of the boot that is done, from 0.0 to 1.0.
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Progress(f32);
@@ -19,8 +21,8 @@ impl Progress {
     }
 
     /// The part that is done in whole percent, rounded down.
-    pub fn percent(self) -> u8 {
-        (self.0 * 100.0).floor().to_u8().expect("a progress from 0.0 to 1.0")
+    pub fn percent(self) -> Result<u8, Error> {
+        (self.0 * 100.0).floor().to_u8().ok_or(Error::ProgressPercent { fraction: self.0 })
     }
 
     /// The progress moved by a part of the way to target. It never moves backward.

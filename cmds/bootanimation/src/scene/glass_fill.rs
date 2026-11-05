@@ -144,7 +144,7 @@ pub struct GlassFill<'a> {
 impl<'a> GlassFill<'a> {
     /// Builds the scene for the window of renderer.
     pub fn new(renderer: &'a Renderer) -> Result<Self, Error> {
-        let window = renderer.window();
+        let window = renderer.window()?;
         let constants = shader_constants();
         Ok(Self {
             behind: GlassPass::behind(renderer, &constants, window)?,
@@ -226,7 +226,7 @@ impl<'a> GlassPass<'a> {
             &glass_fragment(constants, &[BACKGROUND_RENDER, GLASS_MAIN]),
         )?;
         let line_opacity = program.uniform(c"uLineOpacity")?;
-        Self::new(program, renderer.full_screen_triangle(), window, Some(line_opacity))
+        Self::new(program, renderer.full_screen_triangle()?, window, Some(line_opacity))
     }
 
     /// The pass that draws the scene behind the front triangle of the logo, the ribbon, the halo
@@ -239,7 +239,7 @@ impl<'a> GlassPass<'a> {
             &[COMMON, constants, GLASS_SPACE, LOGO_VERTEX],
             &glass_fragment(constants, &[LOGO_GLASS, BEHIND_FRAGMENT]),
         )?;
-        Self::new(program, renderer.quad(), window, None)
+        Self::new(program, renderer.quad()?, window, None)
     }
 
     /// The pass that draws the logo and the progress line over the background, on the rectangle
@@ -252,7 +252,7 @@ impl<'a> GlassPass<'a> {
             &glass_fragment(constants, &[LOGO_GLASS, LOGO_FRAGMENT, GLASS_MAIN]),
         )?;
         let line_opacity = program.uniform(c"uLineOpacity")?;
-        Self::new(program, renderer.quad(), window, Some(line_opacity))
+        Self::new(program, renderer.quad()?, window, Some(line_opacity))
     }
 
     fn new(

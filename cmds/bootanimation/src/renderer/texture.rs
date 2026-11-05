@@ -17,32 +17,44 @@ pub struct Texture<'a> {
     renderer: &'a Renderer,
 }
 
+// The names of OpenGL ES that TexImage2D and TexParameteri take as a GLint.
+const FORMAT_R8: GLint = gl_name_parameter(gl::R8);
+const FORMAT_RGB10_A2: GLint = gl_name_parameter(gl::RGB10_A2);
+const FILTER_NEAREST: GLint = gl_name_parameter(gl::NEAREST);
+const FILTER_LINEAR: GLint = gl_name_parameter(gl::LINEAR);
+const WRAP_CLAMP_TO_EDGE: GLint = gl_name_parameter(gl::CLAMP_TO_EDGE);
+
 /// value, a name of OpenGL ES, as the `GLint` that `TexImage2D` and `TexParameteri` take it as.
-fn gl_name_parameter(value: GLenum) -> GLint {
-    GLint::try_from(value).expect("a name of OpenGL ES below 2^31")
+/// Only the constants above call it, so the build fails on a name of 2^31 or above.
+const fn gl_name_parameter(value: GLenum) -> GLint {
+    assert!(value <= GLint::MAX.cast_unsigned(), "a name of OpenGL ES of 2^31 or above");
+    value.cast_signed()
 }
 
 impl Renderer {
     /// A texture of width x height texels of one channel, filled from texels row by row from the
     /// top. Shaders read the channel as red, from 0.0 to 1.0. Each texel shows on one pixel, so
-    /// the texture is sampled without filtering. Fails when OpenGL ES takes no texture this large.
+    /// the texture is sampled without filtering. Fails when texels is not width x height texels or
+    /// OpenGL ES takes no texture this large.
     pub fn single_channel_texture(
         &self,
         width: usize,
         height: usize,
         texels: &[u8],
     ) -> Result<Texture<'_>, Error> {
-        assert_eq!(texels.len(), width * height, "texels of another size");
-        self.texture(width, height, gl::NEAREST, |gl_width, gl_height| {
+        if width.checked_mul(height) != Some(texels.len()) {
+            return Err(Error::TexelCount { width, height, texels: texels.len() });
+        }
+        self.texture(width, height, FILTER_NEAREST, |gl_width, gl_height| {
             // SAFETY: The context is current on this thread, asserted by Renderer::texture. With an
             // unpack alignment of 1, TexImage2D reads width x height bytes from the pointer, the
-            // start of texels, which has that many bytes, asserted above.
+            // start of texels, which has that many bytes, checked above.
             unsafe {
                 gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
-                    gl_name_parameter(gl::R8),
+                    FORMAT_R8,
                     gl_width,
                     gl_height,
                     0,
@@ -63,14 +75,14 @@ impl Renderer {
         width: usize,
         height: usize,
     ) -> Result<Texture<'_>, Error> {
-        self.texture(width, height, gl::LINEAR, |gl_width, gl_height| {
+        self.texture(width, height, FILTER_LINEAR, |gl_width, gl_height| {
             // SAFETY: The context is current on this thread, asserted by Renderer::texture.
             // TexImage2D reads nothing through the null pointer and leaves the texels undefined.
             unsafe {
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
-                    gl_name_parameter(gl::RGB10_A2),
+                    FORMAT_RGB10_A2,
                     gl_width,
                     gl_height,
                     0,
@@ -89,7 +101,7 @@ impl Renderer {
         &self,
         width: usize,
         height: usize,
-        filter: GLenum,
+        filter: GLint,
         allocate: impl FnOnce(GLsizei, GLsizei),
     ) -> Result<Texture<'_>, Error> {
         self.assert_current();
@@ -106,16 +118,14 @@ impl Renderer {
         // points to the local id.
         unsafe { gl::GenTextures(1, &raw mut id) };
         let texture = Texture { id, renderer: self };
-        let filter = gl_name_parameter(filter);
-        let clamp = gl_name_parameter(gl::CLAMP_TO_EDGE);
         // SAFETY: The context is current on this thread, asserted above, and these calls read only
         // the plain values passed to them.
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, id);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, clamp);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, clamp);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, WRAP_CLAMP_TO_EDGE);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, WRAP_CLAMP_TO_EDGE);
         }
         allocate(gl_width, gl_height);
         // SAFETY: As above, and BindTexture reads only the plain values passed to it.

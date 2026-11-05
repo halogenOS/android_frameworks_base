@@ -82,11 +82,11 @@ fn stage_label(stage: BootStage) -> &'static str {
 
 /// The percentage of frame: 100 from the ready report on, and below 100 before it, even when the
 /// bar has crept up to its end.
-fn shown_percent(frame: &Frame) -> u8 {
+fn shown_percent(frame: &Frame) -> Result<u8, Error> {
     if frame.ready.is_some() {
-        100
+        Ok(100)
     } else {
-        frame.progress.percent().min(99)
+        Ok(frame.progress.percent()?.min(99))
     }
 }
 
@@ -138,7 +138,7 @@ impl<'a> BootText<'a> {
         if moments.text_opacity <= 0.0 {
             return Ok(());
         }
-        self.percent.show(&percent_text(shown_percent(frame)))?;
+        self.percent.show(&percent_text(shown_percent(frame)?))?;
         self.stage_line.show(&StageLine::of(frame).text())?;
         let faded = |[red, green, blue, opacity]: [f32; 4]| {
             [red, green, blue, opacity * moments.text_opacity]

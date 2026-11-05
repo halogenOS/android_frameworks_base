@@ -249,20 +249,24 @@ fn order_around_logo(points: impl Iterator<Item = [f32; 2]>) -> Vec<usize> {
 }
 
 /// How many dust sprites drift over device, the window in device pixels.
-fn dust_count(device: Window) -> usize {
+fn dust_count(device: Window) -> Result<usize, Error> {
     (DUST_DENSITY * device.width * device.height)
         .round()
         .to_usize()
-        .expect("a window of finite size")
+        .ok_or(Error::DustCount { width: device.width, height: device.height })
 }
 
 /// The dust at random homes across device, the window in device pixels, the tiles of the
 /// triangles of the logo centered at logo, then the stardust, each with four random seeds. The
 /// random numbers go out in a fixed order, which decides where each sprite starts and flies: the
 /// homes of the dust, the stars and flight times of the tiles of each triangle, then the seeds.
-fn build_sprites(device: Window, logo: Pixels, triangles: &[Triangle]) -> Vec<[[f32; 4]; 4]> {
+fn build_sprites(
+    device: Window,
+    logo: Pixels,
+    triangles: &[Triangle],
+) -> Result<Vec<[[f32; 4]; 4]>, Error> {
     let mut random = Mulberry32::new(SEED);
-    let mut sprites: Vec<Sprite> = (0..dust_count(device))
+    let mut sprites: Vec<Sprite> = (0..dust_count(device)?)
         .map(|_| {
             let home = [
                 -DUST_OVERHANG_X + random.next_fraction() * (device.width + 2.0 * DUST_OVERHANG_X),
@@ -275,10 +279,10 @@ fn build_sprites(device: Window, logo: Pixels, triangles: &[Triangle]) -> Vec<[[
         sprites.extend(tiles(triangle, &mut random, logo).into_iter().map(Sprite::Tile));
     }
     sprites.extend(iter::repeat_n(Sprite::Spark, SPARK_COUNT));
-    sprites
+    Ok(sprites
         .into_iter()
         .map(|sprite| sprite.attributes(array::from_fn(|_| random.next_fraction())))
-        .collect()
+        .collect())
 }
 
 /// The swarm on the window.
@@ -316,15 +320,15 @@ impl<'a> Swarm<'a> {
         program.set_uniforms(|set| {
             set.float(pixel, device.height / window.height);
             set.vec2(device_size, [device.width, device.height]);
-            set.vec2_array(tile, tile_corners.as_flattened());
             set.vec3(logo_place, [logo.x, logo.y, logo_size]);
             set.vec3(bar, [bar_left.x, bar_right.x, bar_left.y]);
-        });
+            set.vec2_array(tile, tile_corners.as_flattened())
+        })?;
         Ok(Self {
             time: program.uniform(c"uTime")?,
             since_exit: program.uniform(c"uSinceExit")?,
             progress: program.uniform(c"uProgress")?,
-            sprites: renderer.quad_sprites(&build_sprites(device, logo, &triangles)),
+            sprites: renderer.quad_sprites(&build_sprites(device, logo, &triangles)?)?,
             program,
         })
     }

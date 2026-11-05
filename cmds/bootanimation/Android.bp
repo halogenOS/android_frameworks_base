@@ -47,8 +47,11 @@ rust_binary {
     ],
     edition: "2021",
     flags: [
+        "-Dclippy::expect_used",
         "-Dclippy::let_underscore_must_use",
+        "-Dclippy::panic",
         "-Dclippy::pedantic",
+        "-Dclippy::unwrap_used",
         "-Dunused_results",
     ],
     rustlibs: [

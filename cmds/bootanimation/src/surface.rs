@@ -8,7 +8,7 @@ use std::ptr::{self, NonNull};
 
 use boot_surface_bindgen::{
     boot_surface_create, boot_surface_destroy, boot_surface_size, boot_surface_window,
-    ANativeWindow, BootSurface,
+    ANativeWindow, BootSurface, BootSurfaceSize,
 };
 
 use crate::error::Error;
@@ -24,25 +24,26 @@ impl Surface {
         // returns 0.
         let status = unsafe { boot_surface_create(&raw mut out) };
         match status {
-            0 => {
-                Ok(Self(NonNull::new(out).expect("boot_surface_create returned 0 without a layer")))
-            }
+            0 => NonNull::new(out).map(Self).ok_or(Error::MissingLayer),
             _ => Err(Error::Layer { status }),
         }
     }
 
     /// The window of the layer. It is valid as long as this Surface.
-    pub fn window(&self) -> NonNull<ANativeWindow> {
+    pub fn window(&self) -> Result<NonNull<ANativeWindow>, Error> {
         // SAFETY: self.0 came from boot_surface_create and is released only by Drop.
         let window = unsafe { boot_surface_window(self.0.as_ptr()) };
-        NonNull::new(window).expect("boot_surface_create returned a layer without a window")
+        NonNull::new(window).ok_or(Error::MissingWindow)
     }
 
-    /// The width and height of the window in pixels.
-    pub fn size(&self) -> (i32, i32) {
+    /// The width and height of the window in pixels. Fails on a side outside 0 to 65535 pixels.
+    pub fn size(&self) -> Result<(u16, u16), Error> {
         // SAFETY: self.0 came from boot_surface_create and is released only by Drop.
-        let size = unsafe { boot_surface_size(self.0.as_ptr()) };
-        (size.width, size.height)
+        let BootSurfaceSize { width, height } = unsafe { boot_surface_size(self.0.as_ptr()) };
+        let side = |side: i32| {
+            u16::try_from(side).map_err(|cause| Error::WindowSize { width, height, cause })
+        };
+        Ok((side(width)?, side(height)?))
     }
 }
 

@@ -32,19 +32,26 @@ pub fn flag(name: &'static str, default: bool) -> Result<bool, Error> {
 /// are unset or that T does not recognize are left out, and the latter are logged. A failure to
 /// read or wait is sent as the last message of the thread. The thread ends once the receiver of
 /// changes is gone and the property changes again, or with the process: a wait for a property
-/// cannot be cancelled.
-pub fn watch<T, C>(name: &'static str, changes: SyncSender<Result<C, Error>>, change: fn(T) -> C)
+/// cannot be cancelled. Fails when the thread cannot start.
+pub fn watch<T, C>(
+    name: &'static str,
+    changes: SyncSender<Result<C, Error>>,
+    change: fn(T) -> C,
+) -> Result<(), Error>
 where
     T: FromStr + 'static,
     T::Err: Display,
     C: Send + 'static,
 {
-    let _ends_with_the_process = thread::spawn(move || {
-        if let Err(error) = send_changes(name, &changes, change) {
-            // A failed send means that nothing reads the changes anymore.
-            let _receiver_gone = changes.send(Err(error));
-        }
-    });
+    let _ends_with_the_process = thread::Builder::new()
+        .spawn(move || {
+            if let Err(error) = send_changes(name, &changes, change) {
+                // A failed send means that nothing reads the changes anymore.
+                let _receiver_gone = changes.send(Err(error));
+            }
+        })
+        .map_err(|cause| Error::PropertyWatchThread { name, cause })?;
+    Ok(())
 }
 
 /// Sends the values of the property name through changes as `watch` describes, until the receiver

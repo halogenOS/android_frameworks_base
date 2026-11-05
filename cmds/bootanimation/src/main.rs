@@ -47,7 +47,7 @@ fn run() -> Result<(), Error> {
     if unsafe { libc::setpriority(libc::PRIO_PROCESS, 0, DISPLAY_PRIORITY) } != 0 {
         log::warn!("could not set the display priority: {}", std::io::Error::last_os_error());
     }
-    let reports = BootReports::watch();
+    let reports = BootReports::watch()?;
     let last_boot = boot_report::saved_stage_times()?;
     let renderer = Renderer::new(Surface::create()?)?;
     let mut scene = GlassFill::new(&renderer)?;
