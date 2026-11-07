@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: The halogenOS Project
+# SPDX-License-Identifier: Apache-2.0
+
+# The rule renames the Kotlin standard library, so this service in system_server uses a private
+# copy of it.
+rule kotlin.** com.android.server.charging.jarjar.@0

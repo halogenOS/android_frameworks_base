@@ -12,7 +12,7 @@ import android.os.ServiceManager
 import android.provider.Settings
 import android.service.quicksettings.Tile
 
-import custom.system.service.charging.IChargingControlManager
+import custom.health.charging.IChargingControlManager
 
 import com.android.internal.logging.MetricsLogger
 import com.android.systemui.animation.Expandable
@@ -48,8 +48,8 @@ class ChargingLimitTile @Inject constructor(
 ) {
     companion object {
         const val TILE_SPEC = "charging_limit"
-        private const val SETTING = "charging_limit"
-        private const val DISABLED = Int.MAX_VALUE
+        private const val SETTING = IChargingControlManager.LIMIT_SETTING
+        private const val DISABLED = IChargingControlManager.NO_LIMIT
         private const val MIN_LIMIT = 50
         private const val MAX_LIMIT = 95
         private val PRESETS = intArrayOf(DISABLED, 80, 85, 90)
@@ -58,7 +58,8 @@ class ChargingLimitTile @Inject constructor(
     private var icon: Icon? = null
 
     override fun isAvailable(): Boolean {
-        val binder = ServiceManager.checkService("custom.system.service.charging") ?: return false
+        val binder =
+            ServiceManager.checkService(IChargingControlManager.DESCRIPTOR) ?: return false
         return try {
             IChargingControlManager.Stub.asInterface(binder).isSupported
         } catch (e: Exception) {

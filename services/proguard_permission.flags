@@ -1,8 +1,8 @@
-# Only shrink services.permission classes.
+# Only shrink services.permission classes and the Kotlin stdlib renamed into services.charging.
 # Note that while more aggressive services shrinking is enabled by default (see proguard.flags), for
-# cases where that's not yet possible, we still need to shrink the permission package to prune out
-# unused Kotlin stdlib dependencies.
--keep class !com.android.server.permission.** { *; }
+# cases where that's not yet possible, we still need to shrink these packages to prune out unused
+# Kotlin stdlib dependencies.
+-keep class !com.android.server.permission.**, !com.android.server.charging.jarjar.** { *; }
 
 # CoverageService guards optional jacoco class references with a runtime guard, so we can safely
 # suppress build-time warnings.

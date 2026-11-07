@@ -82,7 +82,8 @@ system_optimized_java_defaults {
                     shrink: true,
                     ignore_warnings: false,
                     // Note that this proguard config is very conservative, only shrinking the
-                    // permission subpackage to prune unused jarjar'ed Kotlin dependencies.
+                    // permission subpackage and the jarjar'ed Kotlin stdlib of the charging
+                    // subpackage to prune unused Kotlin dependencies.
                     proguard_flags_files: ["proguard_permission.flags"],
                 },
                 // Explicitly configure R8 to preserve debug info, as this path should
@@ -326,6 +327,7 @@ java_library {
         "services.appwidget",
         "services.autofill",
         "services.backup",
+        "services.charging",
         "services.companion",
         "services.contentrestriction",
         "services.allowlist",
