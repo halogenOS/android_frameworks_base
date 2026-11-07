@@ -94,8 +94,8 @@ public class FieldThemeStyleTests {
     }
 
     @Test
-    public void validate_invalidThemeStyle_content_returnsFalse() {
-        assertThat(mFieldThemeStyle.validate(ThemeStyle.CONTENT)).isFalse();
+    public void validate_validThemeStyle_content_returnsTrue() {
+        assertThat(mFieldThemeStyle.validate(ThemeStyle.CONTENT)).isTrue();
     }
 
     @Test

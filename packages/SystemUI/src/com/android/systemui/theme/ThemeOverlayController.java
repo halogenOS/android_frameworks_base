@@ -956,12 +956,11 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
     private int fetchThemeStyleFromSetting() {
         // Allow-list of Style objects that can be created from a setting string, i.e. can be
         // used as a system-wide theme.
-        // - Content intentionally excluded, intended for media player, not system-wide
         @ThemeStyle.Type List<Integer> validStyles = new ArrayList<>(
                 Arrays.asList(ThemeStyle.EXPRESSIVE,
                         ThemeStyle.SPRITZ, ThemeStyle.TONAL_SPOT, ThemeStyle.FRUIT_SALAD,
                         ThemeStyle.RAINBOW, ThemeStyle.VIBRANT,
-                        ThemeStyle.MONOCHROMATIC));
+                        ThemeStyle.MONOCHROMATIC, ThemeStyle.CONTENT));
 
         @ThemeStyle.Type int style = mThemeStyle;
         final String overlayPackageJson = mSecureSettings.getStringForUser(
