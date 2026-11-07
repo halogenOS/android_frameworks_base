@@ -106,6 +106,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -844,7 +845,6 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         return true;
     }
 
-    @SuppressWarnings("StringCaseLocaleUsage") // Package name is not localized
     private void updateThemeOverlays(boolean forceUpdate) {
         final int currentUser = mUserTracker.getUserId();
         final String overlayPackageJson = mSecureSettings.getStringForUser(
@@ -871,7 +871,7 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         OverlayIdentifier systemPalette = categoryToPackage.get(OVERLAY_CATEGORY_SYSTEM_PALETTE);
         if (mIsMonetEnabled && systemPalette != null && systemPalette.getPackageName() != null) {
             try {
-                String colorString = systemPalette.getPackageName().toLowerCase();
+                String colorString = systemPalette.getPackageName().toLowerCase(Locale.ROOT);
                 if (!colorString.startsWith("#")) {
                     colorString = "#" + colorString;
                 }
