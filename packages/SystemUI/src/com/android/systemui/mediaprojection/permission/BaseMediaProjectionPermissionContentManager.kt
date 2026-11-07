@@ -39,13 +39,13 @@ open class BaseMediaProjectionPermissionContentManager(
 ) : AdapterView.OnItemSelectedListener {
     protected lateinit var containerView: View
     private lateinit var warning: TextView
-    private lateinit var startButton: TextView
+    protected lateinit var startButton: TextView
     private lateinit var screenShareModeSpinner: Spinner
     var selectedScreenShareOption: ScreenShareOption =
         screenShareOptions.first { it.mode == defaultSelectedMode }
     private var shouldLogCancel: Boolean = true
 
-    fun unbind() {
+    open fun unbind() {
         // unbind can be called multiple times and we only want to log once.
         if (shouldLogCancel) {
             mediaProjectionMetricsLogger.notifyProjectionRequestCancelled(hostUid)

@@ -16,7 +16,6 @@
 
 package com.android.systemui.screenrecord
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.hardware.display.DisplayManager
@@ -30,7 +29,10 @@ import android.os.Looper
 import android.os.ResultReceiver
 import android.os.UserHandle
 import android.view.Display
+import android.view.MotionEvent
+import android.view.MotionEvent.ACTION_CANCEL
 import android.view.MotionEvent.ACTION_MOVE
+import android.view.MotionEvent.ACTION_UP
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
@@ -40,7 +42,7 @@ import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Switch
 import androidx.annotation.LayoutRes
-import com.android.systemui.Prefs
+import com.android.systemui.lifecycle.repeatWhenAttached
 import com.android.systemui.mediaprojection.MediaProjectionCaptureTarget
 import com.android.systemui.mediaprojection.MediaProjectionMetricsLogger
 import com.android.systemui.mediaprojection.appselector.MediaProjectionAppSelectorActivity
@@ -53,11 +55,16 @@ import com.android.systemui.mediaprojection.permission.ScreenShareMode
 import com.android.systemui.mediaprojection.permission.ScreenShareOption
 import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.res.R
+import com.android.systemui.screencapture.record.data.repository.ScreenCaptureRecordParametersRepository
+import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
 import com.android.systemui.screenrecord.data.repository.ScreenRecordingStartStopRepository
 import com.android.systemui.screenrecord.shared.model.ScreenRecordingParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 
 class ScreenRecordPermissionContentManager(
     private val hostUserHandle: UserHandle,
@@ -69,6 +76,7 @@ class ScreenRecordPermissionContentManager(
     private val activityStarter: ActivityStarter,
     private val onStartRecordingClicked: Runnable?,
     private val screenRecordingStartStopRepository: ScreenRecordingStartStopRepository,
+    private val recordParametersRepository: ScreenCaptureRecordParametersRepository,
 ) :
     BaseMediaProjectionPermissionContentManager(
         createOptionList(displayManager),
@@ -87,6 +95,7 @@ class ScreenRecordPermissionContentManager(
         activityStarter: ActivityStarter,
         @Assisted onStartRecordingClicked: Runnable?,
         screenRecordingStartStopRepository: ScreenRecordingStartStopRepository,
+        recordParametersRepository: ScreenCaptureRecordParametersRepository,
     ) : this(
         hostUserHandle,
         hostUid,
@@ -97,6 +106,7 @@ class ScreenRecordPermissionContentManager(
         activityStarter,
         onStartRecordingClicked,
         screenRecordingStartStopRepository,
+        recordParametersRepository,
     )
 
     @AssistedFactory
@@ -116,11 +126,24 @@ class ScreenRecordPermissionContentManager(
     private lateinit var hevcSwitch: Switch
     private lateinit var tapsView: View
     private lateinit var options: Spinner
+    private var storedOptionsBinding: DisposableHandle? = null
+
+    private val switches: List<Switch>
+        get() = listOf(audioSwitch, tapsSwitch, longerDurationSwitch, skipTimeSwitch, hevcSwitch)
+
+    /** The controls that are disabled until they show the stored options. */
+    private val storedOptionsControls: List<View>
+        get() = switches + options + startButton
 
     override fun bind(view: View) {
         super.bind(view)
         initRecordOptionsView()
         setStartButtonOnClickListener { startButtonOnClicked() }
+    }
+
+    override fun unbind() {
+        storedOptionsBinding?.dispose()
+        super.unbind()
     }
 
     fun startButtonOnClicked() {
@@ -159,7 +182,6 @@ class ScreenRecordPermissionContentManager(
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     private fun initRecordOptionsView() {
         audioSwitch = containerView.requireViewById(R.id.screenrecord_audio_switch)
         tapsSwitch = containerView.requireViewById(R.id.screenrecord_taps_switch)
@@ -171,13 +193,7 @@ class ScreenRecordPermissionContentManager(
         tapsView = containerView.requireViewById(R.id.show_taps)
         updateTapsViewVisibility()
 
-        // Add these listeners so that the switch only responds to movement
-        // within its target region, to meet accessibility requirements
-        audioSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
-        tapsSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
-        longerDurationSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
-        skipTimeSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
-        hevcSwitch.setOnTouchListener { _, event -> event.action == ACTION_MOVE }
+        switches.forEach { it.setOnTouchListener(toggleOnTap) }
 
         options = containerView.requireViewById(R.id.screen_recording_options)
         val a: ArrayAdapter<*> =
@@ -194,7 +210,6 @@ class ScreenRecordPermissionContentManager(
 
         // Disable HEVC when hardware accelerated codec is not available
         if (!hasHevcHwEncoder()) {
-            Prefs.putInt(containerView.context, PREF_HEVC, 0)
             containerView.requireViewById<View>(R.id.show_hevc).visibility = View.GONE
         }
 
@@ -211,7 +226,26 @@ class ScreenRecordPermissionContentManager(
             }
         options.isLongClickable = false
 
-        loadPrefs()
+        storedOptionsControls.forEach { it.isEnabled = false }
+        // Shows the stored options once per bind, so choices made since then survive a re-attach.
+        storedOptionsBinding =
+            containerView.repeatWhenAttached {
+                showStoredOptions(recordParametersRepository.options.filterNotNull().first())
+                storedOptionsBinding?.dispose()
+            }
+    }
+
+    private fun showStoredOptions(stored: ScreenRecordOptions) {
+        tapsSwitch.isChecked = stored.shouldShowTaps
+        audioSwitch.isChecked = stored.audioSource != ScreenRecordingAudioSource.NONE
+        listOf(stored.audioSource, stored.audioSourceWhenEnabled)
+            .firstOrNull { it in MODES }
+            ?.let { options.setSelection(MODES.indexOf(it)) }
+        longerDurationSwitch.isChecked = stored.longerDuration
+        skipTimeSwitch.isChecked = stored.skipCountdown
+        hevcSwitch.isChecked = stored.hevc
+        switches.forEach { it.jumpDrawablesToCurrentState() }
+        storedOptionsControls.forEach { it.isEnabled = true }
     }
 
     override fun onItemSelected(adapterView: AdapterView<*>?, view: View, pos: Int, id: Long) {
@@ -236,14 +270,23 @@ class ScreenRecordPermissionContentManager(
         displayId: Int = Display.DEFAULT_DISPLAY,
     ) {
         val showTaps = selectedScreenShareOption.mode != SINGLE_APP && tapsSwitch.isChecked
+        val audioSourceWhenEnabled = options.selectedItem as ScreenRecordingAudioSource
         val audioMode =
-            if (audioSwitch.isChecked) options.selectedItem as ScreenRecordingAudioSource
-            else ScreenRecordingAudioSource.NONE
+            if (audioSwitch.isChecked) audioSourceWhenEnabled else ScreenRecordingAudioSource.NONE
         val longerDuration = longerDurationSwitch.isChecked
         val skipTime = skipTimeSwitch.isChecked
         val hevc = hevcSwitch.isChecked
 
-        savePrefs()
+        recordParametersRepository.update {
+            it.copy(
+                audioSource = audioMode,
+                audioSourceWhenEnabled = audioSourceWhenEnabled,
+                shouldShowTaps = tapsSwitch.isChecked,
+                longerDuration = longerDuration,
+                hevc = hevc,
+                skipCountdown = skipTime,
+            )
+        }
 
         controller.startCountdown(
             if (skipTime) NO_DELAY else DELAY_MS,
@@ -282,26 +325,6 @@ class ScreenRecordPermissionContentManager(
         return false
     }
 
-    private fun savePrefs() {
-        val userContext = containerView.context
-        Prefs.putInt(userContext, PREF_TAPS, if (tapsSwitch.isChecked) 1 else 0)
-        Prefs.putInt(userContext, PREF_LONGER, if (longerDurationSwitch.isChecked) 1 else 0)
-        Prefs.putInt(userContext, PREF_AUDIO, if (audioSwitch.isChecked) 1 else 0)
-        Prefs.putInt(userContext, PREF_AUDIO_SOURCE, options.selectedItemPosition)
-        Prefs.putInt(userContext, PREF_SKIP, if (skipTimeSwitch.isChecked) 1 else 0)
-        Prefs.putInt(userContext, PREF_HEVC, if (hevcSwitch.isChecked) 1 else 0)
-    }
-
-    private fun loadPrefs() {
-        val userContext = containerView.context
-        tapsSwitch.isChecked = Prefs.getInt(userContext, PREF_TAPS, 0) == 1
-        longerDurationSwitch.isChecked = Prefs.getInt(userContext, PREF_LONGER, 0) == 1
-        audioSwitch.isChecked = Prefs.getInt(userContext, PREF_AUDIO, 0) == 1
-        options.setSelection(Prefs.getInt(userContext, PREF_AUDIO_SOURCE, 0))
-        skipTimeSwitch.isChecked = Prefs.getInt(userContext, PREF_SKIP, 0) == 1
-        hevcSwitch.isChecked = Prefs.getInt(userContext, PREF_HEVC, 1) == 1
-    }
-
     private inner class CaptureTargetResultReceiver :
         ResultReceiver(Handler(Looper.getMainLooper())) {
         override fun onReceiveResult(resultCode: Int, resultData: Bundle) {
@@ -330,12 +353,25 @@ class ScreenRecordPermissionContentManager(
         private const val NO_DELAY: Long = 100
         private const val INTERVAL_MS: Long = 1000
 
-        private const val PREF_TAPS = "screenrecord_show_taps"
-        private const val PREF_LONGER = "screenrecord_use_longer_timeout"
-        private const val PREF_AUDIO = "screenrecord_use_audio"
-        private const val PREF_AUDIO_SOURCE = "screenrecord_audio_source"
-        private const val PREF_SKIP = "screenrecord_skip_timer"
-        private const val PREF_HEVC = "screenrecord_use_hevc"
+        /**
+         * Toggles a switch with a tap and never with a drag of its thumb. At the end of the touch
+         * the switch gets a cancel event in place of the up event, which ends its pressed state
+         * without a second toggle.
+         */
+        private val toggleOnTap =
+            View.OnTouchListener { view, event ->
+                when (event.actionMasked) {
+                    ACTION_MOVE -> true
+                    ACTION_UP -> view.performClick() or view.cancelTouch(event)
+                    else -> false
+                }
+            }
+
+        /** Hands this view a cancel event at the position of [event], which ends its touch. */
+        private fun View.cancelTouch(event: MotionEvent): Boolean {
+            val cancel = MotionEvent.obtain(event).apply { action = ACTION_CANCEL }
+            return onTouchEvent(cancel).also { cancel.recycle() }
+        }
 
         fun createOptionList(displayManager: DisplayManager): List<ScreenShareOption> {
             val connectedDisplays = getConnectedDisplays(displayManager)

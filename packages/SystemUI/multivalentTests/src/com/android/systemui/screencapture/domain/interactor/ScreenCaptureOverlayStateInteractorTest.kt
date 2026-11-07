@@ -26,7 +26,7 @@ import com.android.systemui.kosmos.collectLastValue
 import com.android.systemui.kosmos.runTest
 import com.android.systemui.screencapture.common.data.repository.screenCaptureMarkupRepository
 import com.android.systemui.screencapture.record.camera.data.repository.screenRecordCameraRepository
-import com.android.systemui.screencapture.record.data.repository.screenCaptureRecordParametersRepository
+import com.android.systemui.screencapture.record.domain.interactor.screenCaptureRecordParametersInteractor
 import com.android.systemui.testKosmosNew
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -52,7 +52,7 @@ class ScreenCaptureOverlayStateInteractorTest : SysuiTestCase() {
             val isOverlayVisible by collectLastValue(underTest.isVisible)
 
             screenRecordCameraRepository.connect()
-            screenCaptureRecordParametersRepository.shouldShowFrontCamera = true
+            screenCaptureRecordParametersInteractor.shouldShowFrontCamera = true
 
             assertThat(isOverlayVisible).isTrue()
         }

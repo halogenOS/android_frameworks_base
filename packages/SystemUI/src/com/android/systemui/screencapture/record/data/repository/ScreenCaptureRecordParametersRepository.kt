@@ -17,79 +17,117 @@
 package com.android.systemui.screencapture.record.data.repository
 
 import android.content.Context
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import com.android.systemui.Prefs
+import android.content.SharedPreferences
+import androidx.annotation.MainThread
+import androidx.core.content.edit
+import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.dagger.qualifiers.Application
-import com.android.systemui.screencapture.common.ScreenCaptureScope
+import com.android.systemui.dagger.qualifiers.Background
+import com.android.systemui.domain.interactor.SharedPreferencesInteractor
+import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
 import com.android.systemui.screenrecord.ScreenRecordingAudioSource
-import com.android.systemui.settings.UserTracker
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-@ScreenCaptureScope
+private const val FILE_NAME = "screen_record_options"
+private const val KEY_AUDIO_SOURCE = "audio_source"
+private const val KEY_AUDIO_SOURCE_WHEN_ENABLED = "audio_source_when_enabled"
+private const val KEY_SHOW_TAPS = "show_taps"
+private const val KEY_LONGER_DURATION = "longer_duration"
+private const val KEY_HEVC = "hevc"
+private const val KEY_SKIP_COUNTDOWN = "skip_countdown"
+
+private val DEFAULT_OPTIONS = ScreenRecordOptions()
+
+/** Stores the screen recording options of the selected user. */
+@SysUISingleton
 class ScreenCaptureRecordParametersRepository
 @Inject
-constructor(@Application private val context: Context, private val userTracker: UserTracker) {
+constructor(
+    sharedPreferencesInteractor: SharedPreferencesInteractor,
+    @Background backgroundContext: CoroutineContext,
+    @Application applicationScope: CoroutineScope,
+) {
 
-    private val userContext: Context
-        get() = context.createContextAsUser(userTracker.userHandle, 0)
+    private val selectedUserPreferences: Flow<SharedPreferences> =
+        sharedPreferencesInteractor.sharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
 
-    private val audioSourceState = mutableStateOf(loadAudioSource())
-    var audioSource: ScreenRecordingAudioSource
-        get() = audioSourceState.value
-        set(value) {
-            audioSourceState.value = value
-            saveAudioSource(value)
+    private val _options = MutableStateFlow<ScreenRecordOptions?>(null)
+
+    /** The options of the selected user, null until they are read from the file of that user. */
+    val options: StateFlow<ScreenRecordOptions?> = _options.asStateFlow()
+
+    /** The file [options] were read from. Only the main thread reads and sets it. */
+    private var optionsFile: SharedPreferences? = null
+
+    private val pendingWrites = Channel<PendingWrite>(Channel.UNLIMITED)
+
+    init {
+        applicationScope.launch {
+            selectedUserPreferences.collectLatest { file ->
+                _options.value = null
+                val stored = withContext(backgroundContext) { file.readOptions() }
+                optionsFile = file
+                _options.value = stored
+            }
         }
-
-    private val shouldShowTapsState = mutableStateOf(Prefs.getInt(userContext, PREF_TAPS, 0) == 1)
-    var shouldShowTaps: Boolean
-        get() = shouldShowTapsState.value
-        set(value) {
-            shouldShowTapsState.value = value
-            Prefs.putInt(userContext, PREF_TAPS, if (value) 1 else 0)
-        }
-
-    var shouldShowFrontCamera: Boolean by mutableStateOf(false)
-
-    private val longerDurationState = mutableStateOf(Prefs.getInt(userContext, PREF_LONGER, 0) == 1)
-    var longerDuration: Boolean
-        get() = longerDurationState.value
-        set(value) {
-            longerDurationState.value = value
-            Prefs.putInt(userContext, PREF_LONGER, if (value) 1 else 0)
-        }
-
-    private val hevcState = mutableStateOf(Prefs.getInt(userContext, PREF_HEVC, 0) == 1)
-    var hevc: Boolean
-        get() = hevcState.value
-        set(value) {
-            hevcState.value = value
-            Prefs.putInt(userContext, PREF_HEVC, if (value) 1 else 0)
-        }
-
-    private fun loadAudioSource(): ScreenRecordingAudioSource {
-        val useAudio = Prefs.getInt(userContext, PREF_AUDIO, 0) == 1
-        if (!useAudio) return ScreenRecordingAudioSource.NONE
-        val pos = Prefs.getInt(userContext, PREF_AUDIO_SOURCE, 0)
-        val values = ScreenRecordingAudioSource.values()
-        return if (pos >= 0 && pos < values.size) values[pos] else ScreenRecordingAudioSource.NONE
-    }
-
-    private fun saveAudioSource(value: ScreenRecordingAudioSource) {
-        val useAudio = value != ScreenRecordingAudioSource.NONE
-        Prefs.putInt(userContext, PREF_AUDIO, if (useAudio) 1 else 0)
-        if (useAudio) {
-            Prefs.putInt(userContext, PREF_AUDIO_SOURCE, value.ordinal)
+        applicationScope.launch(backgroundContext) {
+            for (write in pendingWrites) {
+                write.file.edit { putOptions(write.options) }
+            }
         }
     }
 
-    companion object {
-        private const val PREF_TAPS = "screenrecord_show_taps"
-        private const val PREF_LONGER = "screenrecord_use_longer_timeout"
-        private const val PREF_AUDIO = "screenrecord_use_audio"
-        private const val PREF_AUDIO_SOURCE = "screenrecord_audio_source"
-        private const val PREF_HEVC = "screenrecord_use_hevc"
+    /**
+     * Changes the options of the selected user at once and writes them to the file of that user in
+     * the order the calls were made. Does nothing until the options are read, so the defaults never
+     * replace the stored options.
+     */
+    @MainThread
+    fun update(transform: (ScreenRecordOptions) -> ScreenRecordOptions) {
+        val file = optionsFile ?: return
+        val changed = transform(_options.value ?: return)
+        _options.value = changed
+        pendingWrites.trySend(PendingWrite(file, changed)).getOrThrow()
     }
+
+    private class PendingWrite(val file: SharedPreferences, val options: ScreenRecordOptions)
+}
+
+private fun SharedPreferences.readOptions() =
+    ScreenRecordOptions(
+        audioSource = getAudioSource(KEY_AUDIO_SOURCE, DEFAULT_OPTIONS.audioSource),
+        audioSourceWhenEnabled =
+            getAudioSource(KEY_AUDIO_SOURCE_WHEN_ENABLED, DEFAULT_OPTIONS.audioSourceWhenEnabled),
+        shouldShowTaps = getBoolean(KEY_SHOW_TAPS, DEFAULT_OPTIONS.shouldShowTaps),
+        longerDuration = getBoolean(KEY_LONGER_DURATION, DEFAULT_OPTIONS.longerDuration),
+        hevc = getBoolean(KEY_HEVC, DEFAULT_OPTIONS.hevc),
+        skipCountdown = getBoolean(KEY_SKIP_COUNTDOWN, DEFAULT_OPTIONS.skipCountdown),
+    )
+
+private fun SharedPreferences.Editor.putOptions(options: ScreenRecordOptions) {
+    putString(KEY_AUDIO_SOURCE, options.audioSource.name)
+    putString(KEY_AUDIO_SOURCE_WHEN_ENABLED, options.audioSourceWhenEnabled.name)
+    putBoolean(KEY_SHOW_TAPS, options.shouldShowTaps)
+    putBoolean(KEY_LONGER_DURATION, options.longerDuration)
+    putBoolean(KEY_HEVC, options.hevc)
+    putBoolean(KEY_SKIP_COUNTDOWN, options.skipCountdown)
+}
+
+/** The audio source stored by name under [key], or [default] when no audio source has that name. */
+private fun SharedPreferences.getAudioSource(
+    key: String,
+    default: ScreenRecordingAudioSource,
+): ScreenRecordingAudioSource {
+    val name = getString(key, null)
+    return ScreenRecordingAudioSource.entries.firstOrNull { it.name == name } ?: default
 }

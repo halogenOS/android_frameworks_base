@@ -20,7 +20,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.systemui.SysuiTestCase
 import com.android.systemui.kosmos.runTest
-import com.android.systemui.screencapture.record.data.repository.screenCaptureRecordParametersRepository
+import com.android.systemui.screencapture.record.domain.interactor.screenCaptureRecordParametersInteractor
 import com.android.systemui.testKosmosNew
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -36,7 +36,7 @@ class ScreenCaptureCameraHintInteractorTest : SysuiTestCase() {
     @Test
     fun shouldShowHint_initial_isTrue() =
         kosmos.runTest {
-            screenCaptureRecordParametersRepository.shouldShowFrontCamera = true
+            screenCaptureRecordParametersInteractor.shouldShowFrontCamera = true
             underTest.start()
 
             assertThat(underTest.shouldShowHint).isTrue()
@@ -45,7 +45,7 @@ class ScreenCaptureCameraHintInteractorTest : SysuiTestCase() {
     @Test
     fun shouldShowHint_initial_shouldShowFrontCameraIsFalse_isFalse() =
         kosmos.runTest {
-            screenCaptureRecordParametersRepository.shouldShowFrontCamera = false
+            screenCaptureRecordParametersInteractor.shouldShowFrontCamera = false
             underTest.start()
 
             assertThat(underTest.shouldShowHint).isFalse()
@@ -54,7 +54,7 @@ class ScreenCaptureCameraHintInteractorTest : SysuiTestCase() {
     @Test
     fun onHintShown_twice_shouldShowHintIsFalse() =
         kosmos.runTest {
-            screenCaptureRecordParametersRepository.shouldShowFrontCamera = true
+            screenCaptureRecordParametersInteractor.shouldShowFrontCamera = true
             underTest.start()
 
             underTest.onHintShown()

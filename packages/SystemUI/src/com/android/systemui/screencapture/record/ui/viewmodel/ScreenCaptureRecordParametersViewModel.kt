@@ -25,6 +25,7 @@ import com.android.systemui.screencapture.record.camera.domain.interactor.Screen
 import com.android.systemui.screencapture.record.domain.interactor.ScreenCaptureRecordFeaturesInteractor
 import com.android.systemui.screencapture.record.domain.interactor.ScreenCaptureRecordParametersInteractor
 import com.android.systemui.screencapture.record.shared.model.ScreenRecordEvent
+import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
 import com.android.systemui.screencapture.record.smallscreen.domain.interactor.RecordDetailsTargetInteractor
 import com.android.systemui.screencapture.record.smallscreen.shared.model.currentTargetModel
 import com.android.systemui.screenrecord.ScreenRecordingAudioSource
@@ -32,6 +33,8 @@ import com.android.systemui.screenrecord.domain.interactor.ScreenRecordingServic
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -47,20 +50,29 @@ constructor(
     private val uiEventLogger: UiEventLogger,
 ) : HydratedActivatable() {
 
-    val audioSource: ScreenRecordingAudioSource by interactor::audioSource
+    private val storedOptions: ScreenRecordOptions? by
+        interactor.options.hydratedStateOf("ScreenCaptureRecordParametersViewModel#storedOptions")
+
+    /** The stored options, or the default options until the stored options are read. */
+    private val shownOptions: ScreenRecordOptions
+        get() = storedOptions ?: ScreenRecordOptions()
+
+    val audioSource: ScreenRecordingAudioSource
+        get() = shownOptions.audioSource
+
     val canChangeAudioSource: Boolean by
         interactor.canChangeAudioSource.hydratedStateOf(
             "ScreenCaptureAudioSourceViewModel#canChangeAudioSource"
         )
 
     var shouldShowTaps: Boolean
-        get() = interactor.shouldShowTaps
+        get() = shownOptions.shouldShowTaps
         set(value) {
             uiEventLogger.logShouldShowTapsChanged(
                 shouldShowTaps = value,
                 isRecording = screenRecordingServiceInteractor.status.value.isRecording,
             )
-            interactor.shouldShowTaps = value
+            interactor.setShouldShowTaps(value)
         }
 
     var shouldShowFrontCamera: Boolean
@@ -73,18 +85,18 @@ constructor(
             interactor.shouldShowFrontCamera = value
         }
 
-    val longerDuration: Boolean by interactor::longerDuration
+    val longerDuration: Boolean
+        get() = shownOptions.longerDuration
 
-    val hevc: Boolean by interactor::hevc
+    val hevc: Boolean
+        get() = shownOptions.hevc
 
     var shouldRecordDevice: Boolean
         get() =
-            with(interactor) {
-                audioSource == ScreenRecordingAudioSource.MIC_AND_INTERNAL ||
-                    audioSource == ScreenRecordingAudioSource.INTERNAL
-            }
+            audioSource == ScreenRecordingAudioSource.MIC_AND_INTERNAL ||
+                audioSource == ScreenRecordingAudioSource.INTERNAL
         set(value) {
-            interactor.audioSource =
+            interactor.setAudioSource(
                 if (value) {
                     uiEventLogger.log(ScreenRecordEvent.SCREEN_RECORD_AUDIO_DEVICE_ENABLED)
                     if (shouldRecordMicrophone) {
@@ -100,16 +112,15 @@ constructor(
                         ScreenRecordingAudioSource.NONE
                     }
                 }
+            )
         }
 
     var shouldRecordMicrophone: Boolean
         get() =
-            with(interactor) {
-                audioSource == ScreenRecordingAudioSource.MIC_AND_INTERNAL ||
-                    audioSource == ScreenRecordingAudioSource.MIC
-            }
+            audioSource == ScreenRecordingAudioSource.MIC_AND_INTERNAL ||
+                audioSource == ScreenRecordingAudioSource.MIC
         set(value) {
-            interactor.audioSource =
+            interactor.setAudioSource(
                 if (value) {
                     uiEventLogger.log(ScreenRecordEvent.SCREEN_RECORD_AUDIO_MIC_ENABLED)
                     if (shouldRecordDevice) {
@@ -125,6 +136,7 @@ constructor(
                         ScreenRecordingAudioSource.NONE
                     }
                 }
+            )
         }
 
     val canUseFrontCamera: Boolean by
@@ -148,12 +160,15 @@ constructor(
         screenCaptureCameraHintInteractor.onHintShown()
     }
 
+    /** The stored options. A recording started before they are read waits for them. */
+    suspend fun storedOptions(): ScreenRecordOptions = interactor.options.filterNotNull().first()
+
     fun setLongerDuration(longerDuration: Boolean) {
-        interactor.longerDuration = longerDuration
+        interactor.setLongerDuration(longerDuration)
     }
 
     fun setHevc(hevc: Boolean) {
-        interactor.hevc = hevc
+        interactor.setHevc(hevc)
     }
 
     @AssistedFactory

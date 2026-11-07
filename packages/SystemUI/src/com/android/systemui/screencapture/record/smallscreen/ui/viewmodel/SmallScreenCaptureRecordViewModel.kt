@@ -251,13 +251,14 @@ constructor(
     }
 
     private suspend fun startRecording() {
-        val audioSource = recordDetailsParametersViewModel.audioSource
         val target = captureTargetModel?.currentTargetModel?.screenCaptureTarget ?: return
-        val longerDuration = recordDetailsParametersViewModel.longerDuration
-        val hevc = recordDetailsParametersViewModel.hevc
+        val options = recordDetailsParametersViewModel.storedOptions()
+        val audioSource = options.audioSource
+        val longerDuration = options.longerDuration
+        val hevc = options.hevc
         when (target) {
             is ScreenCaptureTarget.Fullscreen -> {
-                val shouldShowTaps = recordDetailsParametersViewModel.shouldShowTaps
+                val shouldShowTaps = options.shouldShowTaps
                 screenRecordingServiceInteractor.startRecordingDelayed(
                     ScreenRecordingParameters(
                         captureTarget = null,

@@ -16,9 +16,16 @@
 
 package com.android.systemui.screencapture.record.data.repository
 
+import com.android.systemui.domain.interactor.sharedPreferencesInteractor
 import com.android.systemui.kosmos.Kosmos
+import com.android.systemui.kosmos.applicationCoroutineScope
+import com.android.systemui.kosmos.testDispatcher
 
 val Kosmos.screenCaptureRecordParametersRepository by
     Kosmos.Fixture<ScreenCaptureRecordParametersRepository> {
-        ScreenCaptureRecordParametersRepository()
+        ScreenCaptureRecordParametersRepository(
+            sharedPreferencesInteractor = sharedPreferencesInteractor,
+            backgroundContext = testDispatcher,
+            applicationScope = applicationCoroutineScope,
+        )
     }

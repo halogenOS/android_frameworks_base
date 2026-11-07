@@ -369,15 +369,16 @@ constructor(
         closeUi()
 
         backgroundScope.launch {
+            val options = toolbarViewModel.recordParametersViewModel.storedOptions()
             screenRecordingServiceInteractor.startRecordingDelayed(
                 // TODO(b/437971334): Get options from the UI.
                 ScreenRecordingParameters(
                     captureTarget = recordingTarget,
-                    audioSource = toolbarViewModel.recordParametersViewModel.audioSource,
+                    audioSource = options.audioSource,
                     displayId = displayId,
-                    shouldShowTaps = toolbarViewModel.recordParametersViewModel.shouldShowTaps,
-                    longerDuration = toolbarViewModel.recordParametersViewModel.longerDuration,
-                    hevc = toolbarViewModel.recordParametersViewModel.hevc,
+                    shouldShowTaps = options.shouldShowTaps,
+                    longerDuration = options.longerDuration,
+                    hevc = options.hevc,
                 )
             )
         }

@@ -16,9 +16,13 @@
 
 package com.android.systemui.screencapture.record.domain.interactor
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.android.systemui.screencapture.common.ScreenCapture
 import com.android.systemui.screencapture.common.ScreenCaptureScope
 import com.android.systemui.screencapture.record.data.repository.ScreenCaptureRecordParametersRepository
+import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
 import com.android.systemui.screenrecord.ScreenRecordingAudioSource
 import com.android.systemui.screenrecord.domain.interactor.ScreenRecordingServiceInteractor
 import com.android.systemui.screenrecord.shared.model.ScreenRecordingStatus
@@ -38,41 +42,19 @@ constructor(
     private val repository: ScreenCaptureRecordParametersRepository,
 ) {
 
-    var audioSource: ScreenRecordingAudioSource
-        set(value) {
-            if (canChangeAudioSource.value) {
-                repository.audioSource = value
-            }
-        }
-        get() = repository.audioSource
+    /** The stored options of the selected user, null until they are read. */
+    val options: StateFlow<ScreenRecordOptions?> = repository.options
 
-    var shouldShowTaps: Boolean
-        set(value) {
-            serviceInteractor.updateShouldShowTaps(value)
-            repository.shouldShowTaps = value
-        }
-        get() = repository.shouldShowTaps
+    private var _shouldShowFrontCamera: Boolean by mutableStateOf(false)
 
     var shouldShowFrontCamera: Boolean
         set(value) {
             if (value) {
-                audioSource = audioSource.withEnabledMic()
+                updateAudioSource { it.withEnabledMic() }
             }
-            repository.shouldShowFrontCamera = value
+            _shouldShowFrontCamera = value
         }
-        get() = repository.shouldShowFrontCamera
-
-    var longerDuration: Boolean
-        set(value) {
-            repository.longerDuration = value
-        }
-        get() = repository.longerDuration
-
-    var hevc: Boolean
-        set(value) {
-            repository.hevc = value
-        }
-        get() = repository.hevc
+        get() = _shouldShowFrontCamera
 
     val canChangeAudioSource: StateFlow<Boolean> =
         serviceInteractor.status
@@ -82,6 +64,26 @@ constructor(
                 SharingStarted.Eagerly,
                 serviceInteractor.status.value.canChangeAudioSource(),
             )
+
+    fun setAudioSource(audioSource: ScreenRecordingAudioSource) = updateAudioSource { audioSource }
+
+    fun setShouldShowTaps(shouldShowTaps: Boolean) {
+        serviceInteractor.updateShouldShowTaps(shouldShowTaps)
+        repository.update { it.copy(shouldShowTaps = shouldShowTaps) }
+    }
+
+    fun setLongerDuration(longerDuration: Boolean) =
+        repository.update { it.copy(longerDuration = longerDuration) }
+
+    fun setHevc(hevc: Boolean) = repository.update { it.copy(hevc = hevc) }
+
+    private fun updateAudioSource(
+        transform: (ScreenRecordingAudioSource) -> ScreenRecordingAudioSource
+    ) {
+        if (canChangeAudioSource.value) {
+            repository.update { it.copy(audioSource = transform(it.audioSource)) }
+        }
+    }
 }
 
 private fun ScreenRecordingAudioSource.withEnabledMic(): ScreenRecordingAudioSource =

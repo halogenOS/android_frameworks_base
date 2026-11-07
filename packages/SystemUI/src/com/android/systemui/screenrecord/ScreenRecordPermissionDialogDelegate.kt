@@ -28,6 +28,7 @@ import com.android.systemui.mediaprojection.permission.SINGLE_APP
 import com.android.systemui.mediaprojection.permission.ScreenShareMode
 import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.res.R
+import com.android.systemui.screencapture.record.data.repository.ScreenCaptureRecordParametersRepository
 import com.android.systemui.screenrecord.data.repository.ScreenRecordingStartStopRepository
 import com.android.systemui.shade.ShadeDisplayAware
 import com.android.systemui.shade.domain.interactor.ShadeDialogContextInteractor
@@ -51,6 +52,7 @@ class ScreenRecordPermissionDialogDelegate(
     private val displayManager: DisplayManager,
     private val screenRecordingStartStopRepository: ScreenRecordingStartStopRepository,
     private val shadeDialogContextInteractor: ShadeDialogContextInteractor,
+    private val recordParametersRepository: ScreenCaptureRecordParametersRepository,
 ) :
     BaseMediaProjectionPermissionDialogDelegate(
         context,
@@ -76,6 +78,7 @@ class ScreenRecordPermissionDialogDelegate(
         displayManager: DisplayManager,
         screenRecordingStartStopRepository: ScreenRecordingStartStopRepository,
         shadeDialogContextInteractor: ShadeDialogContextInteractor,
+        recordParametersRepository: ScreenCaptureRecordParametersRepository,
     ) : this(
         hostUserHandle,
         hostUid,
@@ -90,6 +93,7 @@ class ScreenRecordPermissionDialogDelegate(
         displayManager,
         screenRecordingStartStopRepository,
         shadeDialogContextInteractor,
+        recordParametersRepository,
     )
 
     @AssistedFactory
@@ -113,6 +117,7 @@ class ScreenRecordPermissionDialogDelegate(
             activityStarter,
             onStartRecordingClicked,
             screenRecordingStartStopRepository,
+            recordParametersRepository,
         )
     }
 
