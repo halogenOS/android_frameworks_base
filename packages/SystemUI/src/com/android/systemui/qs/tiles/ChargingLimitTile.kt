@@ -11,28 +11,27 @@ import android.os.Looper
 import android.os.ServiceManager
 import android.provider.Settings
 import android.service.quicksettings.Tile
-
-import custom.health.charging.IChargingControlManager
-
 import com.android.internal.logging.MetricsLogger
 import com.android.systemui.animation.Expandable
 import com.android.systemui.dagger.qualifiers.Background
 import com.android.systemui.dagger.qualifiers.Main
 import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.plugins.FalsingManager
-import com.android.systemui.plugins.qs.QSTile.Icon
 import com.android.systemui.plugins.qs.QSTile.BooleanState
+import com.android.systemui.plugins.qs.QSTile.Icon
 import com.android.systemui.plugins.statusbar.StatusBarStateController
 import com.android.systemui.qs.QSHost
 import com.android.systemui.qs.QsEventLogger
 import com.android.systemui.qs.logging.QSLogger
 import com.android.systemui.qs.tileimpl.QSTileImpl
 import com.android.systemui.res.R
-
+import custom.health.charging.IChargingControlManager
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
-class ChargingLimitTile @Inject constructor(
+class ChargingLimitTile
+@Inject
+constructor(
     host: QSHost,
     uiEventLogger: QsEventLogger,
     @Background backgroundLooper: Looper,
@@ -42,10 +41,18 @@ class ChargingLimitTile @Inject constructor(
     statusBarStateController: StatusBarStateController,
     activityStarter: ActivityStarter,
     qsLogger: QSLogger,
-) : QSTileImpl<BooleanState>(
-    host, uiEventLogger, backgroundLooper, mainHandler, falsingManager, metricsLogger,
-    statusBarStateController, activityStarter, qsLogger,
-) {
+) :
+    QSTileImpl<BooleanState>(
+        host,
+        uiEventLogger,
+        backgroundLooper,
+        mainHandler,
+        falsingManager,
+        metricsLogger,
+        statusBarStateController,
+        activityStarter,
+        qsLogger,
+    ) {
     companion object {
         const val TILE_SPEC = "charging_limit"
         private const val SETTING = IChargingControlManager.LIMIT_SETTING
@@ -58,8 +65,7 @@ class ChargingLimitTile @Inject constructor(
     private var icon: Icon? = null
 
     override fun isAvailable(): Boolean {
-        val binder =
-            ServiceManager.checkService(IChargingControlManager.DESCRIPTOR) ?: return false
+        val binder = ServiceManager.checkService(IChargingControlManager.DESCRIPTOR) ?: return false
         return try {
             IChargingControlManager.Stub.asInterface(binder).isSupported
         } catch (e: Exception) {
@@ -93,8 +99,7 @@ class ChargingLimitTile @Inject constructor(
     override fun getTileLabel(): CharSequence =
         mContext.getString(R.string.quick_settings_charging_limit_label)
 
-    override fun getMetricsCategory() =
-        com.android.internal.logging.MetricsLogger.VIEW_UNKNOWN
+    override fun getMetricsCategory() = com.android.internal.logging.MetricsLogger.VIEW_UNKNOWN
 
     override fun handleUpdateState(state: BooleanState, arg: Any?) {
         val limit = getCurrentLimit()
