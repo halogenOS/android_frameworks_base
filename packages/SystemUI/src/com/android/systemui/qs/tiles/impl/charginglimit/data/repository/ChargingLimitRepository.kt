@@ -5,6 +5,7 @@
 
 package com.android.systemui.qs.tiles.impl.charginglimit.data.repository
 
+import android.os.RemoteException
 import android.util.Log
 import androidx.annotation.WorkerThread
 import com.android.systemui.dagger.SysUISingleton
@@ -64,6 +65,16 @@ constructor(
     /** The stored charge limit, then again after each of [changes]. */
     val limit: Flow<ChargingLimit> =
         changes.onStart { emit(Unit) }.map { read() }.flowOn(backgroundContext)
+
+    /** Whether the device has a charge limit HAL. False when the service cannot be asked. */
+    @WorkerThread
+    fun isSupported(): Boolean =
+        try {
+            manager.isSupported
+        } catch (e: RemoteException) {
+            Log.w(TAG, "Could not ask the charging control service", e)
+            false
+        }
 
     /** The stored charge limit. */
     @WorkerThread fun read(): ChargingLimit = manager.limit.toChargingLimit()

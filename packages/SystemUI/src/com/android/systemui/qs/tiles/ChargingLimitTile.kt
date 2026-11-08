@@ -8,7 +8,6 @@ package com.android.systemui.qs.tiles
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import android.os.ServiceManager
 import android.service.quicksettings.Tile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.coroutineScope
@@ -37,7 +36,6 @@ import com.android.systemui.qs.tiles.impl.charginglimit.ui.dialog.ChargingLimitD
 import com.android.systemui.qs.tiles.impl.charginglimit.ui.fractionOf
 import com.android.systemui.qs.tiles.impl.charginglimit.ui.valueAt
 import com.android.systemui.res.R
-import custom.health.charging.IChargingControlManager
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -86,14 +84,7 @@ constructor(
         }
     }
 
-    override fun isAvailable(): Boolean {
-        val binder = ServiceManager.checkService(IChargingControlManager.DESCRIPTOR) ?: return false
-        return try {
-            IChargingControlManager.Stub.asInterface(binder).isSupported
-        } catch (e: Exception) {
-            false
-        }
-    }
+    override fun isAvailable() = repository.isSupported()
 
     override fun newTileState() = BooleanState()
 
