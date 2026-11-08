@@ -14,6 +14,7 @@ import com.android.systemui.qs.tiles.CaffeineTile
 import com.android.systemui.qs.tiles.ChargingLimitTile
 import com.android.systemui.qs.tiles.PowerShareTile
 import com.android.systemui.qs.tiles.impl.audioinfo.ui.model.AudioInfoTileModule
+import com.android.systemui.qs.tiles.impl.charginglimit.ChargingLimitModule
 import com.android.systemui.qs.tiles.base.shared.model.QSTileConfig
 import com.android.systemui.qs.tiles.base.shared.model.QSTileUIConfig
 import com.android.systemui.res.R
@@ -27,6 +28,7 @@ import dagger.multibindings.StringKey
 @Module(
     includes =
         [
+            ChargingLimitModule::class,
             ScreenshotTileModule::class,
             AudioInfoTileModule::class,
             SmartspaceSlotsModule::class,

@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-FileCopyrightText: The halogenOS Project -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Charging limit QS tile -->
     <string name="quick_settings_charging_limit_label">Charge limit</string>
     <string name="quick_settings_charging_limit_off">Off</string>
+    <!-- Battery level in percent: the charge limit on the tile, and the value of a slider in the charge limit dialog [CHAR LIMIT=6] -->
+    <string name="quick_settings_charging_limit_level"><xliff:g id="level" example="60">%1$d</xliff:g>%%</string>
+    <!-- Battery levels the charge limit keeps the battery between, shown on the tile [CHAR LIMIT=10] -->
+    <string name="quick_settings_charging_limit_band"><xliff:g id="limit" example="60">%1$d</xliff:g>–<xliff:g id="top" example="62">%2$d</xliff:g>%%</string>
+    <!-- Name of the slider in the charge limit dialog that sets the battery level charging stops at [CHAR LIMIT=20] -->
+    <string name="quick_settings_charging_limit_dialog_limit">Limit</string>
+    <!-- Name of the slider in the charge limit dialog that sets how far above the limit the battery may go [CHAR LIMIT=20] -->
+    <string name="quick_settings_charging_limit_dialog_variation">Variation</string>
+    <!-- State of the charge limit dialog when the variation is 0: the battery stays at this level [CHAR LIMIT=40] -->
+    <string name="quick_settings_charging_limit_dialog_stays_at">Stays at <xliff:g id="limit" example="60">%1$d</xliff:g>%%</string>
+    <!-- State of the charge limit dialog: the battery stays between the limit and the limit plus the variation [CHAR LIMIT=40] -->
+    <string name="quick_settings_charging_limit_dialog_stays_between">Stays between <xliff:g id="limit" example="60">%1$d</xliff:g>%% and <xliff:g id="top" example="62">%2$d</xliff:g>%%</string>
+    <!-- Button of the charge limit dialog that removes the limit and closes the dialog [CHAR LIMIT=20] -->
+    <string name="quick_settings_charging_limit_dialog_turn_off">Turn off</string>
 
     <!-- Caffeine QS tile -->
     <string name="quick_settings_caffeine_label">Caffeine</string>
