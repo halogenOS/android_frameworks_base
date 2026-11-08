@@ -24,6 +24,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
@@ -64,6 +65,14 @@ constructor(
 
     val previewClock: Flow<ClockController>
         get() = interactor.previewClock
+
+    private val _shownPreviewClock = MutableStateFlow<ClockController?>(null)
+    /** The clock whose views the preview shows, one of the clocks created by [previewClock]. */
+    val shownPreviewClock: StateFlow<ClockController?> = _shownPreviewClock.asStateFlow()
+
+    fun setShownPreviewClock(clock: ClockController) {
+        _shownPreviewClock.value = clock
+    }
 
     fun shouldSmallDateWeatherBeBelowSmallClock() =
         keyguardClockViewModel.shouldDateWeatherBeBelowSmallClock.value

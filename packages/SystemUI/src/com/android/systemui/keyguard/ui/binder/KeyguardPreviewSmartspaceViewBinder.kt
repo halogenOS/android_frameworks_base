@@ -21,6 +21,7 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
+import androidx.constraintlayout.widget.ConstraintSet.END
 import androidx.constraintlayout.widget.ConstraintSet.PARENT_ID
 import androidx.constraintlayout.widget.ConstraintSet.START
 import androidx.constraintlayout.widget.ConstraintSet.TOP
@@ -59,8 +60,13 @@ object KeyguardPreviewSmartspaceViewBinder {
         parentView.repeatWhenAttached {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch("$TAG#viewModel.previewClockSize") {
-                    combine(viewModel.previewClockSize, viewModel.showSmartspace, ::Pair)
-                        .collect { (clockSize, showSmartspace) ->
+                    combine(
+                            viewModel.previewClockSize,
+                            viewModel.showSmartspace,
+                            viewModel.smallClockFillsDateSlot,
+                            ::Triple,
+                        )
+                        .collect { (clockSize, showSmartspace, smallClockFillsDateSlot) ->
                             val shouldFadeIn =
                                 (currentShowSmartspace == false) && showSmartspace
                             val largeDateViewVisibility =
@@ -118,6 +124,7 @@ object KeyguardPreviewSmartspaceViewBinder {
                             cs.apply {
                                 val smallClockViewId = ClockViewIds.LOCKSCREEN_CLOCK_VIEW_SMALL
                                 val largeClockViewId = ClockViewIds.LOCKSCREEN_CLOCK_VIEW_LARGE
+                                smallDateView?.let { clear(it.id, END) }
                                 when (clockSize) {
                                     ClockSizeSetting.DYNAMIC -> {
                                         if (viewModel.shouldDateWeatherBeBelowLargeClock) {
@@ -160,6 +167,10 @@ object KeyguardPreviewSmartspaceViewBinder {
                                                 (view as? LinearLayout)?.orientation =
                                                     LinearLayout.HORIZONTAL
                                                 connect(view.id, START, smallClockViewId, START)
+                                                if (smallClockFillsDateSlot) {
+                                                    // Centered under a face that fills the slot
+                                                    connect(view.id, END, smallClockViewId, END)
+                                                }
                                                 clear(view.id, TOP)
                                                 connect(
                                                     view.id,
@@ -183,6 +194,10 @@ object KeyguardPreviewSmartspaceViewBinder {
                                                 (view as? LinearLayout)?.orientation =
                                                     LinearLayout.HORIZONTAL
                                                 connect(view.id, START, smallClockViewId, START)
+                                                if (smallClockFillsDateSlot) {
+                                                    // Centered under a face that fills the slot
+                                                    connect(view.id, END, smallClockViewId, END)
+                                                }
                                                 connect(
                                                     view.id,
                                                     TOP,

@@ -15,6 +15,7 @@ package com.android.systemui.plugins.keyguard.ui.clocks
 
 import android.view.View
 import com.android.systemui.plugins.annotations.ProtectedInterface
+import com.android.systemui.plugins.annotations.ProtectedReturn
 import com.android.systemui.plugins.annotations.SimpleProperty
 
 /** Interface for a specific clock face version rendered by the clock */
@@ -44,6 +45,11 @@ interface ClockFaceController {
     @get:SimpleProperty
     /** Triggers for various animations */
     val animations: ClockAnimations
+
+    /** The view of this face for the date slot, or null to keep the host's date */
+    @get:ProtectedReturn("return null;")
+    val clockStyleSlot: ClockStyleSlot?
+        get() = null
 
     companion object {
         fun ClockFaceController.updateTheme(mutateTheme: (ThemeConfig) -> ThemeConfig) {

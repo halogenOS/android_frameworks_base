@@ -146,14 +146,9 @@ constructor(
         constraintSet.apply {
             constrainHeight(sharedR.id.date_smartspace_view, ConstraintSet.WRAP_CONTENT)
             constrainWidth(sharedR.id.date_smartspace_view, ConstraintSet.WRAP_CONTENT)
+            clear(sharedR.id.date_smartspace_view, ConstraintSet.END)
             if (dateWeatherBelowSmallClock || !dateWeatherBelowLargeClock) {
-                connect(
-                    sharedR.id.date_smartspace_view,
-                    ConstraintSet.START,
-                    ConstraintSet.PARENT_ID,
-                    ConstraintSet.START,
-                    dateWeatherPaddingStart,
-                )
+                connectDateViewBelowSmallClock(dateWeatherPaddingStart)
             }
 
             constrainHeight(sharedR.id.bc_smartspace_view, ConstraintSet.WRAP_CONTENT)
@@ -247,13 +242,7 @@ constructor(
                 )
             } else {
                 if (dateWeatherBelowSmallClock || !dateWeatherBelowLargeClock) {
-                    connect(
-                        sharedR.id.date_smartspace_view,
-                        ConstraintSet.START,
-                        ConstraintSet.PARENT_ID,
-                        ConstraintSet.START,
-                        dateWeatherPaddingStart,
-                    )
+                    connectDateViewBelowSmallClock(dateWeatherPaddingStart)
                 } else {
                     setVisibility(sharedR.id.date_smartspace_view_large, GONE)
                     constrainHeight(sharedR.id.date_smartspace_view, ConstraintSet.WRAP_CONTENT)
@@ -311,6 +300,32 @@ constructor(
             }
         }
         updateVisibility(constraintSet, isLargeClockVisible)
+    }
+
+    // The date view of a small clock face that fills the date slot is centered under the clock.
+    private fun ConstraintSet.connectDateViewBelowSmallClock(paddingStart: Int) {
+        if (keyguardClockViewModel.smallClockFillsDateSlot.value) {
+            connect(
+                sharedR.id.date_smartspace_view,
+                ConstraintSet.START,
+                ClockViewIds.LOCKSCREEN_CLOCK_VIEW_SMALL,
+                ConstraintSet.START,
+            )
+            connect(
+                sharedR.id.date_smartspace_view,
+                ConstraintSet.END,
+                ClockViewIds.LOCKSCREEN_CLOCK_VIEW_SMALL,
+                ConstraintSet.END,
+            )
+        } else {
+            connect(
+                sharedR.id.date_smartspace_view,
+                ConstraintSet.START,
+                ConstraintSet.PARENT_ID,
+                ConstraintSet.START,
+                paddingStart,
+            )
+        }
     }
 
     override fun removeViews(constraintLayout: ConstraintLayout) {

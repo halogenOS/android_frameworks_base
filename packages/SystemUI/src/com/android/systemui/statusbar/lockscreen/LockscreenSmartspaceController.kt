@@ -163,6 +163,9 @@ constructor(
                 (v as SmartspaceView).setSplitShadeEnabled(mSplitShadeEnabled)
                 (v as SmartspaceView).setMediaTarget(mediaTarget)
                 smartspaceViews.add(v as SmartspaceView)
+                if (smartspaceViews.size == 1) {
+                    addViewListeners()
+                }
 
                 connectSession()
 
@@ -194,6 +197,7 @@ constructor(
                 regionSamplers.remove(v as SmartspaceView)
 
                 if (smartspaceViews.isEmpty()) {
+                    removeViewListeners()
                     disconnect()
                 }
             }
@@ -511,10 +515,6 @@ constructor(
             settingsObserver,
             UserHandle.USER_ALL,
         )
-        sysuiColorExtractor.addOnColorsChangedListener(onColorsChangedListener)
-        configurationController.addCallback(configChangeListener)
-        statusBarStateController.addCallback(statusBarStateListener)
-        bypassController.registerOnBypassStateChangedListener(bypassStateChangedListener)
 
         datePlugin?.setEventDispatcher { e -> notifySmartspaceEvent(e) }
         weatherPlugin?.setEventDispatcher { e -> notifySmartspaceEvent(e) }
@@ -522,6 +522,22 @@ constructor(
 
         updateBypassEnabled()
         reloadSmartspace()
+    }
+
+    // The views get theme, wallpaper color, doze and bypass changes while any of them is attached,
+    // also without a smartspace session.
+    private fun addViewListeners() {
+        sysuiColorExtractor.addOnColorsChangedListener(onColorsChangedListener)
+        configurationController.addCallback(configChangeListener)
+        statusBarStateController.addCallback(statusBarStateListener)
+        bypassController.registerOnBypassStateChangedListener(bypassStateChangedListener)
+    }
+
+    private fun removeViewListeners() {
+        sysuiColorExtractor.removeOnColorsChangedListener(onColorsChangedListener)
+        configurationController.removeCallback(configChangeListener)
+        statusBarStateController.removeCallback(statusBarStateListener)
+        bypassController.unregisterOnBypassStateChangedListener(bypassStateChangedListener)
     }
 
     /** Pushes a given SmartspaceTargetEvent to the SmartspaceSession. */
@@ -557,10 +573,6 @@ constructor(
         }
         userTracker.removeCallback(userTrackerCallback)
         secureSettings.unregisterContentObserverAsync(settingsObserver)
-        sysuiColorExtractor.removeOnColorsChangedListener(onColorsChangedListener)
-        configurationController.removeCallback(configChangeListener)
-        statusBarStateController.removeCallback(statusBarStateListener)
-        bypassController.unregisterOnBypassStateChangedListener(bypassStateChangedListener)
         session = null
 
         datePlugin?.setEventDispatcher(null)

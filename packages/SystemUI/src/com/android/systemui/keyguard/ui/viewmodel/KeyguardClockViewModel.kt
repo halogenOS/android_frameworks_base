@@ -22,6 +22,7 @@ import android.util.LayoutDirection
 import androidx.constraintlayout.helper.widget.Layer
 import com.android.keyguard.ClockEventController
 import com.android.systemui.common.ui.domain.interactor.ConfigurationInteractor
+import com.android.systemui.custom.smartspace.date.dateSlot
 import com.android.systemui.customization.clocks.R as clocksR
 import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.dagger.qualifiers.Application
@@ -97,6 +98,16 @@ constructor(
                 started = SharingStarted.WhileSubscribed(),
                 initialValue =
                     currentClock.value?.largeClock?.config?.hasCustomWeatherDataDisplay ?: false,
+            )
+
+    /** Whether the small clock face fills the date slot with a view of its own. */
+    val smallClockFillsDateSlot: StateFlow<Boolean> =
+        currentClock
+            .map { it?.dateSlot(ClockSize.SMALL) != null }
+            .stateIn(
+                scope = applicationScope,
+                started = SharingStarted.WhileSubscribed(),
+                initialValue = currentClock.value?.dateSlot(ClockSize.SMALL) != null,
             )
 
     val clockShouldBeCentered: StateFlow<Boolean> =

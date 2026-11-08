@@ -193,6 +193,10 @@ class ProtectedPluginProcessor : AbstractProcessor() {
                             arg("listener", "ProtectedPluginListener")
                         },
                     ) {
+                        // Null comes back as null, so an optional member of the plugin is not
+                        // wrapped in a proxy around nothing.
+                        line("if (src == null)")
+                        line("    return null;")
                         line("if (src instanceof $outputName)")
                         line("    return ($outputName)src;")
                         line("return new $outputName(src, listener);")

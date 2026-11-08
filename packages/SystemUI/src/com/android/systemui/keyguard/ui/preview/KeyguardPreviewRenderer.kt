@@ -49,6 +49,7 @@ import com.android.systemui.Flags
 import com.android.systemui.animation.view.LaunchableImageView
 import com.android.systemui.biometrics.domain.interactor.UdfpsOverlayInteractor
 import com.android.systemui.broadcast.BroadcastDispatcher
+import com.android.systemui.custom.smartspace.date.DateSlotView
 import com.android.systemui.customization.clocks.R as clocksR
 import com.android.systemui.dagger.qualifiers.Application
 import com.android.systemui.dagger.qualifiers.Background
@@ -319,8 +320,10 @@ constructor(
 
             smallDateView =
                 lockscreenSmartspaceController.buildAndConnectDateView(previewContext, false)
-            parentView.addView(largeDateView)
-            parentView.addView(smallDateView)
+            listOfNotNull(largeDateView, smallDateView).forEach {
+                (it as? DateSlotView)?.followClock(clockViewModel.shownPreviewClock)
+                parentView.addView(it)
+            }
         }
         cs.applyTo(parentView)
     }

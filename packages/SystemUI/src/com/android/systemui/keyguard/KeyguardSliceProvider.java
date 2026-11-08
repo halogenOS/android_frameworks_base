@@ -27,7 +27,6 @@ import android.content.IntentFilter;
 import android.graphics.Typeface;
 import android.graphics.drawable.Icon;
 import android.icu.text.DateFormat;
-import android.icu.text.DisplayContext;
 import android.media.MediaMetadata;
 import android.media.session.PlaybackState;
 import android.net.Uri;
@@ -98,11 +97,8 @@ public class KeyguardSliceProvider extends SliceProvider implements
     public static final String KEYGUARD_ACTION_URI =
             "content://com.android.systemui.keyguard/action";
 
-    /**
-     * Only show alarms that will ring within N hours.
-     */
     @VisibleForTesting
-    static final int ALARM_VISIBILITY_HOURS = 12;
+    static final int ALARM_VISIBILITY_HOURS = KeyguardDateRow.ALARM_VISIBILITY_HOURS;
 
     private static final Object sInstanceLock = new Object();
     private static KeyguardSliceProvider sInstance;
@@ -123,7 +119,6 @@ public class KeyguardSliceProvider extends SliceProvider implements
     protected SettableWakeLock mMediaWakeLock;
     @Inject
     public ZenModeController mZenModeController;
-    private String mDatePattern;
     private DateFormat mDateFormat;
     private String mLastText;
     private boolean mRegistered;
@@ -332,7 +327,6 @@ public class KeyguardSliceProvider extends SliceProvider implements
             if (oldInstance != null) {
                 oldInstance.onDestroy();
             }
-            mDatePattern = getContext().getString(R.string.system_ui_aod_date_pattern);
             mPendingIntent = PendingIntent.getActivity(getContext(), 0,
                     new Intent(getContext(), KeyguardSliceProvider.class),
                     PendingIntent.FLAG_IMMUTABLE);
@@ -375,25 +369,15 @@ public class KeyguardSliceProvider extends SliceProvider implements
 
     private void updateNextAlarm() {
         synchronized (this) {
-            if (withinNHoursLocked(mNextAlarmInfo, ALARM_VISIBILITY_HOURS)) {
-                String pattern = android.text.format.DateFormat.is24HourFormat(getContext(),
-                        mUserTracker.getUserId()) ? "HH:mm" : "h:mm";
-                mNextAlarm = android.text.format.DateFormat.format(pattern,
-                        mNextAlarmInfo.getTriggerTime()).toString();
+            if (KeyguardDateRow.isAlarmShown(mNextAlarmInfo, System.currentTimeMillis())) {
+                mNextAlarm = KeyguardDateRow.formatAlarmTime(mNextAlarmInfo.getTriggerTime(),
+                        android.text.format.DateFormat.is24HourFormat(getContext(),
+                                mUserTracker.getUserId()));
             } else {
                 mNextAlarm = "";
             }
         }
         notifyChange();
-    }
-
-    private boolean withinNHoursLocked(AlarmManager.AlarmClockInfo alarmClockInfo, int hours) {
-        if (alarmClockInfo == null) {
-            return false;
-        }
-
-        long limit = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(hours);
-        return mNextAlarmInfo.getTriggerTime() <= limit;
     }
 
     /**
@@ -436,14 +420,7 @@ public class KeyguardSliceProvider extends SliceProvider implements
 
     protected String getFormattedDateLocked() {
         if (mDateFormat == null) {
-            final Locale l = Locale.getDefault();
-            DateFormat format = DateFormat.getInstanceForSkeleton(mDatePattern, l);
-            // The use of CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE instead of
-            // CAPITALIZATION_FOR_STANDALONE is to address
-            // https://unicode-org.atlassian.net/browse/ICU-21631
-            // TODO(b/229287642): Switch back to CAPITALIZATION_FOR_STANDALONE
-            format.setContext(DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE);
-            mDateFormat = format;
+            mDateFormat = KeyguardDateRow.createDateFormat(getContext(), Locale.getDefault());
         }
         mCurrentTime.setTime(System.currentTimeMillis());
         return mDateFormat.format(mCurrentTime);

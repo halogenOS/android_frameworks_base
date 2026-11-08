@@ -17,9 +17,11 @@
 package com.android.systemui.keyguard.ui.viewmodel
 
 import android.content.Context
+import com.android.systemui.custom.smartspace.date.dateSlot
 import com.android.systemui.customization.clocks.R as clocksR
 import com.android.systemui.keyguard.domain.interactor.KeyguardClockInteractor
 import com.android.systemui.keyguard.domain.interactor.KeyguardPreviewInteractor
+import com.android.systemui.keyguard.shared.model.ClockSize
 import com.android.systemui.keyguard.shared.model.ClockSizeSetting
 import com.android.systemui.plugins.keyguard.ui.clocks.ClockPreviewConfig
 import com.android.systemui.shared.quickaffordance.shared.model.KeyguardPreviewConstants.DIM_ALPHA
@@ -30,6 +32,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @AssistedFactory
 interface KeyguardPreviewSmartspaceViewModelFactory {
@@ -50,6 +53,12 @@ constructor(
     private val systemBarUtils: SystemBarUtilsProxy,
 ) {
     val previewClockSize = clockViewModel.previewClockSize
+
+    /** Whether the small face of the clock shown in the preview fills the date slot. */
+    val smallClockFillsDateSlot: Flow<Boolean> =
+        clockViewModel.shownPreviewClock
+            .map { it?.dateSlot(ClockSize.SMALL) != null }
+            .distinctUntilChanged()
 
     val shouldDateWeatherBeBelowSmallClock
         get() = clockViewModel.shouldSmallDateWeatherBeBelowSmallClock()

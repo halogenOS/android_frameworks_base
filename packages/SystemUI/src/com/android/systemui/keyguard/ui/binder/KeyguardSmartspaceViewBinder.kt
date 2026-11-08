@@ -48,7 +48,8 @@ object KeyguardSmartspaceViewBinder {
                     combine(
                             smartspaceViewModel.isWeatherVisible,
                             clockViewModel.hasCustomWeatherDataDisplay,
-                            ::Pair,
+                            clockViewModel.smallClockFillsDateSlot,
+                            ::Triple,
                         )
                         .collect {
                             blueprintInteractor.refreshBlueprint(

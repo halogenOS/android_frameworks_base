@@ -28,6 +28,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /** Interactor responsible for determining if the alarm icon should be shown. */
@@ -41,22 +42,24 @@ constructor(
 ) {
 
     /**
-     * A StateFlow that emits `true` if there is an upcoming alarm scheduled, and `false` otherwise.
-     * This is driven by callbacks from [NextAlarmController].
+     * The next alarm clock, or null when none is set. Driven by callbacks from
+     * [NextAlarmController].
      */
-    val isAlarmSet: StateFlow<Boolean> =
+    val nextAlarm: StateFlow<AlarmManager.AlarmClockInfo?> =
         conflatedCallbackFlow {
-                val callback =
-                    NextAlarmController.NextAlarmChangeCallback {
-                        nextAlarm: AlarmManager.AlarmClockInfo? ->
-                        // nextAlarm is non-null if an alarm is set, null otherwise.
-                        trySend(nextAlarm != null)
-                    }
-
+                val callback = NextAlarmController.NextAlarmChangeCallback { trySend(it) }
                 nextAlarmController.addCallback(callback)
                 awaitClose { nextAlarmController.removeCallback(callback) }
             }
             .flowOn(bgDispatcher)
+            .stateIn(initialValue = null, scope = scope, started = SharingStarted.WhileSubscribed())
+
+    /**
+     * A StateFlow that emits `true` if there is an upcoming alarm scheduled, and `false` otherwise.
+     */
+    val isAlarmSet: StateFlow<Boolean> =
+        nextAlarm
+            .map { it != null }
             .stateIn(
                 initialValue = false,
                 scope = scope,

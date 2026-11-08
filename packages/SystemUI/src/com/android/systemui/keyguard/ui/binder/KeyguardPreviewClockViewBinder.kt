@@ -90,6 +90,7 @@ object KeyguardPreviewClockViewBinder {
                                         .forEach { rootView.removeView(it) }
                                 }
                                 lastClock = currentClock
+                                viewModel.setShownPreviewClock(currentClock)
                                 updateClockAppearance(currentClock, rootView.context.resources)
 
                                 if (viewModel.shouldHighlightSelectedAffordance) {

@@ -4,6 +4,8 @@
  */
 package com.android.systemui.custom
 
+import com.android.systemui.custom.smartspace.SmartspaceSlotsModule
+import com.android.systemui.custom.smartspace.date.DateSlotModule
 import com.android.systemui.qs.QsEventLogger
 import com.android.systemui.qs.pipeline.shared.TileSpec
 import com.android.systemui.qs.shared.model.TileCategory
@@ -22,7 +24,15 @@ import dagger.Provides
 import dagger.multibindings.IntoMap
 import dagger.multibindings.StringKey
 
-@Module(includes = [ScreenshotTileModule::class, AudioInfoTileModule::class])
+@Module(
+    includes =
+        [
+            ScreenshotTileModule::class,
+            AudioInfoTileModule::class,
+            SmartspaceSlotsModule::class,
+            DateSlotModule::class,
+        ]
+)
 interface CustomModule {
     /** Inject ChargingLimitTile into tileMap in QSModule */
     @Binds
