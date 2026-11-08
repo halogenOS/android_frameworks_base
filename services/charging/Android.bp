@@ -11,7 +11,7 @@ java_library_static {
     srcs: ["java/**/*.kt"],
     libs: ["services.core"],
     static_libs: [
-        "custom.hardware.health.charging-V1-java",
+        "custom.hardware.health.charging-V2-java",
         "custom.health.charging",
     ],
     jarjar_rules: "jarjar-rules.txt",
