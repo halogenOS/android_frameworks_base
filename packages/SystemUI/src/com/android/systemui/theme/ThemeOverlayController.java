@@ -514,7 +514,8 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
                 }
                 mLastOverlayState = current;
                 Log.d(TAG, "External overlay changed on android, re-evaluating theme");
-                reevaluateSystemTheme(true /* forceReload */);
+                // The main thread applies the new overlay to mResources; the tones are read there.
+                mMainExecutor.execute(() -> reevaluateSystemTheme(true /* forceReload */));
             }
 
             private String getExternalOverlayState() {
