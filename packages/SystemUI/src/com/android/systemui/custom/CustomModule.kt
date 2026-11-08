@@ -13,12 +13,11 @@ import com.android.systemui.qs.tileimpl.QSTileImpl
 import com.android.systemui.qs.tiles.CaffeineTile
 import com.android.systemui.qs.tiles.ChargingLimitTile
 import com.android.systemui.qs.tiles.PowerShareTile
-import com.android.systemui.qs.tiles.impl.audioinfo.ui.model.AudioInfoTileModule
-import com.android.systemui.qs.tiles.impl.charginglimit.ChargingLimitModule
 import com.android.systemui.qs.tiles.base.shared.model.QSTileConfig
 import com.android.systemui.qs.tiles.base.shared.model.QSTileUIConfig
+import com.android.systemui.qs.tiles.impl.audioinfo.ui.model.AudioInfoTileModule
+import com.android.systemui.qs.tiles.impl.charginglimit.ChargingLimitModule
 import com.android.systemui.res.R
-
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -67,7 +66,7 @@ interface CustomModule {
                 uiConfig =
                     QSTileUIConfig.Resource(
                         iconRes = R.drawable.ic_qs_charging_limit,
-                        labelRes = R.string.quick_settings_charging_limit_label
+                        labelRes = R.string.quick_settings_charging_limit_label,
                     ),
                 instanceId = uiEventLogger.getNewInstanceId(),
                 category = TileCategory.UTILITIES,
@@ -82,7 +81,7 @@ interface CustomModule {
                 uiConfig =
                     QSTileUIConfig.Resource(
                         iconRes = R.drawable.ic_qs_caffeine,
-                        labelRes = R.string.quick_settings_caffeine_label
+                        labelRes = R.string.quick_settings_caffeine_label,
                     ),
                 instanceId = uiEventLogger.getNewInstanceId(),
                 category = TileCategory.DISPLAY,
