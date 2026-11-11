@@ -33,6 +33,7 @@ import com.android.systemui.res.R
 import com.android.systemui.screencapture.common.shared.model.ScreenCaptureUiParameters
 import com.android.systemui.screencapture.common.ui.viewmodel.DrawableLoaderViewModel
 import com.android.systemui.screencapture.domain.interactor.ScreenCaptureUiInteractor
+import com.android.systemui.screencapture.record.data.repository.IntentResolutionRepository
 import com.android.systemui.screencapture.record.largescreen.data.repository.ParentUriRepository
 import com.android.systemui.screencapture.record.shared.model.ScreenRecordEvent
 import com.android.systemui.screenrecord.service.ActivityStartingReceiver
@@ -42,6 +43,13 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 
 private const val MIME_TYPE = "video/mp4"
+
+private fun Intent.addNewTaskAndUriGrantFlags(): Intent =
+    addFlags(
+        Intent.FLAG_ACTIVITY_NEW_TASK or
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+    )
 
 class PostRecordingActionsViewModel
 @AssistedInject
@@ -56,13 +64,20 @@ constructor(
     private val parentUriRepository: ParentUriRepository,
     private val uiEventLogger: UiEventLogger,
     private val activityStarter: ActivityStarter,
+    private val intentResolutionRepository: IntentResolutionRepository,
 ) : HydratedActivatable(), DrawableLoaderViewModel by drawableLoaderViewModel {
 
     var parentUri: Uri? by mutableStateOf(null)
         private set
 
+    /** Whether the current user has an activity for the intent sent by [edit]. */
+    var hasVideoEditor: Boolean by mutableStateOf(false)
+        private set
+
     override suspend fun onActivated() {
         parentUri = parentUriRepository.getParentDirectoryUri(videoUri)
+        hasVideoEditor =
+            intentResolutionRepository.hasActivityFor(createEditIntent(), userTracker.userId)
     }
 
     fun new() {
@@ -72,25 +87,21 @@ constructor(
 
     fun edit() {
         uiEventLogger.log(ScreenRecordEvent.SCREEN_RECORD_POST_RECORDING_EDIT)
-        startVideoActivity(
-            action = Intent.ACTION_EDIT,
-            label = context.getString(R.string.screen_record_edit),
-            shouldShowChooser = false,
-        )
+        startVideoActivity(createEditIntent())
     }
 
     fun view() {
-        startVideoActivity(action = Intent.ACTION_VIEW, label = null, shouldShowChooser = false)
+        startVideoActivity(createVideoIntent(Intent.ACTION_VIEW))
     }
 
     fun openInFolder() {
         parentUri?.let {
             startVideoActivity(
-                action = Intent.ACTION_VIEW,
-                label = null,
-                shouldShowChooser = false,
-                mimeType = DocumentsContract.Document.MIME_TYPE_DIR,
-                uri = it,
+                createVideoIntent(
+                    action = Intent.ACTION_VIEW,
+                    mimeType = DocumentsContract.Document.MIME_TYPE_DIR,
+                    uri = it,
+                )
             )
         }
     }
@@ -98,9 +109,11 @@ constructor(
     fun share() {
         uiEventLogger.log(ScreenRecordEvent.SCREEN_RECORD_POST_RECORDING_SHARE)
         startVideoActivity(
-            action = Intent.ACTION_SEND,
-            label = context.getString(R.string.screenrecord_share_label),
-            shouldShowChooser = true,
+            Intent.createChooser(
+                    createVideoIntent(Intent.ACTION_SEND),
+                    context.getString(R.string.screenrecord_share_label),
+                )
+                .addNewTaskAndUriGrantFlags()
         )
     }
 
@@ -115,31 +128,19 @@ constructor(
         )
     }
 
-    private fun startVideoActivity(
+    private fun createEditIntent(): Intent = createVideoIntent(Intent.ACTION_EDIT)
+
+    private fun createVideoIntent(
         action: String,
-        label: String?,
-        shouldShowChooser: Boolean,
         mimeType: String = MIME_TYPE,
         uri: Uri = videoUri,
-    ) {
-        val intent =
-            Intent(action)
-                .setDataAndType(uri, mimeType)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                .putExtra(Intent.EXTRA_STREAM, videoUri)
-                .let { intent ->
-                    if (shouldShowChooser) {
-                        Intent.createChooser(intent, label)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    } else {
-                        intent
-                    }
-                }
+    ): Intent =
+        Intent(action)
+            .setDataAndType(uri, mimeType)
+            .addNewTaskAndUriGrantFlags()
+            .putExtra(Intent.EXTRA_STREAM, videoUri)
 
+    private fun startVideoActivity(intent: Intent) {
         executeDismissingKeyguard {
             broadcastSender.sendBroadcastAsUser(
                 intent =

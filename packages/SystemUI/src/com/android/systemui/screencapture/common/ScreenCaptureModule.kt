@@ -23,6 +23,8 @@ import com.android.systemui.screencapture.common.ui.viewmodel.DrawableLoaderView
 import com.android.systemui.screencapture.common.ui.viewmodel.DrawableLoaderViewModelImpl
 import com.android.systemui.screencapture.data.repository.ScreenCaptureTracingRepository
 import com.android.systemui.screencapture.data.repository.ScreenCaptureTracingRepositoryImpl
+import com.android.systemui.screencapture.record.data.repository.IntentResolutionRepository
+import com.android.systemui.screencapture.record.data.repository.IntentResolutionRepositoryImpl
 import com.android.systemui.screencapture.record.largescreen.ui.DirectoryPickerActivity
 import com.android.systemui.screencapture.record.smallscreen.ui.SmallScreenPostRecordingActivity
 import com.android.systemui.screencapture.ui.ShareScreenActivity
@@ -64,6 +66,11 @@ interface ScreenCaptureModule {
     fun bindScreenCaptureTracingRepository(
         impl: ScreenCaptureTracingRepositoryImpl
     ): ScreenCaptureTracingRepository
+
+    @Binds
+    fun bindIntentResolutionRepository(
+        impl: IntentResolutionRepositoryImpl
+    ): IntentResolutionRepository
 
     @Multibinds fun screenCaptureStartableSet(): Set<ScreenCaptureStartable>
 

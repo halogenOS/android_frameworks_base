@@ -16,6 +16,7 @@
 
 package com.android.systemui.screenrecord.service
 
+import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -39,10 +40,22 @@ class ActivityStartingReceiver : BroadcastReceiver() {
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "Received event in user=${context.userId}, action=${intent.action}")
         }
-        context.startActivity(
-            intent.getParcelableExtra(EXTRA_INTENT, Intent::class.java),
-            optionsBundle,
-        )
+        val activityIntent =
+            intent.getParcelableExtra(EXTRA_INTENT, Intent::class.java)
+                ?: run {
+                    Log.e(TAG, "Ignored event in user=${context.userId}: $EXTRA_INTENT is null")
+                    return
+                }
+        try {
+            context.startActivity(activityIntent, optionsBundle)
+        } catch (e: ActivityNotFoundException) {
+            Log.e(
+                TAG,
+                "Failed to start activity in user=${context.userId} for " +
+                    "action=${activityIntent.action}. The intent is not handled by any app.",
+                e,
+            )
+        }
     }
 
     companion object {

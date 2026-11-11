@@ -17,13 +17,16 @@
 package com.android.systemui.screenrecord.ui
 
 import android.content.applicationContext
+import android.content.mockPackageManager
 import android.net.Uri
 import com.android.internal.logging.uiEventLogger
 import com.android.systemui.broadcast.broadcastSender
 import com.android.systemui.kosmos.Kosmos
+import com.android.systemui.kosmos.backgroundCoroutineContext
 import com.android.systemui.plugins.activityStarter
 import com.android.systemui.screencapture.common.ui.viewmodel.drawableLoaderViewModel
 import com.android.systemui.screencapture.domain.interactor.screenCaptureUiInteractor
+import com.android.systemui.screencapture.record.data.repository.IntentResolutionRepositoryImpl
 import com.android.systemui.screencapture.record.largescreen.data.repository.parentUriRepositoryKosmos
 import com.android.systemui.screencapture.record.smallscreen.ui.viewmodel.PostRecordingActionsViewModel
 import com.android.systemui.settings.userTracker
@@ -43,6 +46,11 @@ val Kosmos.postRecordingActionsViewModelFactory by
                     parentUriRepository = parentUriRepositoryKosmos,
                     uiEventLogger = uiEventLogger,
                     activityStarter = activityStarter,
+                    intentResolutionRepository =
+                        IntentResolutionRepositoryImpl(
+                            packageManager = mockPackageManager,
+                            backgroundContext = backgroundCoroutineContext,
+                        ),
                 )
             }
         }
