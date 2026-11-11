@@ -29,6 +29,22 @@ void setup() {
   gGlow = smooth01((T - 1.4) / 1.4) * (0.33 + 0.1 * sin(2.0 * PI * T / 3.2)) * (1.0 - smooth01(E / 1.4));
 }
 
+// Half the width of the ribbon at a twist, where its edges cross; in screen units.
+const float MIN_HALF_WIDTH = 0.009;
+
+// How far around a twist, in units of the twist cosine, the two faces of the ribbon blend.
+const float TWIST_BLEND = 0.3;
+
+// The body and the edge lights of one face of the ribbon; side runs from -1 at the dim edge to 1
+// at the lit edge.
+vec3 ribbonFace(float side, float inside) {
+  vec3 c = mix(vec3(0.004, 0.02, 0.06), vec3(0.012, 0.06, 0.15), 0.5 + 0.5 * side) * inside;
+  c += mix(BLUE_A, LIGHT, 0.35) * exp(-pow((side - 0.9) / 0.05, 2.0)) * 0.6;
+  c += BLUE_A * exp(-pow((side + 0.9) / 0.04, 2.0)) * 0.22;
+  c += LIGHT * exp(-pow((side - 0.45) / 0.14, 2.0)) * 0.05 * inside;
+  return c;
+}
+
 // The glass ribbon behind the logo, drawn on a plane; q is in screen units.
 vec3 ribbon(vec2 q) {
   if (gReveal <= 0.001) return vec3(0.0);
@@ -45,7 +61,7 @@ vec3 ribbon(vec2 q) {
   float dxc = -0.24 + 0.275 * cos(y * 5.0 + 0.9 + wave);
   float tw = cos(y * 3.4 + 0.6 - T * 0.25);
   float w = 0.072 * tw;
-  float u = (q.x - xc) * inversesqrt(1.0 + dxc * dxc) / max(abs(w), 0.009);
+  float u = (q.x - xc) * inversesqrt(1.0 + dxc * dxc) * inversesqrt(w * w + MIN_HALF_WIDTH * MIN_HALF_WIDTH);
   float au = abs(u);
 
   vec3 c = vec3(0.0);
@@ -55,12 +71,10 @@ vec3 ribbon(vec2 q) {
   c += GLOW * exp(-abs(q.x - x2) / 0.012) * 0.025 * flow2;
   if (au > 3.0) return c * mask * sqrt(gReveal);
 
-  float side = sign(w) * u;
   float inside = 1.0 - smoothstep(0.96, 1.04, au);
-  c += mix(vec3(0.004, 0.02, 0.06), vec3(0.012, 0.06, 0.15), 0.5 + 0.5 * side) * inside;
-  c += mix(BLUE_A, LIGHT, 0.35) * exp(-pow((side - 0.9) / 0.05, 2.0)) * 0.6;
-  c += BLUE_A * exp(-pow((side + 0.9) / 0.04, 2.0)) * 0.22;
-  c += LIGHT * exp(-pow((side - 0.45) / 0.14, 2.0)) * 0.05 * inside;
+  // Near a twist the band shows both of its faces at once, so the lit edge changes sides gradually.
+  float facing = smoothstep(-TWIST_BLEND, TWIST_BLEND, tw);
+  c += mix(ribbonFace(-u, inside), ribbonFace(u, inside), facing);
   for (int i = 0; i < 3; i++) {
     float fi = float(i);
     float line = exp(-pow((u - (-0.5 + 0.5 * fi)) / 0.05, 2.0));
