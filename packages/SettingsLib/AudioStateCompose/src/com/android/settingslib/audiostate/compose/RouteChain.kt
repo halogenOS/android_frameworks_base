@@ -45,6 +45,7 @@ import com.android.settingslib.audiostate.OutputPath
 import com.android.settingslib.audiostate.OutputThread
 import com.android.settingslib.audiostate.SampleEncoding
 import com.android.settingslib.audiostate.Sink
+import com.android.settingslib.audiostate.isLossless
 
 /** The glyph between a stage and the next: the signal arrow, or "+" between summed sources. */
 internal enum class Connector {
@@ -196,8 +197,15 @@ private fun Resources.bitDepthFlow(thread: OutputThread, mixer: OutputPath.Mixer
     return segments.takeIf { it.size > 1 }?.joinToString(" → ")
 }
 
-/** The lines every thread has: the bit-perfect verdict with its reason, flags, latency. */
+/**
+ * The lines every thread has: whether it plays lossless, the bit-perfect verdict with its reasons,
+ * flags, latency.
+ */
 private fun Resources.threadLines(thread: OutputThread): List<ReadoutLine> = buildList {
+    thread.isLossless?.let {
+        val answer = if (it) R.string.audio_state_yes else R.string.audio_state_no
+        add(ReadoutLine.Pair(getString(R.string.audio_state_label_lossless), getString(answer)))
+    }
     val verdictLabel = getString(R.string.audio_state_label_bit_perfect)
     when (val verdict = thread.bitPerfect) {
         BitPerfectVerdict.BitPerfect ->

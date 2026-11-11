@@ -118,19 +118,20 @@ internal class AudioFlingerInfoProvider {
         return AudioSource(
             format = summary,
             resampling = resampling,
+            audible = audible,
             trackFlags = outputFlags.toList(),
             // A copied track skips the mixer sum.
             keptBits = keptBits(summary, path).takeUnless { copied },
         )
     }
 
-    /** The bits a float sum keeps of an integer sample wider than the float significand. */
+    /** The bits of a wider integer sample that a float mixer sum represents exactly. */
     private fun keptBits(source: AudioFormatSummary, path: OutputPath): Int? {
         val sample = source.encoding as? SampleEncoding.Pcm ?: return null
-        val sum = (path as? OutputPath.Mixer)?.accumulation?.encoding as? SampleEncoding.Pcm
-        return FLOAT_SIGNIFICAND_BITS.takeIf {
-            sum?.isFloat == true && !sample.isFloat && sample.bitsPerSample > it
-        }
+        val sum =
+            (path as? OutputPath.Mixer)?.accumulation?.encoding as? SampleEncoding.Pcm
+                ?: return null
+        return sum.exactIntegerBits.takeIf { sum.isFloat && !sum.representsEverySampleOf(sample) }
     }
 
     private fun AudioEffectInfo.toSummary(): AudioEffectSummary =
@@ -152,8 +153,5 @@ internal class AudioFlingerInfoProvider {
 
     private companion object {
         const val TAG = "AudioFlingerInfo"
-
-        /** IEEE 754 binary32 significand precision, the sample bits a float sum keeps. */
-        const val FLOAT_SIGNIFICAND_BITS = 24
     }
 }

@@ -105,6 +105,8 @@
     <string name="audio_state_label_bit_depth">Bit depth</string>
     <!-- Audio information: row label of whether the mixer converts the sample rate -->
     <string name="audio_state_label_resampling">Resampling</string>
+    <!-- Audio information: row label for whether the device output has all the information of the samples, even when converted -->
+    <string name="audio_state_label_lossless">Lossless</string>
     <!-- Audio information: row label of whether the samples reach the device unchanged -->
     <string name="audio_state_label_bit_perfect">Bit-perfect</string>
     <!-- Audio information: row label of the output flags of a thread -->

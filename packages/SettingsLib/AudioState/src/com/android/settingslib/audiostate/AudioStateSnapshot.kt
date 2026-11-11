@@ -110,35 +110,39 @@ sealed interface BitPerfectVerdict {
     data class NotBitPerfect(val blockers: List<BitPerfectBlocker>) : BitPerfectVerdict
 }
 
-sealed interface BitPerfectBlocker {
+/**
+ * [changesSamples]: the condition alone means that the mixer changes the samples of the track.
+ * Whether a format or channel conversion changes them depends on the formats, see [isLossless].
+ */
+sealed class BitPerfectBlocker(val changesSamples: Boolean) {
     /** A stage after the mixer processes its output, or no track is audible. */
-    data object MixerStage : BitPerfectBlocker
+    data object MixerStage : BitPerfectBlocker(changesSamples = false)
 
-    data class MultipleTracks(val audibleTracks: Int) : BitPerfectBlocker
+    data class MultipleTracks(val audibleTracks: Int) : BitPerfectBlocker(changesSamples = true)
 
-    data object Resampling : BitPerfectBlocker
+    data object Resampling : BitPerfectBlocker(changesSamples = true)
 
-    data object FormatConversion : BitPerfectBlocker
+    data object FormatConversion : BitPerfectBlocker(changesSamples = false)
 
     /** The mixer clamps float samples above +3 dB. */
-    data object FloatSamples : BitPerfectBlocker
+    data object FloatSamples : BitPerfectBlocker(changesSamples = false)
 
     /** The track plays at a speed or pitch other than normal. */
-    data object TimeStretch : BitPerfectBlocker
+    data object TimeStretch : BitPerfectBlocker(changesSamples = true)
 
-    data object ChannelConversion : BitPerfectBlocker
+    data object ChannelConversion : BitPerfectBlocker(changesSamples = false)
 
-    data object VolumeScaling : BitPerfectBlocker
+    data object VolumeScaling : BitPerfectBlocker(changesSamples = true)
 
     /** An enabled effect processes the samples. */
-    data object Effects : BitPerfectBlocker
+    data object Effects : BitPerfectBlocker(changesSamples = true)
 
     /** An effect is attached and none is enabled. */
-    data object EffectAttached : BitPerfectBlocker
+    data object EffectAttached : BitPerfectBlocker(changesSamples = false)
 
-    data object MonoAudio : BitPerfectBlocker
+    data object MonoAudio : BitPerfectBlocker(changesSamples = true)
 
-    data object Balance : BitPerfectBlocker
+    data object Balance : BitPerfectBlocker(changesSamples = true)
 }
 
 /** One active client track of an output thread. */
@@ -146,6 +150,8 @@ data class AudioSource(
     val format: AudioFormatSummary,
     /** The track plays at a rate other than the output rate. */
     val resampling: Boolean,
+    /** The track plays at a volume above zero. */
+    val audible: Boolean,
     /** audio_output_flags_t names the track got from AudioFlinger, e.g. "FAST". */
     val trackFlags: List<String>,
     /** The bits of each sample the mixer keeps, when fewer than the sample carries. */
@@ -196,7 +202,25 @@ data class AudioFormatSummary(
 )
 
 sealed interface SampleEncoding {
-    data class Pcm(val bitsPerSample: Int, val isFloat: Boolean) : SampleEncoding
+    data class Pcm(val bitsPerSample: Int, val isFloat: Boolean) : SampleEncoding {
+        /** The widest integer sample this encoding represents exactly. */
+        val exactIntegerBits: Int
+            get() = if (isFloat) FLOAT_SIGNIFICAND_BITS else bitsPerSample
+
+        /** Whether every sample of [source] converts into this encoding unchanged. */
+        fun representsEverySampleOf(source: Pcm): Boolean =
+            if (source.isFloat) {
+                // An integer has no exponent, so it rounds the small float values.
+                isFloat && bitsPerSample >= source.bitsPerSample
+            } else {
+                source.bitsPerSample <= exactIntegerBits
+            }
+
+        private companion object {
+            /** IEEE 754 binary32 significand precision. PCM float is binary32 on Android. */
+            const val FLOAT_SIGNIFICAND_BITS = 24
+        }
+    }
 
     /** An encoding other than linear PCM, by its platform name, e.g. "AAC_LC". */
     data class Other(val name: String) : SampleEncoding
