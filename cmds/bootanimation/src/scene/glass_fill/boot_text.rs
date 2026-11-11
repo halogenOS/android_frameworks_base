@@ -34,18 +34,18 @@ enum StageLine {
     Stage(BootStage),
     /// The app update, with its reported progress.
     Updating(Step),
-    /// From the ready report on.
+    /// From the exit request on.
     Ready,
 }
 
 impl StageLine {
     /// The line of frame.
     fn of(frame: &Frame) -> Self {
-        match (frame.ready, frame.step, frame.stage) {
-            (Some(_), _, _) => Self::Ready,
-            (None, Some(step), _) => Self::Updating(step),
-            (None, None, Some(stage)) => Self::Stage(stage),
-            (None, None, None) => Self::Starting,
+        match (frame.exit_requested, frame.step, frame.stage) {
+            (true, _, _) => Self::Ready,
+            (false, Some(step), _) => Self::Updating(step),
+            (false, None, Some(stage)) => Self::Stage(stage),
+            (false, None, None) => Self::Starting,
         }
     }
 
@@ -80,10 +80,10 @@ fn stage_label(stage: BootStage) -> &'static str {
     }
 }
 
-/// The percentage of frame: 100 from the ready report on, and below 100 before it, even when the
-/// bar has crept up to its end.
+/// The percentage of frame: 100 from the exit request on, and below 100 before it, even when the
+/// bar has filled up in the ending.
 fn shown_percent(frame: &Frame) -> u8 {
-    if frame.ready.is_some() {
+    if frame.exit_requested {
         100
     } else {
         frame.progress.percent().min(99)

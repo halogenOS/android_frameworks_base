@@ -1,19 +1,22 @@
 // SPDX-FileCopyrightText: The halogenOS Project
 // SPDX-License-Identifier: Apache-2.0
 
-//! Draws one frame per vsync until the exit of the scene has played.
+//! Draws one frame per vsync until the system has requested the exit and the ending has played.
 
 use std::time::Instant;
 
 use crate::bar::Bar;
 use crate::boot_progress::{BootProgress, StageTimes};
 use crate::boot_report::BootReports;
+use crate::ending::{Ending, FrameAction};
 use crate::error::Error;
 use crate::renderer::Renderer;
 use crate::scene::{Frame, GlassFill};
 
-/// Draws scene until its exit has played after the exit request, with the bar paced by the stage
-/// times of the last boot and by reports. The swap of each frame waits for vsync.
+/// Draws scene until the system has requested the exit and a frame has shown the whole ending,
+/// with the bar paced by the stage times recorded in the last boot and by reports. The ending
+/// starts when those times expect the request in the time it takes. Each frame waits for vsync
+/// before its buffer swaps.
 pub fn run(
     renderer: &Renderer,
     scene: &mut GlassFill<'_>,
@@ -23,20 +26,29 @@ pub fn run(
     let start = Instant::now();
     let mut boot = BootProgress::starting_at(start, last_boot);
     let mut bar = Bar::new(GlassFill::fill_length());
-    let mut ready = None;
+    let mut ending = Ending::new(GlassFill::ending_length());
     loop {
         let now = Instant::now();
         let elapsed = now - start;
         let report = reports.latest()?;
-        if ready.is_none() && report.exit_requested() {
-            log::info!("exit requested after {elapsed:?}");
-            ready = Some(elapsed);
-        }
-        if ready.is_some_and(|ready| elapsed >= ready + GlassFill::exit_length()) {
-            return Ok(());
-        }
-        let progress = bar.at(elapsed, boot.at(now, report), ready);
-        let frame = Frame { progress, elapsed, ready, stage: report.stage(), step: report.step() };
+        let boot_point = boot.at(now, report);
+        let ending_played = match ending.at(elapsed, boot_point.exit_request) {
+            FrameAction::Draw(played) => played,
+            FrameAction::WaitForExitRequest => {
+                reports.wait_for_exit_request()?;
+                continue;
+            }
+            FrameAction::EndProcess => return Ok(()),
+        };
+        let progress = bar.at(elapsed, boot_point.progress, ending_played);
+        let frame = Frame {
+            progress,
+            elapsed,
+            ending_played,
+            exit_requested: report.exit_requested(),
+            stage: report.stage(),
+            step: report.step(),
+        };
         renderer.render(|| scene.draw(&frame))?;
     }
 }

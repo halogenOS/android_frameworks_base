@@ -2,12 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! The boot animation. It draws on its own layer above everything else from the start of
-//! `SurfaceFlinger` until `WindowManager` sets service.bootanim.exit.
+//! `SurfaceFlinger` until `WindowManager` sets service.bootanim.exit. Its ending starts before
+//! that request, when the stage times recorded in the last boot expect it, and the process ends
+//! once the ending has played after the request.
 
 mod bar;
 mod boot_progress;
 mod boot_report;
 mod boot_stage;
+mod ending;
 mod error;
 mod frame_loop;
 mod progress;

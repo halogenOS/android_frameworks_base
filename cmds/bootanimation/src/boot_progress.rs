@@ -8,7 +8,8 @@
 //! so the bar moves at an even pace through a boot that goes like the last one and never jumps
 //! when one goes differently. Inside a part the bar eases towards the end of the part
 //! without reaching it before the part ends, and during the compile and while the apps are
-//! updated, it follows the reported progress of each.
+//! updated, it follows the reported progress of each. The same times give when the system is
+//! expected to request the exit of the animation, at the end of the last part.
 
 mod stage_times;
 
@@ -108,10 +109,15 @@ impl ExpectedTimes {
         }
     }
 
+    /// The time of the parts after part not yet reached by the boot.
+    fn of_later(&self, part: Part) -> Duration {
+        part.later().map(|later| self.of_coming(later)).sum()
+    }
+
     /// part laid out on the bar from from, as the boot reached it at start.
     fn lay_out(&self, part: Part, from: Progress, start: Instant) -> PartOnBar {
         let expected = self.of_reached(part);
-        let coming: Duration = part.later().map(|later| self.of_coming(later)).sum();
+        let coming = self.of_later(part);
         // expected is never zero, so the share is from above 0 to 1.
         let share = expected.as_secs_f32() / (expected + coming).as_secs_f32();
         PartOnBar { part, start, expected, from, to: from.towards(Progress::COMPLETE, share) }
@@ -160,7 +166,24 @@ fn sway(part: f32) -> f32 {
     part - SWAY * (SWAY_FREQUENCY * part).sin() / SWAY_FREQUENCY
 }
 
-/// How far the bar is through the boot.
+/// The exit request of the system, which ends the last part of the boot.
+#[derive(Clone, Copy, Debug)]
+pub enum ExitRequest {
+    /// Expected in this time from now: the rest of the expected time of the part that the boot
+    /// is in, none once the part takes longer, and the times of the parts still to come.
+    ExpectedIn(Duration),
+    Made,
+}
+
+/// The boot at a frame.
+#[derive(Clone, Copy, Debug)]
+pub struct BootPoint {
+    /// How far the bar is through the boot.
+    pub progress: Progress,
+    pub exit_request: ExitRequest,
+}
+
+/// How far the bar is through the boot, and when the system is expected to request the exit.
 pub struct BootProgress {
     expected: ExpectedTimes,
     current: PartOnBar,
@@ -177,8 +200,9 @@ impl BootProgress {
         Self { expected, current, reached: Progress::default() }
     }
 
-    /// The progress at now, with the reports of the system up to now. It never moves backward.
-    pub fn at(&mut self, now: Instant, report: BootReport) -> Progress {
+    /// The boot at now, with the reports of the system up to now. Its progress never moves
+    /// backward.
+    pub fn at(&mut self, now: Instant, report: BootReport) -> BootPoint {
         let reported_part =
             report.stage().map(Part::Stage).or_else(|| report.compile().map(|_| Part::Compile));
         if let Some(part) = reported_part {
@@ -194,6 +218,14 @@ impl BootProgress {
         let current = self.current;
         let progress = current.from.towards(current.to, current.done_part(now, reported_done));
         self.reached = self.reached.max(progress);
-        self.reached
+        let exit_request = if report.exit_requested() {
+            ExitRequest::Made
+        } else {
+            ExitRequest::ExpectedIn(
+                (current.start + current.expected).saturating_duration_since(now)
+                    + self.expected.of_later(current.part),
+            )
+        };
+        BootPoint { progress: self.reached, exit_request }
     }
 }

@@ -5,6 +5,7 @@
 
 use std::ffi::CStr;
 use std::num::{ParseIntError, TryFromIntError};
+use std::sync::mpsc::RecvError;
 use std::{fmt, io, iter};
 
 use gl::types::{GLenum, GLsizei};
@@ -93,6 +94,8 @@ pub enum Error {
         value: String,
         cause: ParseIntError,
     },
+    /// Every thread that watches a property ended before the system requested the exit.
+    ExitRequestWait(RecvError),
     /// The texture of the size width x height is larger than limit, the largest side it can have.
     TextureTooLarge {
         width: usize,
@@ -201,6 +204,7 @@ impl fmt::Display for Error {
             Self::PropertyNotNumber { name, value, .. } => {
                 write!(f, "{name} is {value:?}, which is not a number")
             }
+            Self::ExitRequestWait(_) => write!(f, "could not wait for the exit request"),
             Self::GlCount { count, value, .. } => write_gl_count(f, *count, *value),
             Self::TextureTooLarge { width, height, limit } => {
                 write!(f, "a texture of {width} x {height} is larger than the limit of {limit}")
@@ -270,6 +274,7 @@ impl std::error::Error for Error {
             | Self::Swap(cause) => Some(cause),
             Self::PropertyRead { cause, .. } | Self::PropertyWait { cause, .. } => Some(cause),
             Self::PropertyNotNumber { cause, .. } => Some(cause),
+            Self::ExitRequestWait(cause) => Some(cause),
             Self::PropertyWatchThread { cause, .. } | Self::FontRead { cause, .. } => Some(cause),
             Self::FontParse { cause, .. } => Some(cause),
             Self::GlyphOutline { cause, .. } => Some(cause),

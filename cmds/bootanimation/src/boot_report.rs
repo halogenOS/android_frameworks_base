@@ -60,9 +60,20 @@ impl BootReport {
     pub fn exit_requested(self) -> bool {
         self.exit_requested
     }
+
+    /// Applies change to this report.
+    fn apply(&mut self, change: Change) {
+        match change {
+            Change::Compile(compile) => self.compile = Some(compile),
+            Change::Stage(stage) => self.stage = Some(stage),
+            Change::Step(step) => self.step = Some(step),
+            Change::Exit(exit) => self.exit_requested = exit != 0,
+        }
+    }
 }
 
 /// A new value of one of the watched properties.
+#[derive(Clone, Copy, Debug)]
 enum Change {
     Compile(CompileProgress),
     Stage(BootStage),
@@ -95,16 +106,21 @@ impl BootReports {
     pub fn latest(&mut self) -> Result<BootReport, Error> {
         loop {
             match self.changes.try_recv() {
-                Ok(change) => match change? {
-                    Change::Compile(compile) => self.latest.compile = Some(compile),
-                    Change::Stage(stage) => self.latest.stage = Some(stage),
-                    Change::Step(step) => self.latest.step = Some(step),
-                    Change::Exit(exit) => self.latest.exit_requested = exit != 0,
-                },
+                Ok(change) => self.latest.apply(change?),
                 // Disconnected: every watcher has ended after it sent its failure.
                 Err(TryRecvError::Empty | TryRecvError::Disconnected) => return Ok(self.latest),
             }
         }
+    }
+
+    /// Waits until the system requests the exit, with every change until then applied in order.
+    /// Fails when a property could not be watched.
+    pub fn wait_for_exit_request(&mut self) -> Result<(), Error> {
+        while !self.latest.exit_requested {
+            let change = self.changes.recv().map_err(Error::ExitRequestWait)?;
+            self.latest.apply(change?);
+        }
+        Ok(())
     }
 }
 

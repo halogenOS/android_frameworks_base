@@ -57,7 +57,7 @@ const BAR_HALF_WIDTH: f32 = 0.118;
 
 // Times.
 
-/// From the ready report to the start of the exit, while the bar fills up.
+/// From the start of the ending to the start of the exit, while the bar fills up.
 const EXIT_DELAY: Duration = Duration::from_millis(350);
 /// From the start of the exit until the swarm starts to leave.
 const LEAVE_DELAY: Duration = Duration::from_millis(600);
@@ -116,8 +116,8 @@ impl Moments {
     fn of(frame: &Frame) -> Self {
         let now = frame.elapsed.as_secs_f32();
         let since_exit = frame
-            .ready
-            .map_or(Duration::ZERO, |ready| frame.elapsed.saturating_sub(ready + EXIT_DELAY))
+            .ending_played
+            .map_or(Duration::ZERO, |played| played.saturating_sub(EXIT_DELAY))
             .as_secs_f32();
         let intro = INTRO_FADE.at(now);
         Self {
@@ -175,13 +175,14 @@ impl GlassFill<'_> {
         self.text.as_mut().map_or(Ok(()), |text| text.draw(frame, moments))
     }
 
-    /// How long the bar takes to fill up after the system reported ready, until the exit starts.
+    /// How long the bar takes to fill up from the start of the ending, until the exit starts.
     pub fn fill_length() -> Duration {
         EXIT_DELAY
     }
 
-    /// How long the scene keeps drawing after the system reported ready, to play its exit.
-    pub fn exit_length() -> Duration {
+    /// How long the ending takes at its planned pace: the bar fills up, then the scene plays its
+    /// exit.
+    pub fn ending_length() -> Duration {
         EXIT_DELAY + EXIT_LENGTH
     }
 }
