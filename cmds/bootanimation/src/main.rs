@@ -32,10 +32,17 @@ fn main() {
             .with_tag_on_device("BootAnimation")
             .with_max_level(log::LevelFilter::Info),
     );
-    if let Err(error) = run() {
-        log::error!("{}", error.with_causes());
-        std::process::exit(1);
-    }
+    let status = match run() {
+        Ok(()) => libc::EXIT_SUCCESS,
+        Err(error) => {
+            log::error!("{}", error.with_causes());
+            libc::EXIT_FAILURE
+        }
+    };
+    // The binder threads started for the surface still run and lock process-wide state. Leaving
+    // through exit() would destroy that state under them.
+    // SAFETY: _exit ends the process and reads only the integer value passed to it.
+    unsafe { libc::_exit(status) }
 }
 
 fn run() -> Result<(), Error> {
