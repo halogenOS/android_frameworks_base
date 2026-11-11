@@ -40,6 +40,7 @@ val Kosmos.currentTilesInteractor: CurrentTilesInteractor by
         CurrentTilesInteractorImpl(
             tileSpecRepository,
             installedTilesRepository,
+            TileReplacementInteractor(installedTilesRepository, qsLogger),
             userRepository,
             minimumTilesRepository,
             retailModeRepository,

@@ -301,6 +301,14 @@ component name. This will initiate a window that will last until the tile is upd
 
 The tile will also be granted listening status if it's clicked by the user.
 
+##### Replaced tile
+
+A `TileService` of a system app can take the position of a tile whose service is no longer
+installed, by setting the meta-data `android.service.quicksettings.REPLACED_TILE` to the flattened
+`ComponentName` of that earlier service. The swap happens only when exactly one service of a system
+app sets it to that component. If the list already contains the new tile, the earlier entry is
+removed. Services of other apps are ignored.
+
 ### SystemUI classes
 
 The following sections describe the classes that live in SystemUI to support third party tiles.
@@ -391,6 +399,8 @@ This class consumes the lists of specs provided by `TileSpecRepository` and prod
 `Flow<List<Pair<TileSpec, QSTile>>>` with the current tiles for the current user.
 
 Internally, whenever the list of tiles changes, the following operation is performed:
+* Replace each tile whose service is not installed with the tile that sets `REPLACED_TILE` to it
+  (see [Replaced tile](#replaced-tile)).
 * Properly dispose of tiles that are no longer in the current list.
 * Properly dispose of tiles that are no longer available.
 * If the user has changed, relay the new user to the platform tiles and destroy any custom tiles.

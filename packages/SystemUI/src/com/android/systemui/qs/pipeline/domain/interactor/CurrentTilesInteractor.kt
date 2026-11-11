@@ -149,6 +149,7 @@ class CurrentTilesInteractorImpl
 constructor(
     private val tileSpecRepository: TileSpecRepository,
     private val installedTilesComponentRepository: InstalledTilesComponentRepository,
+    private val tileReplacementInteractor: TileReplacementInteractor,
     private val userRepository: UserRepository,
     private val minimumTilesRepository: MinimumTilesRepository,
     private val retailModeRepository: RetailModeRepository,
@@ -222,8 +223,10 @@ constructor(
             launch(context = backgroundDispatcher) {
                 userAndTiles.collectLatest {
                     val newUser = it.userId
-                    val newTileList = it.tiles
+                    val savedTileList = it.tiles
                     val components = it.installedComponents
+                    val newTileList =
+                        tileReplacementInteractor.replaceNotInstalledTiles(newUser, savedTileList)
                     val userChanged = it.userChange
 
                     // Destroy all tiles that are not in the new set
@@ -295,10 +298,9 @@ constructor(
                         // We ended up with not enough tiles (some may be not installed).
                         // Prepend the default set of tiles
                         launch { tileSpecRepository.prependDefault(currentUser.value) }
-                    } else if (resolvedSpecs != newTileList) {
-                        // There were some tiles that couldn't be created. Change the value in
-                        // the
-                        // repository
+                    } else if (resolvedSpecs != savedTileList) {
+                        // Some tiles were replaced or couldn't be created. Change the value in
+                        // the repository
                         launch { tileSpecRepository.setTiles(currentUser.value, resolvedSpecs) }
                     }
                 }

@@ -178,6 +178,45 @@ constructor(
         )
     }
 
+    fun logTileReplaced(
+        replaced: TileSpec,
+        replacement: TileSpec,
+        replacementAlreadyAdded: Boolean,
+        user: Int,
+    ) {
+        tileListLogBuffer.log(
+            TILE_LIST_TAG,
+            LogLevel.INFO,
+            {
+                str1 = replaced.toString()
+                str2 = replacement.toString()
+                bool1 = replacementAlreadyAdded
+                int1 = user
+            },
+            {
+                if (bool1) {
+                    "Not installed tile $str1 removed for user $int1, replaced by $str2 " +
+                        "already added"
+                } else {
+                    "Not installed tile $str1 replaced by $str2 for user $int1"
+                }
+            },
+        )
+    }
+
+    fun logTileReplacementConflict(replaced: TileSpec, replacements: List<TileSpec>, user: Int) {
+        tileListLogBuffer.log(
+            TILE_LIST_TAG,
+            LogLevel.WARNING,
+            {
+                str1 = replaced.toString()
+                str2 = replacements.toString()
+                int1 = user
+            },
+            { "Not installed tile $str1 kept for user $int1, several tiles replace it: $str2" },
+        )
+    }
+
     fun logAutoAddTilesParsed(userId: Int, tiles: Set<TileSpec>) {
         tileAutoAddLogBuffer.log(
             AUTO_ADD_TAG,
