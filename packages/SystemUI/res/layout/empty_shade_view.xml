@@ -30,26 +30,25 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:gravity="center"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:paddingVertical="@dimen/empty_shade_vertical_padding"
         android:paddingHorizontal="@dimen/empty_shade_horizontal_padding">
 
         <ImageView
             android:id="@id/icon"
             android:layout_width="@dimen/empty_shade_icon_size"
-            android:layout_height="@dimen/empty_shade_icon_size"
-            android:layout_marginBottom="@dimen/empty_shade_icon_bottom_margin"
+            android:layout_height="@dimen/empty_shade_line_height"
+            android:layout_gravity="top"
+            android:layout_marginEnd="@dimen/empty_shade_icon_end_margin"
             android:scaleType="fitCenter"
-            android:tint="@color/materialColorOnSurface"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_trophy"></ImageView>
+            android:tint="@color/materialColorOnSurfaceVariant"
+            android:importantForAccessibility="no"></ImageView>
 
         <TextView
             android:id="@+id/text"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="@string/empty_shade_text"
-            android:textAppearance="@style/TextAppearance.NotificationShadeText" />
+            android:breakStrategy="balanced"
+            android:textAppearance="@style/TextAppearance.EmptyShadeLine" />
     </LinearLayout>
 </com.android.systemui.statusbar.notification.emptyshade.ui.view.EmptyShadeIconView>

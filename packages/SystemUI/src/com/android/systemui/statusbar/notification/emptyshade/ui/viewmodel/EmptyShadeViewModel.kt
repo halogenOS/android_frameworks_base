@@ -105,15 +105,12 @@ constructor(
                                 message = context.getString(R.string.unlock_to_see_notif_text),
                                 icon = Icon.Resource(R.drawable.ic_friction_lock_closed, null),
                             )
-                        modes.main == null ->
-                            IconMessageModel(
-                                message = context.getString(R.string.caught_up_shade_text),
-                                icon = Icon.Resource(R.drawable.ic_trophy, null),
-                            )
                         else ->
                             IconMessageModel(
                                 message = formatModesString(locale, modes),
-                                icon = modes.main.icon,
+                                icon =
+                                    modes.main?.icon
+                                        ?: Icon.Resource(R.drawable.ic_empty_shade_checks, null),
                             )
                     }
                 }

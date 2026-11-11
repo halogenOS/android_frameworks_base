@@ -25,6 +25,8 @@ import com.android.systemui.statusbar.notification.emptyshade.ui.view.EmptyShade
 import com.android.systemui.statusbar.notification.emptyshade.ui.viewmodel.EmptyShadeViewModel
 import com.android.systemui.statusbar.notification.row.StackScrollerDecorView
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 object EmptyShadeViewBinder {
     suspend fun bind(
@@ -35,12 +37,8 @@ object EmptyShadeViewBinder {
         if (ShowIconInEmptyShade.isEnabled) {
             require(view is EmptyShadeIconView)
 
-            launch {
-                viewModel.message.collect {
-                    view.setText(it.message)
-                    view.setIcon(it.icon)
-                }
-            }
+            launch { viewModel.message.map { it.message }.distinctUntilChanged().collect(view::setText) }
+            launch { viewModel.message.map { it.icon }.distinctUntilChanged().collect(view::setIcon) }
         } else {
             require(view is EmptyShadeView)
 

@@ -5318,7 +5318,7 @@ public class NotificationStackScrollLayout
 
         if (mEmptyShadeView != null) {
             if (ShowIconInEmptyShade.isEnabled()) {
-                ((EmptyShadeIconView) mEmptyShadeView).setContentColor(onSurface);
+                ((EmptyShadeIconView) mEmptyShadeView).setContentColor(onSurfaceVariant);
             } else {
                 ((EmptyShadeView) mEmptyShadeView).setTextColors(onSurface, onSurfaceVariant);
             }

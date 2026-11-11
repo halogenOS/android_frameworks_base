@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="24dp"
+            android:height="24dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            <path
+                android:name="first_check"
+                android:pathData="M1.6,12.9 L6.4,17.7"
+                android:strokeColor="@android:color/white"
+                android:strokeWidth="2"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round" />
+            <path
+                android:name="second_check"
+                android:pathData="M6.9,12.9 L11.7,17.7 L22.4,7"
+                android:strokeColor="@android:color/white"
+                android:strokeWidth="2"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round" />
+            <path
+                android:name="first_check_tail"
+                android:pathData="M11.3,12.3 L16.6,7"
+                android:strokeColor="@android:color/white"
+                android:strokeWidth="2"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round" />
+        </vector>
+    </aapt:attr>
+
+    <!-- The first two keyframes set a stroke to zero length for its delay of 120 or 220 ms.
+         The duration is that delay plus the 420 ms of drawing. -->
+    <target android:name="first_check">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="420"
+                android:interpolator="@android:interpolator/fast_out_slow_in"
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+    <target android:name="second_check">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="540">
+                <propertyValuesHolder
+                    android:propertyName="trimPathEnd"
+                    android:valueType="floatType">
+                    <keyframe android:fraction="0" android:value="0" />
+                    <keyframe android:fraction="0.222" android:value="0" />
+                    <keyframe
+                        android:fraction="1"
+                        android:interpolator="@android:interpolator/fast_out_slow_in"
+                        android:value="1" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="first_check_tail">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="640">
+                <propertyValuesHolder
+                    android:propertyName="trimPathEnd"
+                    android:valueType="floatType">
+                    <keyframe android:fraction="0" android:value="0" />
+                    <keyframe android:fraction="0.344" android:value="0" />
+                    <keyframe
+                        android:fraction="1"
+                        android:interpolator="@android:interpolator/fast_out_slow_in"
+                        android:value="1" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+</animated-vector>

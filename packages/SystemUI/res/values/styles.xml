@@ -876,6 +876,15 @@
         <item name="android:textSize">16sp</item>
     </style>
 
+    <style name="TextAppearance.EmptyShadeLine" parent="@android:style/TextAppearance.DeviceDefault">
+        <item name="android:textColor">@color/materialColorOnSurfaceVariant</item>
+        <item name="android:fontFamily">variable-title-small</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">@dimen/empty_shade_line_height</item>
+        <item name="android:letterSpacing">0.007</item>
+    </style>
+
     <style name="TextAppearance.NotificationMenuButtonText">
         <item name="android:textSize">@dimen/notification_importance_header_text</item>
         <item name="android:fontFamily">@*android:string/config_headlineFontFamily</item>

@@ -575,12 +575,14 @@
     <dimen name="notifications_unseen_footer_icon_size">16dp</dimen>
 
     <!-- The size of the icon shown in the shade when there are no notifications -->
-    <dimen name="empty_shade_icon_size">32dp</dimen>
+    <dimen name="empty_shade_icon_size">18dp</dimen>
     <!-- The spacing between the icon and the text shown in the shade when there are no
          notifications. -->
-    <dimen name="empty_shade_icon_bottom_margin">16dp</dimen>
+    <dimen name="empty_shade_icon_end_margin">8dp</dimen>
+    <!-- The icon box is as tall as one line of the text, so the icon centers on its first line. -->
+    <dimen name="empty_shade_line_height">20sp</dimen>
     <dimen name="empty_shade_vertical_padding">32dp</dimen>
-    <dimen name="empty_shade_horizontal_padding">16dp</dimen>
+    <dimen name="empty_shade_horizontal_padding">24dp</dimen>
 
     <!-- Height of the status bar header bar when on Keyguard -->
     <dimen name="status_bar_header_height_keyguard">@dimen/status_bar_height</dimen>

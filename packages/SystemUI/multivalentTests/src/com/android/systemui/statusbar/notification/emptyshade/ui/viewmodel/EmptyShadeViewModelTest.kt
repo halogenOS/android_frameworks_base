@@ -229,8 +229,8 @@ class EmptyShadeViewModelTest(flags: FlagsParameterization) : SysuiTestCase() {
         kosmos.runTest {
             val message by collectLastValue(underTest.message)
 
-            assertThat(message?.message).isEqualTo("You're all caught up")
-            assertThat(message?.icon?.resId).isEqualTo(R.drawable.ic_trophy)
+            assertThat(message?.message).isEqualTo("No notifications")
+            assertThat(message?.icon?.resId).isEqualTo(R.drawable.ic_empty_shade_checks)
 
             zenModeRepository.updateMode(ZenMode.MANUAL_DND_MODE_ID) {
                 TestModeBuilder(it)

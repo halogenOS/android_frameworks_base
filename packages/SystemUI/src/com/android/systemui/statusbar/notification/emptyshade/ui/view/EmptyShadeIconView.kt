@@ -18,6 +18,7 @@ package com.android.systemui.statusbar.notification.emptyshade.ui.view
 
 import android.annotation.ColorInt
 import android.content.Context
+import android.graphics.drawable.Animatable
 import android.util.AttributeSet
 import android.view.View
 import android.widget.ImageView
@@ -29,6 +30,7 @@ import com.android.systemui.res.R
 import com.android.systemui.statusbar.notification.emptyshade.ui.shared.flag.ShowIconInEmptyShade
 import com.android.systemui.statusbar.notification.row.StackScrollerDecorView
 import com.android.systemui.statusbar.notification.stack.ExpandableViewState
+import java.util.function.Consumer
 
 /**
  * View representing the content in the notification shade when there are no notifications.
@@ -68,6 +70,16 @@ class EmptyShadeIconView @JvmOverloads constructor(context: Context, attrs: Attr
 
     override fun findSecondaryView(): View? {
         return null
+    }
+
+    override fun setContentVisible(
+        visible: Boolean,
+        animate: Boolean,
+        onAnimationEnded: Consumer<Boolean>?,
+    ) {
+        val wasHidden = !isContentVisible
+        super.setContentVisible(visible, animate, onAnimationEnded)
+        if (animate && wasHidden && isContentVisible) (iconView.drawable as? Animatable)?.start()
     }
 
     fun setText(text: String) {
