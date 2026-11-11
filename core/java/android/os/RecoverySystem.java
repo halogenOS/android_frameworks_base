@@ -1231,7 +1231,7 @@ public class RecoverySystem {
         }
 
         final String localeArg = "--locale=" + Locale.getDefault().toString();
-        bootCommand(context, null, "--prompt_and_wipe_data", reasonArg, localeArg);
+        bootCommand(context, null, reasonArg, localeArg);
     }
 
     /**
