@@ -187,6 +187,17 @@ internal fun Resources.label(blocker: BitPerfectBlocker): String =
         is BitPerfectBlocker.MultipleTracks ->
             getString(R.string.audio_state_reason_multiple_tracks, blocker.audibleTracks)
         BitPerfectBlocker.Resampling -> getString(R.string.audio_state_reason_resampling)
+        BitPerfectBlocker.FormatConversion ->
+            getString(R.string.audio_state_reason_format_conversion)
+        BitPerfectBlocker.FloatSamples -> getString(R.string.audio_state_reason_float_samples)
+        BitPerfectBlocker.TimeStretch -> getString(R.string.audio_state_reason_time_stretch)
+        BitPerfectBlocker.ChannelConversion ->
+            getString(R.string.audio_state_reason_channel_conversion)
+        BitPerfectBlocker.VolumeScaling -> getString(R.string.audio_state_reason_volume_scaling)
+        BitPerfectBlocker.Effects -> getString(R.string.audio_state_reason_effects)
+        BitPerfectBlocker.EffectAttached -> getString(R.string.audio_state_reason_effect_attached)
+        BitPerfectBlocker.MonoAudio -> getString(R.string.audio_state_reason_mono_audio)
+        BitPerfectBlocker.Balance -> getString(R.string.audio_state_reason_balance)
     }
 
 /** "This device" for the phone's own endpoints, else the product name or the kind. */

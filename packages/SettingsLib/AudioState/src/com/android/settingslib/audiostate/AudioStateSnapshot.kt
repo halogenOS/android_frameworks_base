@@ -111,11 +111,34 @@ sealed interface BitPerfectVerdict {
 }
 
 sealed interface BitPerfectBlocker {
+    /** A stage after the mixer processes its output, or no track is audible. */
     data object MixerStage : BitPerfectBlocker
 
     data class MultipleTracks(val audibleTracks: Int) : BitPerfectBlocker
 
     data object Resampling : BitPerfectBlocker
+
+    data object FormatConversion : BitPerfectBlocker
+
+    /** The mixer clamps float samples above +3 dB. */
+    data object FloatSamples : BitPerfectBlocker
+
+    /** The track plays at a speed or pitch other than normal. */
+    data object TimeStretch : BitPerfectBlocker
+
+    data object ChannelConversion : BitPerfectBlocker
+
+    data object VolumeScaling : BitPerfectBlocker
+
+    /** An enabled effect processes the samples. */
+    data object Effects : BitPerfectBlocker
+
+    /** An effect is attached and none is enabled. */
+    data object EffectAttached : BitPerfectBlocker
+
+    data object MonoAudio : BitPerfectBlocker
+
+    data object Balance : BitPerfectBlocker
 }
 
 /** One active client track of an output thread. */

@@ -59,7 +59,7 @@ internal class AudioFlingerInfoProvider {
             flags = outputFlags.toList(),
             hardwareFormat = hardwareFormat.toSummary(),
             latencyMillis = latencyMs.takeUnless { path == OutputPath.Mmap },
-            sources = sources.map { it.toAudioSource(path) },
+            sources = sources.map { it.toAudioSource(path, copied = bitPerfect) },
             effects = effects.map { it.toSummary() },
             sinkPortIds = sinkPortIds.toList(),
             bitPerfect =
@@ -98,16 +98,29 @@ internal class AudioFlingerInfoProvider {
             BitPerfectReason.MIXER_STAGE -> BitPerfectBlocker.MixerStage
             BitPerfectReason.MULTIPLE_TRACKS -> BitPerfectBlocker.MultipleTracks(audibleTracks)
             BitPerfectReason.RESAMPLING -> BitPerfectBlocker.Resampling
-            else -> null
+            BitPerfectReason.FORMAT_CONVERSION -> BitPerfectBlocker.FormatConversion
+            BitPerfectReason.FLOAT_SAMPLES -> BitPerfectBlocker.FloatSamples
+            BitPerfectReason.TIME_STRETCH -> BitPerfectBlocker.TimeStretch
+            BitPerfectReason.CHANNEL_CONVERSION -> BitPerfectBlocker.ChannelConversion
+            BitPerfectReason.VOLUME_SCALING -> BitPerfectBlocker.VolumeScaling
+            BitPerfectReason.EFFECTS -> BitPerfectBlocker.Effects
+            BitPerfectReason.EFFECT_ATTACHED -> BitPerfectBlocker.EffectAttached
+            BitPerfectReason.MONO_AUDIO -> BitPerfectBlocker.MonoAudio
+            BitPerfectReason.BALANCE -> BitPerfectBlocker.Balance
+            else -> {
+                Log.w(TAG, "unknown bit-perfect reason $reason")
+                null
+            }
         }
 
-    private fun AudioSourceInfo.toAudioSource(path: OutputPath): AudioSource {
+    private fun AudioSourceInfo.toAudioSource(path: OutputPath, copied: Boolean): AudioSource {
         val summary = format.toSummary()
         return AudioSource(
             format = summary,
             resampling = resampling,
             trackFlags = outputFlags.toList(),
-            keptBits = keptBits(summary, path),
+            // A copied track skips the mixer sum.
+            keptBits = keptBits(summary, path).takeUnless { copied },
         )
     }
 

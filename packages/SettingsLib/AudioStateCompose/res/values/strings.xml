@@ -181,6 +181,24 @@
     <string name="audio_state_reason_multiple_tracks">Mixing <xliff:g id="count" example="2">%1$d</xliff:g> active tracks</string>
     <!-- Audio information: the samples are not bit-perfect because a track is resampled -->
     <string name="audio_state_reason_resampling">Resampling to device rate</string>
+    <!-- Audio information: the samples are not bit-perfect because the track has another sample format than the output -->
+    <string name="audio_state_reason_format_conversion">Format differs</string>
+    <!-- Audio information: the samples are not bit-perfect because the mixer clamps float samples above +3 dB -->
+    <string name="audio_state_reason_float_samples">Float samples clamped above +3 dB</string>
+    <!-- Audio information: the samples are not bit-perfect because the track plays faster, slower or at another pitch -->
+    <string name="audio_state_reason_time_stretch">Speed or pitch changed</string>
+    <!-- Audio information: the samples are not bit-perfect because the track has another channel layout than the output -->
+    <string name="audio_state_reason_channel_conversion">Channel layout differs</string>
+    <!-- Audio information: the samples are not bit-perfect because the track plays below full volume -->
+    <string name="audio_state_reason_volume_scaling">Volume below maximum</string>
+    <!-- Audio information: the samples are not bit-perfect because an enabled audio effect processes them -->
+    <string name="audio_state_reason_effects">Audio effect on</string>
+    <!-- Audio information: the samples are not bit-perfect because an audio effect is attached to the output, although none is on -->
+    <string name="audio_state_reason_effect_attached">Audio effect attached</string>
+    <!-- Audio information: the samples are not bit-perfect because the mono audio setting is on -->
+    <string name="audio_state_reason_mono_audio">Mono audio on</string>
+    <!-- Audio information: the samples are not bit-perfect because the left and right balance is not centered -->
+    <string name="audio_state_reason_balance">Balance not centered</string>
 
     <!-- Audio information: kinds of playback -->
     <string name="audio_state_usage_media">Media</string>

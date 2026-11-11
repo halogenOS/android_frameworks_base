@@ -185,9 +185,10 @@ private fun Resources.bitDepthFlow(thread: OutputThread, mixer: OutputPath.Mixer
                 add(getString(R.string.audio_state_depth_in, sourceDepth))
             }
         }
-        (mixer.accumulation.encoding as? SampleEncoding.Pcm)?.let {
-            add(getString(R.string.audio_state_depth_mix, depth(it)))
-        }
+        // A copied track skips the mix stage.
+        (mixer.accumulation.encoding as? SampleEncoding.Pcm)
+            ?.takeUnless { thread.bitPerfect == BitPerfectVerdict.BitPerfect }
+            ?.let { add(getString(R.string.audio_state_depth_mix, depth(it))) }
         (mixer.output.encoding as? SampleEncoding.Pcm)?.let {
             add(getString(R.string.audio_state_depth_out, depth(it)))
         }
@@ -195,7 +196,7 @@ private fun Resources.bitDepthFlow(thread: OutputThread, mixer: OutputPath.Mixer
     return segments.takeIf { it.size > 1 }?.joinToString(" → ")
 }
 
-/** The lines every thread has: the bit-perfect verdict with its reasons, flags, latency. */
+/** The lines every thread has: the bit-perfect verdict with its reason, flags, latency. */
 private fun Resources.threadLines(thread: OutputThread): List<ReadoutLine> = buildList {
     val verdictLabel = getString(R.string.audio_state_label_bit_perfect)
     when (val verdict = thread.bitPerfect) {
