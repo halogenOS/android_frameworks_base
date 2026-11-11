@@ -7,11 +7,14 @@
 // front triangle. It follows logo_glass.glsl.
 
 flat in vec4 vLogoRect;            // the rectangle of the pass: lower left and upper right corner
-uniform highp sampler2D uBehind;   // renderBehind() on the rectangle, from behind_fragment.glsl
+// renderBehind() on the rectangle, from behind_fragment.glsl: its color, and how much of each
+// pixel the blue triangle covers.
+uniform highp sampler2D uBehind;
+uniform highp sampler2D uBehindCoverage;
 
-// renderBehind() at the screen point q. The ray through a point within one pixel of the edge of
-// the rectangle, or outside it, misses the sphere around the glass, so renderBehind() returns the
-// background there.
+// The color of renderBehind() at the screen point q. The ray through a point within one pixel of
+// the edge of the rectangle, or outside it, misses the sphere around the glass, so renderBehind()
+// returns the background there.
 vec3 behindAt(vec2 q) {
   vec2 pixel = vec2(1.0 / uRes.y);
   if (any(lessThan(q, vLogoRect.xy + pixel)) || any(greaterThan(q, vLogoRect.zw - pixel))) {
@@ -50,12 +53,20 @@ vec3 shadeWhite(vec3 p, vec3 d, vec2 uv) {
   return toDisplay(col);
 }
 
-vec3 render(vec3 ro, vec3 rd, vec2 uv) {
+// renderBehind() at this pixel, whose screen point is uv: the scene behind the front triangle, and
+// how much of the pixel the blue triangle covers. The behind pass draws the same pixels as this
+// pass.
+vec4 behindPixel(vec2 uv) {
+  return vec4(behindAt(uv), texelFetch(uBehindCoverage, ivec2(gl_FragCoord.xy), 0).r);
+}
+
+// The color, and how much of the pixel the glass of both triangles covers.
+vec4 render(vec3 ro, vec3 rd, vec2 uv) {
   vec2 h = march(ro, rd, true);
-  if (h.x < 0.0 || h.y < 0.5) return behindAt(uv);
+  if (h.x < 0.0 || h.y < 0.5) return behindPixel(uv);
   vec3 p = ro + rd * h.x;
-  float r = setAt(fromTip(toLogo(p), 1));
-  if (r <= 0.0) return behindAt(uv);
-  vec3 c = shadeWhite(p, rd, uv) + LIGHT * 0.45 * 4.0 * r * (1.0 - r);
-  return r >= 0.999 ? c : mix(behindAt(uv), c, r);
+  float r = setAtHit(p, 1);
+  if (r <= 0.0) return behindPixel(uv);
+  vec4 c = vec4(shadeWhite(p, rd, uv) + LIGHT * 0.45 * 4.0 * r * (1.0 - r), 1.0);
+  return r >= 0.999 ? c : mix(behindPixel(uv), c, r);
 }

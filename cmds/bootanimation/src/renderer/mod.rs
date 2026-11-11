@@ -22,16 +22,20 @@ pub use self::mesh::Mesh;
 pub use self::program::{Blending, Program, ShaderConstant, Stage, Uniform, Vec2Array};
 pub use self::render_target::RenderTarget;
 pub use self::text::{Align, Font, Label, Style, TextProgram};
-pub use self::texture::Texture;
+pub use self::texture::{DrawableFormat, Texture};
 use crate::error::Error;
 use crate::surface::Surface;
 
-const CONFIG: [egl::Int; 11] = [
+/// An alpha channel lets the layer show what the system draws below it where the scene draws
+/// see-through pixels. It makes EGL ask for buffers in `RGBA_8888`.
+const CONFIG: [egl::Int; 13] = [
     egl::RED_SIZE,
     8,
     egl::GREEN_SIZE,
     8,
     egl::BLUE_SIZE,
+    8,
+    egl::ALPHA_SIZE,
     8,
     egl::RENDERABLE_TYPE,
     egl::OPENGL_ES3_BIT,
@@ -175,6 +179,8 @@ pub enum GlCount {
     InstanceBytes,
     /// The elements of an array uniform.
     UniformArrayElements,
+    /// The textures that a framebuffer draws into.
+    DrawBuffers,
 }
 
 /// value, a count or size of what count names, as the `GLsizei` or `GLint` of OpenGL ES. Fails

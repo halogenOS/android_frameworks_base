@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <android-base/properties.h>
-#include <android/gui/ISurfaceComposerClient.h>
 #include <binder/IServiceManager.h>
 #include <binder/ProcessState.h>
 #include <gui/Surface.h>
@@ -124,9 +123,10 @@ status_t createBootSurface(std::unique_ptr<BootSurface>& out) {
     const ui::Rotation orientation = readOrientation(displayId);
     ui::Size size = mode.resolution;
     size.rotate(orientation);
+    // Not opaque. SurfaceFlinger blends the layer over the layers below by the alpha of its pixels.
+    // The layers below show where the animation draws see-through pixels.
     surface->layer = surface->session->createSurface(String8("BootAnimation"), size.width,
-                                                     size.height, PIXEL_FORMAT_RGBX_8888,
-                                                     gui::ISurfaceComposerClient::eOpaque);
+                                                     size.height, PIXEL_FORMAT_RGBA_8888);
     if (surface->layer == nullptr) {
         ALOGE("SurfaceFlinger did not create the layer");
         return NO_INIT;

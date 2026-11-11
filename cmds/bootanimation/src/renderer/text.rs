@@ -10,6 +10,7 @@ mod font;
 mod rasterizer;
 
 use std::collections::{BTreeSet, HashMap};
+use std::slice;
 
 pub(super) use self::atlas::Atlas;
 use self::font::Face;
@@ -252,6 +253,10 @@ impl<'a> TextProgram<'a> {
         self.program.set_uniforms(|set| {
             set.vec4(self.color, [red * alpha, green * alpha, blue * alpha, alpha]);
         });
-        self.program.draw_textured(glyphs, &label.texture, Blending::PremultipliedOver);
+        self.program.draw_textured(
+            glyphs,
+            slice::from_ref(&label.texture),
+            Blending::PremultipliedOver,
+        );
     }
 }

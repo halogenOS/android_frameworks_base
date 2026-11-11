@@ -135,7 +135,7 @@ vec4 toClip(vec2 p) {
 
 void main() {
   int kind = int(aKind.x);
-  float fade = 1.0 - smoothstep(LEAVE_DELAY + 0.7, LEAVE_DELAY + 2.0, uSinceExit);
+  float fade = 1.0 - smoothstep(SWARM_FADE_START, LEAVE_DELAY + 2.0, uSinceExit);
   vC0 = vC1 = vC2 = vTail = vec2(0.0);
   vShape = vec4(0.0);
   vHaloColor = vec3(0.0);

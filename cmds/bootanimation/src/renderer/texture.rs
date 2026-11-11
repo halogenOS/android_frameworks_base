@@ -30,6 +30,25 @@ const fn gl_name_parameter<const NAME: GLenum>() -> GLint {
     NAME.cast_signed()
 }
 
+/// What each texel of a texture that a framebuffer draws into contains, from 0.0 to 1.0.
+#[derive(Clone, Copy, Debug)]
+pub enum DrawableFormat {
+    /// 10 bits for each of red, green and blue.
+    Rgb10,
+    /// 8 bits of red.
+    Red8,
+}
+
+impl DrawableFormat {
+    /// The internal format, the format and the type that `TexImage2D` takes for it.
+    const fn tex_image(self) -> (GLint, GLenum, GLenum) {
+        match self {
+            Self::Rgb10 => (FORMAT_RGB10_A2, gl::RGBA, gl::UNSIGNED_INT_2_10_10_10_REV),
+            Self::Red8 => (FORMAT_R8, gl::RED, gl::UNSIGNED_BYTE),
+        }
+    }
+}
+
 /// How a texture is sampled between its texels.
 #[derive(Clone, Copy, Debug)]
 enum Filter {
@@ -74,15 +93,16 @@ impl Renderer {
         })
     }
 
-    /// A texture of width x height texels for a framebuffer to draw into, with 10 bits for each of
-    /// red, green and blue from 0.0 to 1.0, sampled with linear filtering. Its texels are
-    /// undefined until something draws into them. Fails when OpenGL ES takes no texture this
-    /// large.
+    /// A texture of width x height texels of format for a framebuffer to draw into, sampled with
+    /// linear filtering. Its texels are undefined until something draws into them. Fails when
+    /// OpenGL ES takes no texture this large.
     pub(super) fn drawable_texture(
         &self,
         width: usize,
         height: usize,
+        format: DrawableFormat,
     ) -> Result<Texture<'_>, Error> {
+        let (internal_format, texel_format, texel_type) = format.tex_image();
         self.texture(width, height, Filter::Linear, |gl_width, gl_height| {
             // SAFETY: The context is current on this thread, asserted by Renderer::texture.
             // TexImage2D reads nothing through the null pointer and leaves the texels undefined.
@@ -90,12 +110,12 @@ impl Renderer {
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
-                    FORMAT_RGB10_A2,
+                    internal_format,
                     gl_width,
                     gl_height,
                     0,
-                    gl::RGBA,
-                    gl::UNSIGNED_INT_2_10_10_10_REV,
+                    texel_format,
+                    texel_type,
                     ptr::null(),
                 );
             }
@@ -149,13 +169,13 @@ impl Texture<'_> {
         self.id
     }
 
-    /// Binds the texture to texture unit 0, the unit that a sampler uniform reads unless it is set.
-    pub(super) fn bind(&self) {
+    /// Binds the texture to unit, a texture unit from `TEXTURE0` on.
+    pub(super) fn bind(&self, unit: GLenum) {
         self.renderer.assert_current();
         // SAFETY: The context is current on this thread, asserted above, and these calls read only
         // the plain values passed to them.
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
+            gl::ActiveTexture(unit);
             gl::BindTexture(gl::TEXTURE_2D, self.id);
         }
     }

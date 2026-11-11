@@ -264,9 +264,12 @@ impl Program<'_> {
         mesh.draw();
     }
 
-    /// Draws mesh with this program, whose sampler uniform reads texture.
-    pub fn draw_textured(&self, mesh: &Mesh<'_>, texture: &Texture<'_>, blending: Blending) {
-        texture.bind();
+    /// Draws mesh with this program, whose sampler uniforms read textures: each the texture at
+    /// the index set on it by `Uniforms::texture_index`, the first one unless set.
+    pub fn draw_textured(&self, mesh: &Mesh<'_>, textures: &[Texture<'_>], blending: Blending) {
+        for (unit, texture) in (gl::TEXTURE0..).zip(textures) {
+            texture.bind(unit);
+        }
         self.draw(mesh, blending);
     }
 
@@ -315,6 +318,14 @@ impl Uniforms {
         let location = self.location_of(uniform);
         // SAFETY: As in float, with Uniform4f.
         unsafe { gl::Uniform4f(location, x, y, z, w) };
+    }
+
+    /// Sets the sampler uniform to read the texture at index of those passed to
+    /// `Program::draw_textured`.
+    pub fn texture_index(&self, sampler: Uniform, index: u8) {
+        let location = self.location_of(sampler);
+        // SAFETY: As in float, with Uniform1i.
+        unsafe { gl::Uniform1i(location, GLint::from(index)) };
     }
 
     /// Sets the vec2 array uniform to values, from its first element on.

@@ -107,6 +107,9 @@ float setAt(float f) {
   return r * (1.0 - smooth01((uSinceExit - 0.45 - 0.55 * f) / 0.2));
 }
 
+// How far the glass of the triangle id has set at the point p on its surface.
+float setAtHit(vec3 p, int id) { return setAt(fromTip(toLogo(p), id)); }
+
 // Lighting of the glass, in linear color. Its world looks along -z, so z flips.
 vec3 meshSpace(vec3 v) { return vec3(v.x, v.y, -v.z); }
 vec3 lin(vec3 c) { return pow(max(c, 0.0), vec3(2.2)); }
@@ -187,14 +190,15 @@ vec3 shadeBlue(vec3 p, vec3 d, vec2 uv) {
   return toDisplay(col);
 }
 
-// Everything except the front triangle: ribbon, halo and the blue triangle, as far as it has set.
-vec3 renderBehind(vec3 ro, vec3 rd) {
+// Everything except the front triangle: ribbon, halo and the blue triangle, as far as it has set,
+// and how much of the pixel the blue triangle covers.
+vec4 renderBehind(vec3 ro, vec3 rd) {
   vec3 bg = background(ro, rd);
   vec2 h = march(ro, rd, false);
-  if (h.x < 0.0) return bg;
+  if (h.x < 0.0) return vec4(bg, 0.0);
   vec3 p = ro + rd * h.x;
-  float r = setAt(fromTip(toLogo(p), 0));
-  if (r <= 0.0) return bg;
+  float r = setAtHit(p, 0);
+  if (r <= 0.0) return vec4(bg, 0.0);
   vec3 c = shadeBlue(p, rd, rd.xy * 2.0 / rd.z) + LIGHT * 0.45 * 4.0 * r * (1.0 - r);
-  return mix(bg, c, r);
+  return vec4(mix(bg, c, r), r);
 }

@@ -24,7 +24,8 @@ struct BootSurfaceSize {
 
 /**
  * Waits for SurfaceFlinger, then creates the layer of the boot animation above every other layer
- * in layer stack 0, on the first physical display. The process exits when SurfaceFlinger dies.
+ * in layer stack 0, on the first physical display. The layer is not opaque: the layers below show
+ * through it by the alpha of its pixels. The process exits when SurfaceFlinger dies.
  *
  * Returns 0 and sets *out to a layer that the caller releases with boot_surface_destroy, or
  * returns a negative status_t and leaves *out unchanged.

@@ -10,7 +10,8 @@ uniform float uSinceExit; // seconds since the exit started, 0 until it starts
 uniform float uProgress;  // boot progress, 0 to 1
 uniform vec2 uBar;        // progress line: vertical position and half width, in screen heights
 uniform float uLineOpacity; // opacity of the progress line, 0 to 1
-out vec4 outColor;
+uniform float uBlackOpacity; // opacity of the black behind the scene, 1 until the exit, then down to 0
+layout(location = 0) out vec4 outColor;
 
 const vec3 GLOW    = vec3(0.000, 0.706, 1.000);
 const vec3 LIGHT   = vec3(0.86, 0.95, 1.00);

@@ -313,5 +313,9 @@ fn write_gl_count(f: &mut fmt::Formatter, count: GlCount, value: usize) -> fmt::
             "a uniform array has {value} elements, above the limit of OpenGL ES of \
                  {limit}"
         ),
+        GlCount::DrawBuffers => write!(
+            f,
+            "a framebuffer draws into {value} textures, above the limit of OpenGL ES of {limit}"
+        ),
     }
 }
