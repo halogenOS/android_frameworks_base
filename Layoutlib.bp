@@ -1,0 +1,54 @@
+// SPDX-FileCopyrightText: The halogenOS Project
+// SPDX-License-Identifier: Apache-2.0
+
+filegroup {
+    name: "layoutlib-res-core-files",
+    srcs: ["core/res/res/**/*"],
+    exclude_srcs: [
+        "core/res/res/values-mcc*/**/*",
+        "core/res/res/values-mnc*/**/*",
+    ],
+}
+
+filegroup {
+    name: "layoutlib-res-overlay-files",
+    srcs: ["packages/overlays/*/res/**/*"],
+}
+
+// Lists each source file of layoutlib_native/res.zip as one
+// "path in the archive,source path" line, sorted by bytes within each tree.
+// core/layoutlib_data.mk in build/make writes the SBOM lines of layoutlib from
+// this list.
+genrule {
+    name: "layoutlib-res-files",
+    srcs: [
+        ":layoutlib-res-core-files",
+        ":layoutlib-res-overlay-files",
+    ],
+    out: ["layoutlib-res-files.csv"],
+    cmd: "printf '%s\\n' $(locations :layoutlib-res-core-files) | LC_ALL=C sort | " +
+        "sed 's|^frameworks/base/core/res/\\(.*\\)|data/\\1,&|' > $(out) && " +
+        "printf '%s\\n' $(locations :layoutlib-res-overlay-files) | LC_ALL=C sort | " +
+        "sed 's|^frameworks/base/packages/\\(.*\\)|data/\\1,&|' >> $(out)",
+}
+
+genrule {
+    name: "layoutlib-res",
+    tools: [
+        "aapt2",
+        "soong_zip",
+    ],
+    tool_files: ["build_layoutlib_res.sh"],
+    srcs: [
+        ":layoutlib-res-files",
+        ":layoutlib-res-core-files",
+        ":layoutlib-res-overlay-files",
+    ],
+    out: ["layoutlib-res.zip"],
+    cmd: "$(location build_layoutlib_res.sh) $(location aapt2) $(location soong_zip) " +
+        "$(location :layoutlib-res-files) $(genDir) $(out)",
+    dist: {
+        targets: ["layoutlib"],
+        dest: "layoutlib_native/res.zip",
+    },
+}
