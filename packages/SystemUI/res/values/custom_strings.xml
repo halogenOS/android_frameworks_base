@@ -37,6 +37,9 @@
     <string name="quick_settings_audio_info_label">Audio info</string>
     <string name="quick_settings_more">More details</string>
 
+    <!-- State of the audio quality tile while a Bluetooth headset is not the active media device [CHAR LIMIT=20] -->
+    <string name="quick_settings_audio_quality_no_headset">No headset</string>
+
     <!-- Screen record -->
     <string name="screenrecord_longer_timeout_switch_label">Larger file size limit</string>
     <string name="screenrecord_longer_timeout_switch_summary">Limit recording size to 15 GB</string>
