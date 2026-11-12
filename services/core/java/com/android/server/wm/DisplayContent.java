@@ -5486,9 +5486,6 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         }
 
         final SparseBooleanArray drawnWindowTypes = new SparseBooleanArray();
-        // Presuppose keyguard is drawn because if its window isn't attached, we don't know if it
-        // wants to be shown or hidden, then it should not delay enabling the screen.
-        drawnWindowTypes.put(TYPE_NOTIFICATION_SHADE, true);
 
         final WindowState visibleNotDrawnWindow = getWindow(w -> {
             final boolean isVisible = w.isVisible() && !w.mObscured;
@@ -5531,12 +5528,13 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         final boolean haveApp = drawnWindowTypes.get(TYPE_BASE_APPLICATION);
         final boolean haveWallpaper = drawnWindowTypes.get(TYPE_WALLPAPER);
         final boolean haveKeyguard = drawnWindowTypes.get(TYPE_NOTIFICATION_SHADE);
+        final boolean haveFirstContent = isFirstContentDrawnOnBoot(drawnWindowTypes);
 
         ProtoLog.i(WM_DEBUG_SCREEN_ON,
                 "******** booted=%b msg=%b haveBoot=%b haveApp=%b haveWall=%b "
-                        + "wallEnabled=%b haveKeyguard=%b",
+                        + "wallEnabled=%b haveKeyguard=%b haveFirstContent=%b",
                 mWmService.mSystemBooted, mWmService.mShowingBootMessages, haveBootMsg,
-                haveApp, haveWallpaper, wallpaperEnabled, haveKeyguard);
+                haveApp, haveWallpaper, wallpaperEnabled, haveKeyguard, haveFirstContent);
 
         // If we are turning on the screen to show the boot message, don't do it until the boot
         // message is actually displayed.
@@ -5547,7 +5545,7 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         // If we are turning on the screen after the boot is completed normally, don't do so until
         // we have the application and wallpaper.
         if (mWmService.mSystemBooted) {
-            if (!haveApp && !haveKeyguard) {
+            if (!haveFirstContent) {
                 return true;
             }
 
@@ -5561,6 +5559,22 @@ class DisplayContent extends RootDisplayArea implements WindowManagerPolicy.Disp
         }
 
         return false;
+    }
+
+    /**
+     * Whether the content first shown on this display after boot has drawn. The default display
+     * shows the lock screen while the policy expects one, and home otherwise. Before the keyguard
+     * service connects, the policy expects a lock screen. Other displays may show either one.
+     */
+    private boolean isFirstContentDrawnOnBoot(SparseBooleanArray drawnWindowTypes) {
+        final boolean haveApp = drawnWindowTypes.get(TYPE_BASE_APPLICATION);
+        if (!isDefaultDisplay) {
+            // Presuppose keyguard is drawn because if its window isn't attached, we don't know if
+            // it wants to be shown or hidden, then it should not delay enabling the screen.
+            return haveApp || drawnWindowTypes.get(TYPE_NOTIFICATION_SHADE, true);
+        }
+        return mWmService.mPolicy.isKeyguardShowingAndNotOccluded()
+                ? drawnWindowTypes.get(TYPE_NOTIFICATION_SHADE) : haveApp;
     }
 
     void updateWindowsForAnimator() {

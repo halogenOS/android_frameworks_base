@@ -631,7 +631,7 @@ public class DisplayContentTests extends WindowTestsBase {
         mWm.mSystemBooted = true;
         final DisplayContent defaultDisplay = mWm.getDefaultDisplayContentLocked();
         final WindowState[] windows = createNotDrawnWindowsOn(defaultDisplay,
-                TYPE_WALLPAPER, TYPE_APPLICATION);
+                TYPE_WALLPAPER, TYPE_BASE_APPLICATION);
         final WindowState wallpaper = windows[0];
         assertTrue(wallpaper.mIsWallpaper);
         wallpaper.mToken.asWallpaperToken().setVisibility(false);
