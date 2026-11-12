@@ -37,6 +37,9 @@ import com.android.systemui.qs.tiles.impl.charginglimit.ui.fractionOf
 import com.android.systemui.qs.tiles.impl.charginglimit.ui.valueAt
 import com.android.systemui.res.R
 import javax.inject.Inject
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ChargingLimitTile
@@ -76,10 +79,23 @@ constructor(
 
     private var icon: Icon? = null
 
+    /**
+     * The stored limit, emitted by the repository while the tile is resumed. Off until the first
+     * emission.
+     */
+    private val storedLimit =
+        repository.limit.stateIn(
+            lifecycle.coroutineScope,
+            SharingStarted.WhileSubscribed(),
+            ChargingLimit.Off,
+        )
+
     init {
         lifecycle.coroutineScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                repository.changes.collect { refreshState() }
+                // The tile refreshes itself when it resumes, so only the limits emitted after the
+                // current one refresh it.
+                storedLimit.drop(1).collect { refreshState() }
             }
         }
     }
@@ -89,7 +105,7 @@ constructor(
     override fun newTileState() = BooleanState()
 
     override fun handleClick(expandable: Expandable?) {
-        val limit = repository.read()
+        val limit = storedLimit.value
         val level =
             when (limit) {
                 ChargingLimit.Off -> null
@@ -100,11 +116,11 @@ constructor(
     }
 
     override fun handleSliderChanged(value: Float) {
-        repository.set(repository.read().withLevel(Percent(OFFERED_LEVELS.valueAt(value))))
+        repository.set(storedLimit.value.withLevel(Percent(OFFERED_LEVELS.valueAt(value))))
     }
 
     override fun handleLongClick(expandable: Expandable?) {
-        val dialogDelegate = dialogDelegateFactory.create(repository.read())
+        val dialogDelegate = dialogDelegateFactory.create(storedLimit.value)
         mUiHandler.post {
             dialogTransitionAnimator.show(
                 dialogDelegate.createDialog(),
@@ -122,7 +138,7 @@ constructor(
     override fun getMetricsCategory() = com.android.internal.logging.MetricsLogger.VIEW_UNKNOWN
 
     override fun handleUpdateState(state: BooleanState, arg: Any?) {
-        val limit = repository.read()
+        val limit = storedLimit.value
         state.value = limit is ChargingLimit.On
         state.sliderEnabled = true
         if (icon == null) {

@@ -15,7 +15,7 @@ import com.android.systemui.qs.tiles.impl.charginglimit.shared.model.Percent
 import com.android.systemui.util.settings.SettingsSingleThreadBackground
 import com.android.systemui.utils.coroutines.flow.conflatedCallbackFlow
 import custom.health.charging.ChargeLimit
-import custom.health.charging.IChargeLimitListener
+import custom.health.charging.IChargeLimitSettingCollector
 import custom.health.charging.IChargingControlManager
 import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
@@ -25,9 +25,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
@@ -46,13 +45,16 @@ constructor(
     /** Emits after the service rejected a limit, so the screens show the stored one again. */
     private val rejectedWrites = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    /** Emits after each change of the charge limit, and after each rejected write. */
-    val changes: Flow<Unit> =
-        merge(manager?.limitChanges() ?: emptyFlow(), rejectedWrites).flowOn(backgroundContext)
-
-    /** The stored charge limit, then again after each of [changes]. */
+    /**
+     * The stored charge limit, then each change, and the stored one again after each rejected
+     * write. A rejected write starts collecting the stored limit anew, so the service emits it
+     * again in order with every change.
+     */
     val limit: Flow<ChargingLimit> =
-        changes.onStart { emit(Unit) }.map { read() }.flowOn(backgroundContext)
+        rejectedWrites
+            .onStart { emit(Unit) }
+            .flatMapLatest { manager?.storedLimits() ?: emptyFlow() }
+            .flowOn(backgroundContext)
 
     /** Whether the device has a charge limit HAL. False when the service cannot be asked. */
     @WorkerThread
@@ -64,13 +66,10 @@ constructor(
             false
         }
 
-    /** The stored charge limit. */
-    @WorkerThread fun read(): ChargingLimit = manager?.limit.toChargingLimit()
-
     /**
      * Stores [limit], in the order of the calls. The write runs on the background scope, so it
-     * completes also when the screen that started it closes first. A rejected limit is logged and
-     * emitted through [changes].
+     * completes also when the screen that started it closes first. A rejected limit is logged.
+     * [ChargingLimitRepository.limit] emits the stored one again.
      */
     fun set(limit: ChargingLimit) {
         backgroundScope.launch(writeDispatcher) {
@@ -82,16 +81,17 @@ constructor(
     }
 }
 
-/** Emits after each change of the charge limit. */
-private fun IChargingControlManager.limitChanges(): Flow<Unit> = conflatedCallbackFlow {
-    val listener =
-        object : IChargeLimitListener.Stub() {
-            override fun onLimitChanged() {
-                trySend(Unit)
+/** Emits the stored charge limit, then each change. */
+private fun IChargingControlManager.storedLimits(): Flow<ChargingLimit> = conflatedCallbackFlow {
+    val limits = limitSettingFlow
+    val collector =
+        object : IChargeLimitSettingCollector.Stub() {
+            override fun emit(limit: ChargeLimit?) {
+                trySend(limit.toChargingLimit())
             }
         }
-    registerListener(listener)
-    awaitClose { unregisterListener(listener) }
+    limits.collect(collector)
+    awaitClose { limits.cancel(collector) }
 }
 
 private fun ChargeLimit?.toChargingLimit(): ChargingLimit =

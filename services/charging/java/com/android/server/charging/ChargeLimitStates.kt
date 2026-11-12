@@ -27,9 +27,13 @@ private const val TAG = "ChargeLimitStates"
  */
 internal class ChargeLimitStates(private val handler: Handler) {
 
-    /** Null means unknown. */
+    /** Only read and written on [handler]. Null means unknown. */
+    private var state: ChargeLimitState? = null
+
     private val states =
-        BinderStateFlow<IChargeLimitStateCollector, ChargeLimitState?>(handler, null) { emit(it) }
+        BinderStateFlow<IChargeLimitStateCollector, ChargeLimitState?>(handler, ::state) {
+            emit(it)
+        }
 
     /** The charge limit state offered to apps. */
     val flow =
@@ -52,23 +56,28 @@ internal class ChargeLimitStates(private val handler: Handler) {
         handler.post {
             latestCollector = collector
             // The modes of an earlier HAL no longer apply.
-            states.publish(null)
+            publish(null)
         }
         hal.asBinder().linkToDeath(collector, 0)
         hal.modeFlow.collect(collector)
     }
 
+    /** Emits [newState] to every collector. Runs on [handler]. */
+    private fun publish(newState: ChargeLimitState?) {
+        state = newState
+        states.publishChange()
+    }
+
     /**
-     * Collects the modes of one HAL. Only the collector created for the latest HAL changes
-     * [states].
+     * Collects the modes of one HAL. Only the collector created for the latest HAL changes [state].
      */
     private inner class ModeCollector : IChargeModeCollector.Stub(), IBinder.DeathRecipient {
         override fun emit(report: ChargeModeReport?) {
-            handler.post { if (latestCollector === this) states.publish(report?.toState()) }
+            handler.post { if (latestCollector === this) publish(report?.toState()) }
         }
 
         override fun binderDied() {
-            handler.post { if (latestCollector === this) states.publish(null) }
+            handler.post { if (latestCollector === this) publish(null) }
         }
 
         override fun getInterfaceVersion() = IChargeModeCollector.VERSION
