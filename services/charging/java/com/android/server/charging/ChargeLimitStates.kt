@@ -15,21 +15,28 @@ import custom.hardware.health.charging.IChargeLimit
 import custom.hardware.health.charging.IChargeModeCollector
 import custom.health.charging.ChargeLimitMode
 import custom.health.charging.ChargeLimitState
-import custom.health.charging.IChargeLimitStateListener
+import custom.health.charging.IChargeLimitStateCollector
+import custom.health.charging.IChargeLimitStateFlow
 
 private const val TAG = "ChargeLimitStates"
 
 /**
  * Collects the modes the charge limit HAL sets the charger to, and offers them to apps as the
- * charge limit state. Everything runs on [handler], so each listener receives the states in the
+ * charge limit state. Everything runs on [handler], so each collector receives the states in the
  * order the HAL reported them.
  */
 internal class ChargeLimitStates(private val handler: Handler) {
 
     /** Null means unknown. */
     private val states =
-        BinderStateFlow<IChargeLimitStateListener, ChargeLimitState?>(handler, null) {
-            onStateChanged(it)
+        BinderStateFlow<IChargeLimitStateCollector, ChargeLimitState?>(handler, null) { emit(it) }
+
+    /** The charge limit state offered to apps. */
+    val flow =
+        object : IChargeLimitStateFlow.Stub() {
+            override fun collect(collector: IChargeLimitStateCollector) = states.collect(collector)
+
+            override fun cancel(collector: IChargeLimitStateCollector) = states.cancel(collector)
         }
 
     /** Only read and written on [handler]. The collector created for the latest HAL. */
@@ -50,11 +57,6 @@ internal class ChargeLimitStates(private val handler: Handler) {
         hal.asBinder().linkToDeath(collector, 0)
         hal.modeFlow.collect(collector)
     }
-
-    /** Calls [listener] with the current state, then after each change. */
-    fun register(listener: IChargeLimitStateListener) = states.collect(listener)
-
-    fun unregister(listener: IChargeLimitStateListener) = states.cancel(listener)
 
     /**
      * Collects the modes of one HAL. Only the collector created for the latest HAL changes

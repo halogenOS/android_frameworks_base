@@ -25,7 +25,6 @@ import custom.hardware.health.charging.IChargeLimitCollector
 import custom.hardware.health.charging.IChargeLimitFlow
 import custom.health.charging.ChargeLimit
 import custom.health.charging.IChargeLimitListener
-import custom.health.charging.IChargeLimitStateListener
 import custom.health.charging.IChargingControlManager
 
 private const val TAG = "ChargingControlService"
@@ -115,11 +114,7 @@ class ChargingControlService(context: Context) : SystemService(context) {
                     listeners.unregister(listener)
                 }
 
-                override fun registerStateListener(listener: IChargeLimitStateListener) =
-                    states.register(listener)
-
-                override fun unregisterStateListener(listener: IChargeLimitStateListener) =
-                    states.unregister(listener)
+                override fun getLimitStateFlow() = states.flow
             },
         )
     }

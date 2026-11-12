@@ -10,7 +10,7 @@ import com.android.systemui.dagger.qualifiers.Background
 import com.android.systemui.utils.coroutines.flow.conflatedCallbackFlow
 import custom.health.charging.ChargeLimitMode
 import custom.health.charging.ChargeLimitState
-import custom.health.charging.IChargeLimitStateListener
+import custom.health.charging.IChargeLimitStateCollector
 import custom.health.charging.IChargingControlManager
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -63,14 +63,15 @@ constructor(
 
 /** Emits the current mode reported by the charging control service, then each change. */
 private fun IChargingControlManager.chargerModes(): Flow<ChargerMode?> = conflatedCallbackFlow {
-    val listener =
-        object : IChargeLimitStateListener.Stub() {
-            override fun onStateChanged(state: ChargeLimitState?) {
+    val states = limitStateFlow
+    val collector =
+        object : IChargeLimitStateCollector.Stub() {
+            override fun emit(state: ChargeLimitState?) {
                 trySend(state?.toChargerMode())
             }
         }
-    registerStateListener(listener)
-    awaitClose { unregisterStateListener(listener) }
+    states.collect(collector)
+    awaitClose { states.cancel(collector) }
 }
 
 private fun ChargeLimitState.toChargerMode(): ChargerMode? =
