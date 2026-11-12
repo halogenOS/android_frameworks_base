@@ -24,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
@@ -37,7 +38,7 @@ private const val TAG = "ChargingLimitRepository"
 class ChargingLimitRepository
 @Inject
 constructor(
-    private val manager: IChargingControlManager,
+    private val manager: IChargingControlManager?,
     @Background private val backgroundScope: CoroutineScope,
     @Background private val backgroundContext: CoroutineContext,
     @SettingsSingleThreadBackground private val writeDispatcher: CoroutineDispatcher,
@@ -47,20 +48,7 @@ constructor(
 
     /** Emits after each change of the charge limit, and after each rejected write. */
     val changes: Flow<Unit> =
-        merge(
-                conflatedCallbackFlow {
-                    val listener =
-                        object : IChargeLimitListener.Stub() {
-                            override fun onLimitChanged() {
-                                trySend(Unit)
-                            }
-                        }
-                    manager.registerListener(listener)
-                    awaitClose { manager.unregisterListener(listener) }
-                },
-                rejectedWrites,
-            )
-            .flowOn(backgroundContext)
+        merge(manager?.limitChanges() ?: emptyFlow(), rejectedWrites).flowOn(backgroundContext)
 
     /** The stored charge limit, then again after each of [changes]. */
     val limit: Flow<ChargingLimit> =
@@ -70,14 +58,14 @@ constructor(
     @WorkerThread
     fun isSupported(): Boolean =
         try {
-            manager.isSupported
+            manager?.isSupported ?: false
         } catch (e: RemoteException) {
             Log.w(TAG, "Could not ask the charging control service", e)
             false
         }
 
     /** The stored charge limit. */
-    @WorkerThread fun read(): ChargingLimit = manager.limit.toChargingLimit()
+    @WorkerThread fun read(): ChargingLimit = manager?.limit.toChargingLimit()
 
     /**
      * Stores [limit], in the order of the calls. The write runs on the background scope, so it
@@ -86,12 +74,24 @@ constructor(
      */
     fun set(limit: ChargingLimit) {
         backgroundScope.launch(writeDispatcher) {
-            if (!manager.setLimit(limit.toChargeLimit())) {
+            if (manager?.setLimit(limit.toChargeLimit()) != true) {
                 Log.w(TAG, "The charging control service rejected the charge limit $limit")
                 rejectedWrites.emit(Unit)
             }
         }
     }
+}
+
+/** Emits after each change of the charge limit. */
+private fun IChargingControlManager.limitChanges(): Flow<Unit> = conflatedCallbackFlow {
+    val listener =
+        object : IChargeLimitListener.Stub() {
+            override fun onLimitChanged() {
+                trySend(Unit)
+            }
+        }
+    registerListener(listener)
+    awaitClose { unregisterListener(listener) }
 }
 
 private fun ChargeLimit?.toChargingLimit(): ChargingLimit =

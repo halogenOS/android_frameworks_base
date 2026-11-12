@@ -29,6 +29,8 @@ import com.android.systemui.statusbar.pipeline.audio.data.repository.WiredAudioD
 import com.android.systemui.statusbar.pipeline.audio.data.repository.WiredAudioDeviceRepositoryImpl
 import com.android.systemui.statusbar.pipeline.battery.data.repository.BatteryRepository
 import com.android.systemui.statusbar.pipeline.battery.data.repository.BatteryRepositoryImpl
+import com.android.systemui.statusbar.pipeline.battery.data.repository.ChargerModeRepository
+import com.android.systemui.statusbar.pipeline.battery.data.repository.ChargerModeRepositoryImpl
 import com.android.systemui.statusbar.pipeline.icons.shared.BindableIconsRegistry
 import com.android.systemui.statusbar.pipeline.icons.shared.BindableIconsRegistryImpl
 import com.android.systemui.statusbar.pipeline.mobile.StatusBarMobileIconKairos
@@ -114,6 +116,9 @@ abstract class StatusBarPipelineModule {
     abstract fun connectivityRepository(impl: ConnectivityRepositoryImpl): ConnectivityRepository
 
     @Binds abstract fun batteryRepository(impl: BatteryRepositoryImpl): BatteryRepository
+
+    @Binds
+    abstract fun chargerModeRepository(impl: ChargerModeRepositoryImpl): ChargerModeRepository
 
     @Binds
     abstract fun wiredAudioDeviceRepository(

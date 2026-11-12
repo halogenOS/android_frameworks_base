@@ -30,6 +30,7 @@ import com.android.systemui.lifecycle.HydratedActivatable
 import com.android.systemui.res.R
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.Charging
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.Defend
+import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.Drain
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.PowerSave
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.Unknown
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.WirelessCharging
@@ -56,6 +57,10 @@ sealed class BatteryViewModel(
 
     val isFull by interactor.isFull.hydratedStateOf(initialValue = false)
 
+    /**
+     * A charger switched off by the charge limit in Drain does not power the phone, so it counts as
+     * not charging.
+     */
     val isCharging: Boolean by interactor.isCharging.hydratedStateOf(initialValue = false)
 
     /** A [List<BatteryGlyph>] representation of the current [level] */
@@ -87,7 +92,8 @@ sealed class BatteryViewModel(
 
                 PowerSave -> BatteryGlyph.Plus
 
-                Defend -> BatteryGlyph.Defend
+                Defend,
+                Drain -> BatteryGlyph.Defend
 
                 Unknown -> BatteryGlyph.Question
 
@@ -142,7 +148,8 @@ sealed class BatteryViewModel(
     val contentDescription: ContentDescription by
         combine(interactor.batteryAttributionType, interactor.level) { attr, level ->
                 when (attr) {
-                    Defend -> {
+                    Defend,
+                    Drain -> {
                         val descr =
                             context.getString(
                                 R.string.accessibility_battery_level_charging_paused,
@@ -179,6 +186,8 @@ sealed class BatteryViewModel(
 
     /** For use in the shade, where we might need to show an estimate */
     val batteryTimeRemainingEstimate: String? by
+        // A charger switched off by the charge limit in Drain does not power the phone, so the
+        // estimate shows then.
         interactor.isCharging
             .flatMapLatest { charging ->
                 if (charging) {
@@ -220,6 +229,8 @@ sealed class BatteryViewModel(
         BatteryViewModel(
             interactor = interactor,
             shouldShowPercent =
+                // A charger switched off by the charge limit in Drain does not power the phone, so
+                // the percent follows the setting then.
                 combine(interactor.isCharging, interactor.isBatteryPercentSettingEnabled) {
                     charging,
                     settingEnabled ->

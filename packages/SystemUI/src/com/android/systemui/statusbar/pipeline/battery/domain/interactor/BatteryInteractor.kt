@@ -18,6 +18,8 @@ package com.android.systemui.statusbar.pipeline.battery.domain.interactor
 
 import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.statusbar.pipeline.battery.data.repository.BatteryRepository
+import com.android.systemui.statusbar.pipeline.battery.data.repository.ChargerMode
+import com.android.systemui.statusbar.pipeline.battery.data.repository.ChargerModeRepository
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
@@ -25,7 +27,9 @@ import kotlinx.coroutines.flow.map
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @SysUISingleton
-class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
+class BatteryInteractor
+@Inject
+constructor(repo: BatteryRepository, chargerModeRepo: ChargerModeRepository) {
     /** The current level in the range of [0-100], or null if we don't know the level yet */
     val level =
         combine(repo.isStateUnknown, repo.level) { unknown, level ->
@@ -65,11 +69,29 @@ class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
     /** @see [BatteryRepository.isStateUnknown] for docs. The battery cannot be detected */
     val isStateUnknown = repo.isStateUnknown
 
-    /** The attribution while [isCharging]: the cable, or the pad when no cable is plugged in */
-    private val chargingAttribution =
-        combine(isCharging, repo.isPluggedInWireless) { charging, wireless ->
+    /**
+     * True while [isCharging], and in Drain while the charge limit reports a connected cable or
+     * pad. The battery broadcast reports a charger as unplugged once the charge limit switched off
+     * the input it is connected to.
+     */
+    val isChargerConnected =
+        combine(isCharging, chargerModeRepo.chargerMode) { charging, mode ->
+            charging || (mode is ChargerMode.Drain && mode.isChargerPresent)
+        }
+
+    /**
+     * The attribution while [isChargerConnected]. Hold and Drain show on cable and pad alike.
+     * Otherwise the cable shows, or the pad when no cable is plugged in.
+     */
+    private val chargerAttribution =
+        combine(isChargerConnected, repo.isPluggedInWireless, chargerModeRepo.chargerMode) {
+            connected,
+            wireless,
+            mode ->
             when {
-                !charging -> null
+                !connected -> null
+                mode == ChargerMode.Hold -> BatteryAttributionModel.Defend
+                mode is ChargerMode.Drain -> BatteryAttributionModel.Drain
                 wireless -> BatteryAttributionModel.WirelessCharging
                 else -> BatteryAttributionModel.Charging
             }
@@ -92,8 +114,8 @@ class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
      * This flow can be used to canonically describe the battery state charging state.
      */
     val batteryAttributionType =
-        combine(chargingAttribution, powerSave, isBatteryDefenderEnabled, isStateUnknown) {
-            chargingAttr,
+        combine(chargerAttribution, powerSave, isBatteryDefenderEnabled, isStateUnknown) {
+            chargerAttr,
             powerSave,
             defend,
             unknown ->
@@ -104,7 +126,7 @@ class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
             } else if (defend) {
                 BatteryAttributionModel.Defend
             } else {
-                chargingAttr
+                chargerAttr
             }
         }
 
@@ -126,5 +148,7 @@ enum class BatteryAttributionModel {
     Charging,
     /** Charging on a wireless charger, with no cable plugged in */
     WirelessCharging,
+    /** The charge limit runs the phone on battery while a charger is connected */
+    Drain,
     Unknown,
 }

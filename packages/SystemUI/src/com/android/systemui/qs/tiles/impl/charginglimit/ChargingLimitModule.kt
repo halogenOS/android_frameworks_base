@@ -13,10 +13,11 @@ import dagger.Provides
 
 @Module
 object ChargingLimitModule {
+    /** Null when the charging control service is not published. */
     @Provides
     @SysUISingleton
-    fun provideChargingControlManager(): IChargingControlManager =
+    fun provideChargingControlManager(): IChargingControlManager? =
         IChargingControlManager.Stub.asInterface(
-            ServiceManager.getService(IChargingControlManager.DESCRIPTOR)
+            ServiceManager.checkService(IChargingControlManager.DESCRIPTOR)
         )
 }
