@@ -25,10 +25,14 @@ import custom.hardware.health.charging.IChargeLimitCollector
 import custom.hardware.health.charging.IChargeLimitFlow
 import custom.health.charging.ChargeLimit
 import custom.health.charging.IChargeLimitListener
+import custom.health.charging.IChargeLimitStateListener
 import custom.health.charging.IChargingControlManager
 
 private const val TAG = "ChargingControlService"
 private val HAL_INSTANCE = IChargeLimit.DESCRIPTOR + "/default"
+
+/** The version of the HAL interface that added IChargeLimit.getModeFlow. */
+private const val MODE_FLOW_VERSION = 3
 
 /** Key of the Settings.System entry that contains the charge limit in percent. */
 private const val LIMIT_SETTING = "charging_limit"
@@ -55,7 +59,8 @@ private const val FULL_PERCENT = 100
 /**
  * Stores the charge limit the user set, publishes it as a flow of targets, and attaches the flow to
  * the charge limit HAL each time the HAL registers. The HAL sets the charger so the battery follows
- * the target. This service alone reads and writes the settings that contain the limit.
+ * the target. This service alone reads and writes the settings that contain the limit. It offers
+ * the charge limit state to apps through [ChargeLimitStates].
  */
 class ChargingControlService(context: Context) : SystemService(context) {
 
@@ -67,6 +72,8 @@ class ChargingControlService(context: Context) : SystemService(context) {
     private val collectors = RemoteCallbackList<IChargeLimitCollector>()
 
     private val listeners = RemoteCallbackList<IChargeLimitListener>()
+
+    private val states = ChargeLimitStates(handler)
 
     /** Only read and written on [handler]. */
     private var target: ChargeLimitTarget? = null
@@ -111,6 +118,12 @@ class ChargingControlService(context: Context) : SystemService(context) {
                 override fun unregisterListener(listener: IChargeLimitListener) {
                     listeners.unregister(listener)
                 }
+
+                override fun registerStateListener(listener: IChargeLimitStateListener) =
+                    states.register(listener)
+
+                override fun unregisterStateListener(listener: IChargeLimitStateListener) =
+                    states.unregister(listener)
             },
         )
     }
@@ -156,6 +169,13 @@ class ChargingControlService(context: Context) : SystemService(context) {
             // The HAL died after it registered. The flow is attached again once the HAL registers
             // anew.
             Slog.w(TAG, "Could not attach the charge limit to the HAL", e)
+        }
+        try {
+            if (hal.interfaceVersion >= MODE_FLOW_VERSION) states.collectFrom(hal)
+        } catch (e: RemoteException) {
+            // The HAL died after it registered. Its modes are collected again once the HAL
+            // registers anew.
+            Slog.w(TAG, "Could not collect the charge modes of the HAL", e)
         }
     }
 }
