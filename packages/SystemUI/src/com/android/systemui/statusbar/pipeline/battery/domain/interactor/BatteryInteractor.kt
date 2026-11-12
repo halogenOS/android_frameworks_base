@@ -65,6 +65,16 @@ class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
     /** @see [BatteryRepository.isStateUnknown] for docs. The battery cannot be detected */
     val isStateUnknown = repo.isStateUnknown
 
+    /** The attribution while [isCharging]: the cable, or the pad when no cable is plugged in */
+    private val chargingAttribution =
+        combine(isCharging, repo.isPluggedInWireless) { charging, wireless ->
+            when {
+                !charging -> null
+                wireless -> BatteryAttributionModel.WirelessCharging
+                else -> BatteryAttributionModel.Charging
+            }
+        }
+
     /** @see [BatteryRepository.isBatteryDefenderEnabled] */
     val isBatteryDefenderEnabled = repo.isBatteryDefenderEnabled
 
@@ -82,8 +92,8 @@ class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
      * This flow can be used to canonically describe the battery state charging state.
      */
     val batteryAttributionType =
-        combine(isCharging, powerSave, isBatteryDefenderEnabled, isStateUnknown) {
-            charging,
+        combine(chargingAttribution, powerSave, isBatteryDefenderEnabled, isStateUnknown) {
+            chargingAttr,
             powerSave,
             defend,
             unknown ->
@@ -93,10 +103,8 @@ class BatteryInteractor @Inject constructor(repo: BatteryRepository) {
                 BatteryAttributionModel.PowerSave
             } else if (defend) {
                 BatteryAttributionModel.Defend
-            } else if (charging) {
-                BatteryAttributionModel.Charging
             } else {
-                null
+                chargingAttr
             }
         }
 
@@ -116,5 +124,7 @@ enum class BatteryAttributionModel {
     Defend,
     PowerSave,
     Charging,
+    /** Charging on a wireless charger, with no cable plugged in */
+    WirelessCharging,
     Unknown,
 }

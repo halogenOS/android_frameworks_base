@@ -32,6 +32,7 @@ import com.android.systemui.statusbar.pipeline.battery.domain.interactor.Battery
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.Defend
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.PowerSave
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.Unknown
+import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryAttributionModel.WirelessCharging
 import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryInteractor
 import com.android.systemui.statusbar.pipeline.battery.shared.ui.BatteryColors
 import com.android.systemui.statusbar.pipeline.battery.shared.ui.BatteryGlyph
@@ -82,6 +83,8 @@ sealed class BatteryViewModel(
             when (it) {
                 Charging -> BatteryGlyph.Bolt
 
+                WirelessCharging -> BatteryGlyph.Pad
+
                 PowerSave -> BatteryGlyph.Plus
 
                 Defend -> BatteryGlyph.Defend
@@ -98,6 +101,7 @@ sealed class BatteryViewModel(
         combine(interactor.batteryAttributionType, interactor.isCritical) { attr, isCritical ->
             when (attr) {
                 Charging,
+                WirelessCharging,
                 Defend ->
                     ColorProfile(
                         dark = BatteryColors.DarkTheme.Charging,
@@ -147,7 +151,8 @@ sealed class BatteryViewModel(
 
                         ContentDescription.Loaded(descr)
                     }
-                    Charging -> {
+                    Charging,
+                    WirelessCharging -> {
                         val descr =
                             context.getString(R.string.accessibility_battery_level_charging, level)
                         ContentDescription.Loaded(descr)

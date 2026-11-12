@@ -110,6 +110,19 @@ sealed interface BatteryGlyph : Glyph {
         override val height: Float = 9.00f
     }
 
+    /** The [Bolt] over a flat bar: charging on a wireless charger */
+    data object Pad : BatteryGlyph {
+        override val path: Path =
+            Path().apply {
+                addSvg(
+                    "M7.672,3.375L4.302,3.375L5.038,0.563C5.113,0.281 4.91,0 4.633,0C4.515,0 4.398,0.056 4.324,0.146L0.09,5.051C-0.102,5.276 0.047,5.625 0.335,5.625L3.705,5.625L2.969,8.438C2.895,8.719 3.097,9 3.374,9C3.492,9 3.609,8.944 3.684,8.854L7.917,3.949C8.109,3.724 7.96,3.375 7.672,3.375ZM0.65,9.8H7.35C7.71,9.8 8,10.09 8,10.45C8,10.81 7.71,11.1 7.35,11.1H0.65C0.29,11.1 0,10.81 0,10.45C0,10.09 0.29,9.8 0.65,9.8Z"
+                )
+            }
+
+        override val width: Float = 8.00f
+        override val height: Float = 11.10f
+    }
+
     data object Plus : BatteryGlyph {
         override val path: Path =
             Path().apply {

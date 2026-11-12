@@ -52,6 +52,12 @@ interface BatteryRepository {
      */
     val isPluggedIn: Flow<Boolean>
 
+    /**
+     * True if the phone is plugged in through a wireless charger only. The battery broadcast reports
+     * one plug type, and a cable wins over a wireless charger.
+     */
+    val isPluggedInWireless: Flow<Boolean>
+
     /** Is power saver enabled */
     val isPowerSaveEnabled: Flow<Boolean>
 
@@ -110,7 +116,16 @@ constructor(
                             pluggedIn: Boolean,
                             charging: Boolean,
                         ) {
-                            trySend { prev -> prev.copy(level = level, isPluggedIn = pluggedIn) }
+                            // Read in the callback, so it comes from the same broadcast as
+                            // level and pluggedIn.
+                            val pluggedInWireless = controller.isPluggedInWireless
+                            trySend { prev ->
+                                prev.copy(
+                                    level = level,
+                                    isPluggedIn = pluggedIn,
+                                    isPluggedInWireless = pluggedInWireless,
+                                )
+                            }
                         }
 
                         override fun onPowerSaveChanged(isPowerSave: Boolean) {
@@ -165,6 +180,21 @@ constructor(
                 initialValue = batteryState.value.isPluggedIn,
             )
             .stateIn(scope, SharingStarted.WhileSubscribed(), batteryState.value.isPluggedIn)
+
+    override val isPluggedInWireless =
+        batteryState
+            .map { it.isPluggedInWireless }
+            .distinctUntilChanged()
+            .logDiffsForTable(
+                tableLogBuffer = tableLog,
+                columnName = COL_PLUGGED_IN_WIRELESS,
+                initialValue = batteryState.value.isPluggedInWireless,
+            )
+            .stateIn(
+                scope,
+                SharingStarted.WhileSubscribed(),
+                batteryState.value.isPluggedInWireless,
+            )
 
     override val isPowerSaveEnabled =
         batteryState
@@ -290,6 +320,7 @@ constructor(
 
     companion object {
         private const val COL_PLUGGED_IN = "pluggedIn"
+        private const val COL_PLUGGED_IN_WIRELESS = "pluggedInWireless"
         private const val COL_POWER_SAVE = "powerSave"
         private const val COL_EXTREME_POWER_SAVE = "extremePowerSave"
         private const val COL_DEFEND = "defend"
@@ -305,6 +336,7 @@ constructor(
 private data class BatteryCallbackState(
     val level: Int? = null,
     val isPluggedIn: Boolean = false,
+    val isPluggedInWireless: Boolean = false,
     val isPowerSaveEnabled: Boolean = false,
     val isExtremePowerSaveEnabled: Boolean = false,
     val isBatteryDefenderEnabled: Boolean = false,
