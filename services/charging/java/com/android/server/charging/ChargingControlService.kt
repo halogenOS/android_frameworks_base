@@ -69,20 +69,16 @@ class ChargingControlService(context: Context) : SystemService(context) {
     /** Runs every emission, so each collector receives the targets in the order they were set. */
     private val handler = BackgroundThread.getHandler()
 
-    private val collectors = RemoteCallbackList<IChargeLimitCollector>()
+    private val targets =
+        BinderStateFlow<IChargeLimitCollector, ChargeLimitTarget?>(handler, null) { emit(it) }
 
     private val listeners = RemoteCallbackList<IChargeLimitListener>()
 
     private val states = ChargeLimitStates(handler)
 
-    /** Only read and written on [handler]. */
-    private var target: ChargeLimitTarget? = null
-
     private val flow =
         object : IChargeLimitFlow.Stub() {
-            override fun collect(collector: IChargeLimitCollector) {
-                handler.post { if (collectors.register(collector)) collector.send(target) }
-            }
+            override fun collect(collector: IChargeLimitCollector) = targets.collect(collector)
 
             override fun getInterfaceVersion() = IChargeLimitFlow.VERSION
 
@@ -157,9 +153,7 @@ class ChargingControlService(context: Context) : SystemService(context) {
 
     private fun publish(limit: ChargeLimit?) {
         Slog.i(TAG, "Charge limit: " + (limit?.band ?: "none"))
-        val newTarget = limit?.toTarget()
-        target = newTarget
-        collectors.broadcast { it.send(newTarget) }
+        targets.publish(limit?.toTarget())
     }
 
     private fun attach(hal: IChargeLimit) {
@@ -220,15 +214,6 @@ private fun ChargeLimit.toTarget() =
         it.levelPercent = levelPercent
         it.variationPercent = variationPercent
     }
-
-private fun IChargeLimitCollector.send(target: ChargeLimitTarget?) {
-    try {
-        emit(target)
-    } catch (e: RemoteException) {
-        // The HAL of the collector died. The callback list removes dead collectors by itself.
-        Slog.w(TAG, "Could not emit the charge limit", e)
-    }
-}
 
 private fun IChargeLimitListener.notifyChange() {
     try {
