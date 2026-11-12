@@ -7,7 +7,6 @@ package com.android.server.charging
 
 import android.os.Handler
 import android.os.IBinder
-import android.os.RemoteCallbackList
 import android.os.RemoteException
 import android.util.Slog
 import custom.hardware.health.charging.ChargeMode
@@ -27,10 +26,11 @@ private const val TAG = "ChargeLimitStates"
  */
 internal class ChargeLimitStates(private val handler: Handler) {
 
-    private val listeners = RemoteCallbackList<IChargeLimitStateListener>()
-
-    /** Only read and written on [handler]. Null means unknown. */
-    private var state: ChargeLimitState? = null
+    /** Null means unknown. */
+    private val states =
+        BinderStateFlow<IChargeLimitStateListener, ChargeLimitState?>(handler, null) {
+            onStateChanged(it)
+        }
 
     /** Only read and written on [handler]. The collector created for the latest HAL. */
     private var latestCollector: ModeCollector? = null
@@ -45,37 +45,28 @@ internal class ChargeLimitStates(private val handler: Handler) {
         handler.post {
             latestCollector = collector
             // The modes of an earlier HAL no longer apply.
-            publish(null)
+            states.publish(null)
         }
         hal.asBinder().linkToDeath(collector, 0)
         hal.modeFlow.collect(collector)
     }
 
     /** Calls [listener] with the current state, then after each change. */
-    fun register(listener: IChargeLimitStateListener) {
-        handler.post { if (listeners.register(listener)) listener.send(state) }
-    }
+    fun register(listener: IChargeLimitStateListener) = states.collect(listener)
 
-    /** Runs on [handler] after every earlier [register], so it also removes a queued listener. */
-    fun unregister(listener: IChargeLimitStateListener) {
-        handler.post { listeners.unregister(listener) }
-    }
-
-    private fun publish(newState: ChargeLimitState?) {
-        state = newState
-        listeners.broadcast { it.send(newState) }
-    }
+    fun unregister(listener: IChargeLimitStateListener) = states.cancel(listener)
 
     /**
-     * Collects the modes of one HAL. Only the collector created for the latest HAL changes [state].
+     * Collects the modes of one HAL. Only the collector created for the latest HAL changes
+     * [states].
      */
     private inner class ModeCollector : IChargeModeCollector.Stub(), IBinder.DeathRecipient {
         override fun emit(report: ChargeModeReport?) {
-            handler.post { if (latestCollector === this) publish(report?.toState()) }
+            handler.post { if (latestCollector === this) states.publish(report?.toState()) }
         }
 
         override fun binderDied() {
-            handler.post { if (latestCollector === this) publish(null) }
+            handler.post { if (latestCollector === this) states.publish(null) }
         }
 
         override fun getInterfaceVersion() = IChargeModeCollector.VERSION
@@ -100,14 +91,5 @@ private fun ChargeModeReport.toState(): ChargeLimitState? {
     return ChargeLimitState().also {
         it.mode = limitMode
         it.chargerPresent = chargerPresent
-    }
-}
-
-private fun IChargeLimitStateListener.send(state: ChargeLimitState?) {
-    try {
-        onStateChanged(state)
-    } catch (e: RemoteException) {
-        // The process of the listener died. The callback list removes dead listeners by itself.
-        Slog.w(TAG, "Could not send the charge limit state to a listener", e)
     }
 }
