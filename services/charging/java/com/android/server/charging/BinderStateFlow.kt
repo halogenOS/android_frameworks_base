@@ -20,27 +20,25 @@ private const val TAG = "BinderStateFlow"
  */
 internal class BinderStateFlow<C : IInterface, T>(
     private val handler: Handler,
-    initialValue: T,
+    /** Reads the current value. Runs on [handler]. */
+    private val read: () -> T,
     private val emit: C.(T) -> Unit,
 ) {
     private val collectors = RemoteCallbackList<C>()
 
-    /** Only read and written on [handler]. */
-    private var current = initialValue
-
     fun collect(collector: C) {
-        handler.post { if (collectors.register(collector)) collector.send(current) }
+        handler.post { if (collectors.register(collector)) collector.send(read()) }
     }
 
     fun cancel(collector: C) {
         handler.post { collectors.unregister(collector) }
     }
 
-    /** Emits [newValue] to every collector. Runs on [handler]. */
-    fun publish(newValue: T) {
-        check(handler.looper.isCurrentThread) { "A value was published off the handler thread" }
-        current = newValue
-        collectors.broadcast { it.send(newValue) }
+    /** Emits the current value to every collector after it changed. Runs on [handler]. */
+    fun publishChange() {
+        check(handler.looper.isCurrentThread) { "A change was published off the handler thread" }
+        val value = read()
+        collectors.broadcast { it.send(value) }
     }
 
     private fun C.send(value: T) {

@@ -12,7 +12,6 @@ import android.database.ContentObserver
 import android.os.Binder
 import android.os.IBinder
 import android.os.IServiceCallback
-import android.os.RemoteCallbackList
 import android.os.RemoteException
 import android.os.ServiceManager
 import android.provider.Settings
@@ -21,10 +20,7 @@ import com.android.internal.os.BackgroundThread
 import com.android.server.SystemService
 import custom.hardware.health.charging.ChargeLimitTarget
 import custom.hardware.health.charging.IChargeLimit
-import custom.hardware.health.charging.IChargeLimitCollector
-import custom.hardware.health.charging.IChargeLimitFlow
 import custom.health.charging.ChargeLimit
-import custom.health.charging.IChargeLimitListener
 import custom.health.charging.IChargingControlManager
 
 private const val TAG = "ChargingControlService"
@@ -59,7 +55,8 @@ private const val FULL_PERCENT = 100
  * Stores the charge limit the user set, publishes it as a flow of targets, and attaches the flow to
  * the charge limit HAL each time the HAL registers. The HAL sets the charger so the battery follows
  * the target. This service alone reads and writes the settings that contain the limit. It offers
- * the charge limit state to apps through [ChargeLimitStates].
+ * the charge limit to apps through [StoredChargeLimit], and the charge limit state through
+ * [ChargeLimitStates].
  */
 class ChargingControlService(context: Context) : SystemService(context) {
 
@@ -68,32 +65,15 @@ class ChargingControlService(context: Context) : SystemService(context) {
     /** Runs every emission, so each collector receives the targets in the order they were set. */
     private val handler = BackgroundThread.getHandler()
 
-    private val targets =
-        BinderStateFlow<IChargeLimitCollector, ChargeLimitTarget?>(handler, null) { emit(it) }
-
-    private val listeners = RemoteCallbackList<IChargeLimitListener>()
+    private val storedLimit = StoredChargeLimit(handler, context.contentResolver::readLimit)
 
     private val states = ChargeLimitStates(handler)
-
-    private val flow =
-        object : IChargeLimitFlow.Stub() {
-            override fun collect(collector: IChargeLimitCollector) = targets.collect(collector)
-
-            override fun getInterfaceVersion() = IChargeLimitFlow.VERSION
-
-            override fun getInterfaceHash(): String = IChargeLimitFlow.HASH
-        }
 
     override fun onStart() {
         publishBinderService(
             IChargingControlManager.DESCRIPTOR,
             object : IChargingControlManager.Stub() {
                 override fun isSupported() = halDeclared
-
-                override fun getLimit(): ChargeLimit? =
-                    Binder.withCleanCallingIdentity<ChargeLimit?> {
-                        context.contentResolver.readLimit()
-                    }
 
                 override fun setLimit(limit: ChargeLimit?): Boolean {
                     context.enforceCallingOrSelfPermission(
@@ -106,13 +86,7 @@ class ChargingControlService(context: Context) : SystemService(context) {
                         }
                 }
 
-                override fun registerListener(listener: IChargeLimitListener) {
-                    listeners.register(listener)
-                }
-
-                override fun unregisterListener(listener: IChargeLimitListener) {
-                    listeners.unregister(listener)
-                }
+                override fun getLimitSettingFlow() = storedLimit.flow
 
                 override fun getLimitStateFlow() = states.flow
             },
@@ -120,8 +94,9 @@ class ChargingControlService(context: Context) : SystemService(context) {
     }
 
     override fun onBootPhase(phase: Int) {
-        if (phase != PHASE_SYSTEM_SERVICES_READY || !halDeclared) return
+        if (phase != PHASE_SYSTEM_SERVICES_READY) return
         handler.post(::publishSettings)
+        if (!halDeclared) return
         ServiceManager.registerForNotifications(
             HAL_INSTANCE,
             object : IServiceCallback.Stub() {
@@ -135,25 +110,22 @@ class ChargingControlService(context: Context) : SystemService(context) {
         val resolver = context.contentResolver
         val observer =
             object : ContentObserver(handler) {
-                override fun onChange(selfChange: Boolean) {
-                    publish(resolver.readLimit())
-                    listeners.broadcast { it.notifyChange() }
-                }
+                override fun onChange(selfChange: Boolean) = publishChange()
             }
         for (setting in TARGET_SETTINGS) {
             resolver.registerContentObserver(Settings.System.getUriFor(setting), false, observer)
         }
-        publish(resolver.readLimit())
+        publishChange()
     }
 
-    private fun publish(limit: ChargeLimit?) {
-        Slog.i(TAG, "Charge limit: " + (limit?.band ?: "none"))
-        targets.publish(limit?.toTarget())
+    private fun publishChange() {
+        Slog.i(TAG, "Charge limit: " + (context.contentResolver.readLimit()?.band ?: "none"))
+        storedLimit.publishChange()
     }
 
     private fun attach(hal: IChargeLimit) {
         try {
-            hal.attach(flow)
+            hal.attach(storedLimit.targetFlow)
         } catch (e: RemoteException) {
             // The HAL died after it registered. The flow is attached again once the HAL registers
             // anew.
@@ -203,18 +175,3 @@ private val ChargeLimit.isValid
 /** The levels the battery stays between. */
 private val ChargeLimit.band
     get() = levelPercent..levelPercent + variationPercent
-
-private fun ChargeLimit.toTarget() =
-    ChargeLimitTarget().also {
-        it.levelPercent = levelPercent
-        it.variationPercent = variationPercent
-    }
-
-private fun IChargeLimitListener.notifyChange() {
-    try {
-        onLimitChanged()
-    } catch (e: RemoteException) {
-        // The process of the listener died. The callback list removes dead listeners by itself.
-        Slog.w(TAG, "Could not notify a charge limit listener", e)
-    }
-}
