@@ -5,6 +5,7 @@
 
 package com.android.settingslib.bluetooth
 
+import android.bluetooth.BluetoothCodecType
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.audioquality.AudioQuality
@@ -40,5 +41,20 @@ fun AudioQualityManager.setLevelAndLogFailure(device: BluetoothDevice, levelId: 
     val status = setLevel(device, levelId)
     if (status != BluetoothStatusCodes.SUCCESS) {
         Log.w(TAG, "Setting the audio quality level $levelId failed with status $status")
+    }
+}
+
+/**
+ * Chooses whether every headset encodes [codecType] in hardware offload, and logs the status
+ * returned by the Bluetooth stack when the choice is not stored. The screens show the choice
+ * reported by the stack, so they stay at the choice made before.
+ */
+fun AudioQualityManager.setCodecOffloadedAndLogFailure(
+    codecType: BluetoothCodecType,
+    offloaded: Boolean,
+) {
+    val status = setCodecOffloaded(codecType, offloaded)
+    if (status != BluetoothStatusCodes.SUCCESS) {
+        Log.w(TAG, "Offloaded=$offloaded for ${codecType.codecName} failed with status $status")
     }
 }
