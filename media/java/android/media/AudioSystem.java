@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 
 /* IF YOU CHANGE ANY OF THE CONSTANTS IN THIS FILE, DO NOT FORGET
  * TO UPDATE THE CORRESPONDING NATIVE GLUE AND AudioManager.java.
@@ -2010,13 +2011,23 @@ public class AudioSystem
      */
     public static int setDeviceConnectionState(AudioDeviceAttributes attributes, int state,
             int codecFormat, boolean deviceSwitch) {
+        return callWithAudioPortParcel(attributes,
+                parcel -> setDeviceConnectionState(state, parcel, codecFormat, deviceSwitch));
+    }
+
+    /**
+     * Writes {@code attributes} as an AIDL audio port into a parcel, runs {@code nativeCall} with
+     * the parcel and returns its status.
+     */
+    private static int callWithAudioPortParcel(@NonNull AudioDeviceAttributes attributes,
+            @NonNull ToIntFunction<Parcel> nativeCall) {
         android.media.audio.common.AudioPort port =
                 AidlConversion.api2aidl_AudioDeviceAttributes_AudioPort(attributes);
         Parcel parcel = Parcel.obtain();
         port.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
         try {
-            return setDeviceConnectionState(state, parcel, codecFormat, deviceSwitch);
+            return nativeCall.applyAsInt(parcel);
         } finally {
             parcel.recycle();
         }
@@ -2033,10 +2044,12 @@ public class AudioSystem
     @UnsupportedAppUsage
     public static native int getDeviceConnectionState(int device, String device_address);
     /** @hide */
-    public static native int handleDeviceConfigChange(int device,
-                                                      String device_address,
-                                                      String device_name,
-                                                      int codecFormat);
+    public static int handleDeviceConfigChange(AudioDeviceAttributes attributes, int codecFormat) {
+        return callWithAudioPortParcel(attributes,
+                parcel -> handleDeviceConfigChange(parcel, codecFormat));
+    }
+
+    private static native int handleDeviceConfigChange(Parcel parcel, int codecFormat);
     /** @hide */
     @UnsupportedAppUsage
     public static int setPhoneState(int state) {

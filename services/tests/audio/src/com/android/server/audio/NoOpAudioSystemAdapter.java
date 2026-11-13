@@ -94,8 +94,7 @@ public class NoOpAudioSystemAdapter extends AudioSystemAdapter {
     }
 
     @Override
-    public int handleDeviceConfigChange(int device, String deviceAddress,
-            String deviceName, int codecFormat) {
+    public int handleDeviceConfigChange(AudioDeviceAttributes attributes, int codecFormat) {
         return AudioSystem.AUDIO_STATUS_OK;
     }
 

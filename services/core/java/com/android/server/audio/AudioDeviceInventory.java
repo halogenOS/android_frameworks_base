@@ -1168,8 +1168,8 @@ public class AudioDeviceInventory {
                         di.mDeviceCodecFormat = codec;
                         mConnectedDevices.replace(key, di);
                         final int res = mAudioSystem.handleDeviceConfigChange(
-                                btInfo.mAudioSystemDevice, address,
-                                BtHelper.getName(btDevice), codec);
+                                new AudioDeviceAttributes(btInfo.mAudioSystemDevice, address,
+                                        BtHelper.getName(btDevice)), codec);
                         if (res != AudioSystem.AUDIO_STATUS_OK) {
                             AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
                                     "APM handleDeviceConfigChange failed for device addr="

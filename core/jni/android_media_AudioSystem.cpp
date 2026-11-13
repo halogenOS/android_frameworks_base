@@ -690,27 +690,33 @@ static void android_media_AudioSystem_device_format_request_callback(
     }
 }
 
+// Reads the audio port that AudioSystem.java wrote into jParcel.
+static std::optional<android::media::audio::common::AudioPort> readAudioPort(JNIEnv *env,
+                                                                             jobject jParcel) {
+    Parcel *parcel = parcelForJavaObject(env, jParcel);
+    if (parcel == nullptr) {
+        ALOGE("Failed to retrieve the native parcel from Java parcel");
+        return std::nullopt;
+    }
+    android::media::audio::common::AudioPort port{};
+    if (status_t statusOfParcel = port.readFromParcel(parcel); statusOfParcel != OK) {
+        ALOGE("Failed to read from parcel: %s", statusToString(statusOfParcel).c_str());
+        return std::nullopt;
+    }
+    return port;
+}
+
 static jint android_media_AudioSystem_setDeviceConnectionState(JNIEnv *env, jobject thiz,
                                                                jint state, jobject jParcel,
                                                                jint codec, jboolean deviceSwitch) {
-    int status;
-    if (Parcel *parcel = parcelForJavaObject(env, jParcel); parcel != nullptr) {
-        android::media::audio::common::AudioPort port{};
-        if (status_t statusOfParcel = port.readFromParcel(parcel); statusOfParcel == OK) {
-            status = check_AudioSystem_Command(
-                    AudioSystem::setDeviceConnectionState(static_cast<audio_policy_dev_state_t>(
-                                                                  state),
-                                                          port, static_cast<audio_format_t>(codec),
-                                                          deviceSwitch));
-        } else {
-            ALOGE("Failed to read from parcel: %s", statusToString(statusOfParcel).c_str());
-            status = kAudioStatusError;
-        }
-    } else {
-        ALOGE("Failed to retrieve the native parcel from Java parcel");
-        status = kAudioStatusError;
+    std::optional<android::media::audio::common::AudioPort> port = readAudioPort(env, jParcel);
+    if (!port.has_value()) {
+        return kAudioStatusError;
     }
-    return status;
+    return check_AudioSystem_Command(
+            AudioSystem::setDeviceConnectionState(static_cast<audio_policy_dev_state_t>(state),
+                                                  *port, static_cast<audio_format_t>(codec),
+                                                  deviceSwitch));
 }
 
 static jint
@@ -723,18 +729,14 @@ android_media_AudioSystem_getDeviceConnectionState(JNIEnv *env, jobject thiz, ji
     return state;
 }
 
-static jint
-android_media_AudioSystem_handleDeviceConfigChange(JNIEnv *env, jobject thiz, jint device, jstring device_address, jstring device_name,
-                                                   jint codec)
-{
-    const char *c_address = env->GetStringUTFChars(device_address, NULL);
-    const char *c_name = env->GetStringUTFChars(device_name, NULL);
-    int status = check_AudioSystem_Command(
-            AudioSystem::handleDeviceConfigChange(static_cast<audio_devices_t>(device), c_address,
-                                                  c_name, static_cast<audio_format_t>(codec)));
-    env->ReleaseStringUTFChars(device_address, c_address);
-    env->ReleaseStringUTFChars(device_name, c_name);
-    return status;
+static jint android_media_AudioSystem_handleDeviceConfigChange(JNIEnv *env, jobject thiz,
+                                                               jobject jParcel, jint codec) {
+    std::optional<android::media::audio::common::AudioPort> port = readAudioPort(env, jParcel);
+    if (!port.has_value()) {
+        return kAudioStatusError;
+    }
+    return check_AudioSystem_Command(
+            AudioSystem::handleDeviceConfigChange(*port, static_cast<audio_format_t>(codec)));
 }
 
 static jint android_media_AudioSystem_setPhoneState(JNIEnv *env, jobject thiz, jint state,
@@ -3472,7 +3474,8 @@ static const JNINativeMethod gMethods[] = {
         MAKE_JNI_NATIVE_METHOD("setDeviceConnectionState", "(ILandroid/os/Parcel;IZ)I",
                                android_media_AudioSystem_setDeviceConnectionState),
         MAKE_AUDIO_SYSTEM_METHOD(getDeviceConnectionState),
-        MAKE_AUDIO_SYSTEM_METHOD(handleDeviceConfigChange),
+        MAKE_JNI_NATIVE_METHOD("handleDeviceConfigChange", "(Landroid/os/Parcel;I)I",
+                               android_media_AudioSystem_handleDeviceConfigChange),
         MAKE_AUDIO_SYSTEM_METHOD(setPhoneState),
         MAKE_AUDIO_SYSTEM_METHOD(setForceUse),
         MAKE_AUDIO_SYSTEM_METHOD(getForceUse),
