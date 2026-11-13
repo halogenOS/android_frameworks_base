@@ -39,8 +39,6 @@ import com.android.systemui.surfaceeffects.view.ripple.MultiRippleView
 import com.android.systemui.surfaceeffects.view.turbulencenoise.TurbulenceNoiseView
 import com.android.systemui.util.animation.TransitionLayout
 
-private const val TAG = "MediaViewHolder"
-
 /** Holder class for media player view */
 class MediaViewHolder constructor(itemView: View) {
     val player = itemView as TransitionLayout
@@ -113,7 +111,7 @@ class MediaViewHolder constructor(itemView: View) {
     }
 
     fun marquee(start: Boolean, delay: Long) {
-        gutsViewHolder.marquee(start, delay, TAG)
+        gutsViewHolder.marquee(start, delay)
     }
 
     companion object {

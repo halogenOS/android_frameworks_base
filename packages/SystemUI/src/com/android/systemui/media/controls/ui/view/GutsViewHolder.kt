@@ -17,7 +17,6 @@
 package com.android.systemui.media.controls.ui.view
 
 import android.content.res.ColorStateList
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -43,14 +42,14 @@ class GutsViewHolder(itemView: View) {
     private var colorScheme: ColorScheme? = null
     private var textColorFixed: Int? = null
 
-    /** Marquees the main text of the guts menu. */
-    fun marquee(start: Boolean, delay: Long, tag: String) {
-        val gutsTextHandler = gutsText.handler
-        if (gutsTextHandler == null) {
-            Log.d(tag, "marquee while longPressText.getHandler() is null", Exception())
-            return
-        }
-        gutsTextHandler.postDelayed({ gutsText.isSelected = start }, delay)
+    private var marqueeStarted = false
+    private val applyMarquee = Runnable { gutsText.isSelected = marqueeStarted }
+
+    /** Marquees the main text of the guts menu. The last call wins over calls still pending. */
+    fun marquee(start: Boolean, delay: Long) {
+        marqueeStarted = start
+        gutsText.removeCallbacks(applyMarquee)
+        gutsText.postDelayed(applyMarquee, delay)
     }
 
     /** Set whether this control can be dismissed, and update appearance to match */
