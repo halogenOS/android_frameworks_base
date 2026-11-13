@@ -4,16 +4,16 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Name of the setting that picks the audio quality of the codec in use on a Bluetooth headset, on the Quick Settings tile and on the device page [CHAR LIMIT=30] -->
     <string name="bluetooth_audio_quality_title">Audio quality</string>
-    <!-- Codec of a Bluetooth headset and the quality level it runs at, such as "LDAC · Balanced" [CHAR LIMIT=40] -->
-    <string name="bluetooth_audio_quality_codec_and_level"><xliff:g id="codec" example="LDAC">%1$s</xliff:g> · <xliff:g id="level" example="Balanced">%2$s</xliff:g></string>
+    <!-- Codec of a Bluetooth headset and the quality level it runs at, such as "LDAC · 660 kbps" [CHAR LIMIT=40] -->
+    <string name="bluetooth_audio_quality_codec_and_level"><xliff:g id="codec" example="LDAC">%1$s</xliff:g> · <xliff:g id="level" example="660 kbps">%2$s</xliff:g></string>
     <!-- Quality of a Bluetooth headset whose codec runs at a quality that cannot change, such as "Fixed for aptX" [CHAR LIMIT=24] -->
     <string name="bluetooth_audio_quality_fixed">Fixed for <xliff:g id="codec" example="aptX">%1$s</xliff:g></string>
-    <!-- Quality level of a Bluetooth audio codec with the bitrate it runs at, in a list of levels [CHAR LIMIT=40] -->
-    <string name="bluetooth_audio_quality_level_with_bitrate"><xliff:g id="level" example="Balanced">%1$s</xliff:g> (<xliff:g id="bitrate" example="660 kbps">%2$s</xliff:g>)</string>
-    <!-- Bitrate of a Bluetooth audio quality level in kilobits per second [CHAR LIMIT=12] -->
+    <!-- Label of a Bluetooth audio quality level whose encoder sends at a fixed bitrate, in kilobits per second [CHAR LIMIT=12] -->
     <string name="bluetooth_audio_quality_kbps"><xliff:g id="kbps" example="660">%1$d</xliff:g> kbps</string>
-    <!-- Bitrate of a Bluetooth audio quality level whose encoder follows the strength of the radio link [CHAR LIMIT=12] -->
-    <string name="bluetooth_audio_quality_adaptive">adaptive</string>
+    <!-- Label of a Bluetooth audio quality level whose encoder changes the bitrate with the sound, shown in place of a number of kbps [CHAR LIMIT=12] -->
+    <string name="bluetooth_audio_quality_variable">Variable</string>
+    <!-- Label of a Bluetooth audio quality level whose encoder changes the bitrate with the strength of the radio link, shown in place of a number of kbps [CHAR LIMIT=12] -->
+    <string name="bluetooth_audio_quality_adaptive">Adaptive</string>
 
     <!-- Name of the hardware offload row on a Bluetooth device page [CHAR LIMIT=NONE] -->
     <string name="bluetooth_a2dp_hw_offload_title">Bluetooth A2DP hardware offload</string>

@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothCodecType
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.audioquality.AudioQuality
+import android.bluetooth.audioquality.AudioQualityLevel
 import android.bluetooth.audioquality.AudioQualityManager
 import android.util.Log
 import com.android.internal.util.ConcurrentUtils
@@ -33,14 +34,14 @@ fun AudioQualityManager.qualityFlow(device: BluetoothDevice): Flow<AudioQuality?
         .buffer(capacity = Channel.CONFLATED)
 
 /**
- * Sets [device] to the level with the id [levelId], and logs the status returned by the Bluetooth
- * stack when the level is not set. The screens show the level reported by the stack, so they stay
- * at the level used before.
+ * Sets [device] to [level], and logs the status returned by the Bluetooth stack when the level is
+ * not set. The screens show the level reported by the stack, so they still show the level used
+ * before.
  */
-fun AudioQualityManager.setLevelAndLogFailure(device: BluetoothDevice, levelId: String) {
-    val status = setLevel(device, levelId)
+fun AudioQualityManager.setLevelAndLogFailure(device: BluetoothDevice, level: AudioQualityLevel) {
+    val status = setLevel(device, level)
     if (status != BluetoothStatusCodes.SUCCESS) {
-        Log.w(TAG, "Setting the audio quality level $levelId failed with status $status")
+        Log.w(TAG, "Setting the audio quality level failed with status $status")
     }
 }
 

@@ -131,7 +131,7 @@ constructor(
     override fun handleClick(expandable: Expandable?) {
         val headset = activeHeadset ?: return
         val level = headset.quality?.nextLevel ?: return
-        checkNotNull(audioQualityManager).setLevelAndLogFailure(headset.device, level.id)
+        checkNotNull(audioQualityManager).setLevelAndLogFailure(headset.device, level)
     }
 
     override fun getLongClickIntent(): Intent =
@@ -178,8 +178,8 @@ private val levelIcons =
 
 /**
  * The meter icon with as many bars lit as the share of levels at or below the current one, or null
- * while the setting of the codec matches none of its levels. The levels run from the highest
- * quality to the lowest.
+ * while the setting of the codec matches none of its levels. The levels run from the highest fixed
+ * bitrate to the lowest, then variable, then adaptive.
  */
 private val AudioQuality.levelIconRes: Int?
     get() =
