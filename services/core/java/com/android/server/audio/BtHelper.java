@@ -48,6 +48,9 @@ import android.bluetooth.BluetoothLeAudioCodecConfig;
 import android.bluetooth.BluetoothLeAudioCodecStatus;
 import android.bluetooth.BluetoothLeAudioPeripheral;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.audioquality.A2dpHardwareOffload;
+import android.bluetooth.audioquality.AudioQuality;
+import android.bluetooth.audioquality.AudioQualityManager;
 import android.content.AttributionSource;
 import android.content.Intent;
 import android.media.AudioDeviceAttributes;
@@ -115,6 +118,7 @@ public class BtHelper {
 
     @GuardedBy("BtHelper.this")
     private @Nullable BluetoothCodecConfig mA2dpCodecConfig;
+    private int mA2dpAudioFormat = AudioSystem.AUDIO_FORMAT_DEFAULT;
 
     @GuardedBy("BtHelper.this")
     private @Nullable BluetoothLeAudioPeripheral mLeAudioPeripheral = null;
@@ -810,6 +814,32 @@ public class BtHelper {
         }
     }
 
+    /**
+     * The native audio_format_t AUDIO_FORMAT_PCM_16_BIT. Audio policy plays an A2DP device through
+     * the module whose A2DP device port declares the format in the encodedFormats of that port. The
+     * offload device port declares only encoded formats, so this format selects the software A2DP
+     * output.
+     */
+    private static final int AUDIO_FORMAT_PCM_16_BIT = 0x1;
+
+    /**
+     * Returns whether the Bluetooth stack encodes {@code codecType} in software although the phone
+     * can offload it, because hardware offload is switched off for that codec.
+     */
+    private boolean isEncodedInSoftwareByChoice(
+            @NonNull BluetoothDevice device, @NonNull BluetoothCodecType codecType) {
+        AudioQualityManager audioQualityManager =
+                mDeviceBroker.getContext().getSystemService(AudioQualityManager.class);
+        AudioQuality quality =
+                audioQualityManager == null ? null : audioQualityManager.getQuality(device);
+        if (quality == null) {
+            return false;
+        }
+        A2dpHardwareOffload offload = quality.getHardwareOffload();
+        return offload.getOffloadableCodecTypes().contains(codecType)
+                && !offload.getOffloadedCodecTypes().contains(codecType);
+    }
+
     private synchronized Pair<Integer, Boolean> getCodec(
             @NonNull BluetoothDevice device, @AudioService.BtProfile int profile) {
 
@@ -841,11 +871,16 @@ public class BtHelper {
                     mA2dpCodecConfig = null;
                     return new Pair<>(AudioSystem.AUDIO_FORMAT_DEFAULT, changed);
                 }
-                changed = !btCodecConfig.equals(mA2dpCodecConfig);
+                final int audioFormat =
+                        isEncodedInSoftwareByChoice(device, btCodecType)
+                                ? AUDIO_FORMAT_PCM_16_BIT
+                                : AudioSystem.bluetoothA2dpCodecToAudioFormat(
+                                        btCodecType.getCodecId());
+                changed =
+                        !btCodecConfig.equals(mA2dpCodecConfig) || audioFormat != mA2dpAudioFormat;
                 mA2dpCodecConfig = btCodecConfig;
-                return new Pair<>(
-                        AudioSystem.bluetoothA2dpCodecToAudioFormat(btCodecType.getCodecId()),
-                        changed);
+                mA2dpAudioFormat = audioFormat;
+                return new Pair<>(audioFormat, changed);
             }
             case BluetoothProfile.LE_AUDIO: {
                 boolean changed = mLeAudioCodecConfig != null;
