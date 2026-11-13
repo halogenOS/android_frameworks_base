@@ -15,6 +15,18 @@
     <!-- Bitrate of a Bluetooth audio quality level whose encoder follows the strength of the radio link [CHAR LIMIT=12] -->
     <string name="bluetooth_audio_quality_adaptive">adaptive</string>
 
+    <!-- Name of the hardware offload row on a Bluetooth device page [CHAR LIMIT=NONE] -->
+    <string name="bluetooth_a2dp_hw_offload_title">Bluetooth A2DP hardware offload</string>
+    <!-- Warning in the hardware offload dialog: hardware encoding can reduce audio quality [CHAR LIMIT=NONE] -->
+    <string name="bluetooth_a2dp_hw_offload_warning">Using hardware offload for Bluetooth audio can make the result sound worse. Using software encoding guarantees consistent quality regardless of hardware.</string>
+    <!-- Summary of the hardware offload row when every codec uses software encoding
+         [CHAR LIMIT=40] -->
+    <string name="bluetooth_a2dp_hw_offload_none">All codecs use software encoding</string>
+    <!-- Label under the codec that streams to the connected headset [CHAR LIMIT=12] -->
+    <string name="bluetooth_a2dp_hw_offload_in_use">In use</string>
+    <!-- Footer in the hardware offload dialog: the choice covers every headset [CHAR LIMIT=50] -->
+    <string name="bluetooth_a2dp_hw_offload_all_headsets">Applies to all headsets.</string>
+
     <!-- Deep sleep info -->
     <string name="status_deep_sleep">(Deep sleep: %1$d%2$s)</string>
 </resources>
