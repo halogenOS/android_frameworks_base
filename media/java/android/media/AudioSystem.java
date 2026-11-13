@@ -1035,6 +1035,45 @@ public class AudioSystem
         cb.onVolumeRangeInitializationRequested();
     }
 
+    /**
+     * @hide
+     * Handles requests from the audio policy manager to switch an output device to the format of
+     * the media track that plays alone on it
+     */
+    public interface DeviceFormatRequestCallback {
+        /**
+         * Callback to switch {@code device}, such as a Bluetooth A2DP headset, to
+         * {@code trackFormat} where the device supports that format
+         */
+        void onDeviceFormatRequested(@NonNull AudioDeviceAttributes device,
+                @NonNull AudioFormat trackFormat);
+    }
+
+    @GuardedBy("AudioSystem.class")
+    private static DeviceFormatRequestCallback sDeviceFormatRequestCallback;
+
+    /** @hide */
+    public static void setDeviceFormatRequestCallback(DeviceFormatRequestCallback cb) {
+        synchronized (AudioSystem.class) {
+            sDeviceFormatRequestCallback = cb;
+            native_register_device_format_request_callback();
+        }
+    }
+
+    private static void deviceFormatRequestCallbackFromNative(int deviceType, String address,
+            int sampleRate, int encoding) {
+        final DeviceFormatRequestCallback cb;
+        synchronized (AudioSystem.class) {
+            cb = sDeviceFormatRequestCallback;
+        }
+        if (cb == null) {
+            Log.e(TAG, "APM requested a device format, but the callback is not set");
+            return;
+        }
+        cb.onDeviceFormatRequested(new AudioDeviceAttributes(deviceType, address),
+                new AudioFormat.Builder().setSampleRate(sampleRate).setEncoding(encoding).build());
+    }
+
     /*
      * Error codes used by public APIs (AudioTrack, AudioRecord, AudioManager ...)
      * Must be kept in sync with frameworks/base/core/jni/android_media_AudioErrors.h
@@ -2328,6 +2367,8 @@ public class AudioSystem
     private static native void native_register_routing_callback();
     // declare this instance as having a volume range init request handler
     private static native void native_register_vol_range_init_req_callback();
+
+    private static native void native_register_device_format_request_callback();
 
     // must be kept in sync with value in include/system/audio.h
     /** @hide */ public static final int AUDIO_HW_SYNC_INVALID = 0;

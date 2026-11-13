@@ -54,6 +54,7 @@ import android.bluetooth.audioquality.AudioQualityManager;
 import android.content.AttributionSource;
 import android.content.Intent;
 import android.media.AudioDeviceAttributes;
+import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioManager.AudioDeviceCategory;
 import android.media.AudioSystem;
@@ -709,6 +710,7 @@ public class BtHelper {
         if (mScoHelper != null) {
             mScoHelper.resetBluetoothSco();
         }
+        AudioSystem.setDeviceFormatRequestCallback(mDeviceBroker::postRequestA2dpPcmFormat);
 
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter != null) {
@@ -838,6 +840,25 @@ public class BtHelper {
         A2dpHardwareOffload offload = quality.getHardwareOffload();
         return offload.getOffloadableCodecTypes().contains(codecType)
                 && !offload.getOffloadedCodecTypes().contains(codecType);
+    }
+
+    /**
+     * Asks the Bluetooth stack to run the A2DP codec used by {@code device} at the sample rate and
+     * bit depth of {@code trackFormat}, each where the codec offers it. The running value applies
+     * for a value not offered by the codec.
+     */
+    /*package*/ void requestA2dpPcmFormat(
+            @NonNull AudioDeviceAttributes device, @NonNull AudioFormat trackFormat) {
+        BluetoothDevice btDevice = getBluetoothDevice(device.getAddress());
+        AudioQualityManager audioQualityManager =
+                mDeviceBroker.getContext().getSystemService(AudioQualityManager.class);
+        if (btDevice == null || audioQualityManager == null) {
+            return;
+        }
+        int status = audioQualityManager.requestPcmFormat(btDevice, trackFormat);
+        AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
+                "requestA2dpPcmFormat " + trackFormat + " for " + device
+                        + ", status " + status).printLog(TAG));
     }
 
     private synchronized Pair<Integer, Boolean> getCodec(

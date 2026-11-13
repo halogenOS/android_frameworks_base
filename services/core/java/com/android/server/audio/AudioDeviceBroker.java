@@ -67,6 +67,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceAttributes;
+import android.media.AudioFormat;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.media.AudioManager.AudioDeviceCategory;
@@ -190,6 +191,10 @@ public class AudioDeviceBroker {
     /** AudioModeInfo contains information on current audio mode owner
      * communicated by AudioService */
     static final record AudioModeInfo(int mMode, int mPid, int mUid, IBinder mToken) {}
+
+    /** The format of a lone A2DP track, sent by audio policy for the device that plays it. */
+    static final record A2dpPcmFormatRequest(
+            @NonNull AudioDeviceAttributes mDevice, @NonNull AudioFormat mTrackFormat) {}
 
     private AudioModeInfo mAudioModeOwner = new AudioModeInfo(AudioSystem.MODE_NORMAL, 0, 0, null);
 
@@ -1246,6 +1251,12 @@ public class AudioDeviceBroker {
                 SENDMSG_REPLACE, new AudioModeInfo(mode, pid, uid, token));
     }
 
+    /*package*/ void postRequestA2dpPcmFormat(
+            @NonNull AudioDeviceAttributes device, @NonNull AudioFormat trackFormat) {
+        sendLMsgNoDelay(MSG_L_REQUEST_A2DP_PCM_FORMAT, SENDMSG_REPLACE,
+                new A2dpPcmFormatRequest(device, trackFormat));
+    }
+
     /*package*/ void postBluetoothDeviceConfigChange(@NonNull BtDeviceChangedData data) {
         sendLMsgNoDelay(MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE, SENDMSG_QUEUE, data);
     }
@@ -2155,6 +2166,10 @@ public class AudioDeviceBroker {
                 case MSG_L_CONNECTED_DEVICES_CHANGED:
                     onConnectedDevicesChanged();
                     break;
+                case MSG_L_REQUEST_A2DP_PCM_FORMAT: {
+                    final A2dpPcmFormatRequest request = (A2dpPcmFormatRequest) msg.obj;
+                    mBtHelper.requestA2dpPcmFormat(request.mDevice(), request.mTrackFormat());
+                } break;
 
                 default:
                     Log.wtf(TAG, "Invalid message " + msg.what);
@@ -2234,6 +2249,7 @@ public class AudioDeviceBroker {
 
     private static final int MSG_I_MUTE_CALL = 62;
     private static final int MSG_L_CONNECTED_DEVICES_CHANGED = 63;
+    private static final int MSG_L_REQUEST_A2DP_PCM_FORMAT = 64;
 
 
     private static boolean isMessageHandledUnderWakelock(int msgId) {
