@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: The halogenOS Project
+# SPDX-License-Identifier: Apache-2.0
+
+# The rule renames the Kotlin standard library, so this library in system_server uses a private
+# copy of it. Its public classes use only Java types, so services built with any copy can call them.
+rule kotlin.** com.android.server.binderflow.jarjar.@0

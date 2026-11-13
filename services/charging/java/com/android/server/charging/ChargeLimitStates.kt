@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.RemoteException
 import android.util.Slog
+import com.android.server.binderflow.BinderStateFlow
 import custom.hardware.health.charging.ChargeMode
 import custom.hardware.health.charging.ChargeModeReport
 import custom.hardware.health.charging.IChargeLimit
@@ -31,8 +32,10 @@ internal class ChargeLimitStates(private val handler: Handler) {
     private var state: ChargeLimitState? = null
 
     private val states =
-        BinderStateFlow<IChargeLimitStateCollector, ChargeLimitState?>(handler, ::state) {
-            emit(it)
+        BinderStateFlow<IChargeLimitStateCollector, ChargeLimitState?>(handler, { state }) {
+            collector,
+            value ->
+            collector.emit(value)
         }
 
     /** The charge limit state offered to apps. */

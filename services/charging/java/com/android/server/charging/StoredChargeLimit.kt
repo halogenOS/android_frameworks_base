@@ -6,12 +6,14 @@
 package com.android.server.charging
 
 import android.os.Handler
+import com.android.server.binderflow.BinderStateFlow
 import custom.hardware.health.charging.ChargeLimitTarget
 import custom.hardware.health.charging.IChargeLimitCollector
 import custom.hardware.health.charging.IChargeLimitFlow
 import custom.health.charging.ChargeLimit
 import custom.health.charging.IChargeLimitSettingCollector
 import custom.health.charging.IChargeLimitSettingFlow
+import java.util.function.Supplier
 
 /**
  * Offers the stored charge limit to apps as a flow, and the target derived from it to the charge
@@ -21,10 +23,18 @@ import custom.health.charging.IChargeLimitSettingFlow
 internal class StoredChargeLimit(handler: Handler, read: () -> ChargeLimit?) {
 
     private val limits =
-        BinderStateFlow<IChargeLimitSettingCollector, ChargeLimit?>(handler, read) { emit(it) }
+        BinderStateFlow<IChargeLimitSettingCollector, ChargeLimit?>(handler, Supplier(read)) {
+            collector,
+            limit ->
+            collector.emit(limit)
+        }
 
     private val targets =
-        BinderStateFlow<IChargeLimitCollector, ChargeLimit?>(handler, read) { emit(it?.toTarget()) }
+        BinderStateFlow<IChargeLimitCollector, ChargeLimit?>(handler, Supplier(read)) {
+            collector,
+            limit ->
+            collector.emit(limit?.toTarget())
+        }
 
     /** The stored charge limit offered to apps. */
     val flow =

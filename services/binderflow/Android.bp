@@ -1,0 +1,13 @@
+// SPDX-FileCopyrightText: The halogenOS Project
+// SPDX-License-Identifier: Apache-2.0
+
+package {
+    default_applicable_licenses: ["frameworks_base_license"],
+}
+
+java_library_static {
+    name: "services.binderflow",
+    defaults: ["platform_service_defaults"],
+    srcs: ["java/**/*.kt"],
+    jarjar_rules: "jarjar-rules.txt",
+}

@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.android.server.charging
+package com.android.server.binderflow
 
 import android.os.Handler
 import android.os.IInterface
 import android.os.RemoteCallbackList
 import android.os.RemoteException
 import android.util.Slog
+import java.util.function.Supplier
 
 private const val TAG = "BinderStateFlow"
 
@@ -18,16 +19,21 @@ private const val TAG = "BinderStateFlow"
  * change. Everything runs on [handler]. Each collector receives the values in the order they were
  * published. [cancel] also removes a collector before [collect] has registered it.
  */
-internal class BinderStateFlow<C : IInterface, T>(
+class BinderStateFlow<C : IInterface, T>(
     private val handler: Handler,
     /** Reads the current value. Runs on [handler]. */
-    private val read: () -> T,
-    private val emit: C.(T) -> Unit,
+    private val read: Supplier<T>,
+    private val emitter: Emitter<C, T>,
 ) {
+    /** Sends one value to one collector. */
+    fun interface Emitter<C, T> {
+        @Throws(RemoteException::class) fun emit(collector: C, value: T)
+    }
+
     private val collectors = RemoteCallbackList<C>()
 
     fun collect(collector: C) {
-        handler.post { if (collectors.register(collector)) collector.send(read()) }
+        handler.post { if (collectors.register(collector)) collector.send(read.get()) }
     }
 
     fun cancel(collector: C) {
@@ -37,13 +43,13 @@ internal class BinderStateFlow<C : IInterface, T>(
     /** Emits the current value to every collector after it changed. Runs on [handler]. */
     fun publishChange() {
         check(handler.looper.isCurrentThread) { "A change was published off the handler thread" }
-        val value = read()
+        val value = read.get()
         collectors.broadcast { it.send(value) }
     }
 
     private fun C.send(value: T) {
         try {
-            emit(value)
+            emitter.emit(this, value)
         } catch (e: RemoteException) {
             // The process holding the collector died. The callback list removes dead collectors
             // by itself.

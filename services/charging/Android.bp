@@ -9,7 +9,10 @@ java_library_static {
     name: "services.charging",
     defaults: ["platform_service_defaults"],
     srcs: ["java/**/*.kt"],
-    libs: ["services.core"],
+    libs: [
+        "services.binderflow",
+        "services.core",
+    ],
     static_libs: [
         "custom.hardware.health.charging-V3-java",
         "custom.health.charging",
