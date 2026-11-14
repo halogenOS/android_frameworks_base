@@ -34,8 +34,6 @@ import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
-import android.media.MediaFormat;
-import android.media.MediaMuxer;
 import android.media.MediaRecorder;
 import android.media.ThumbnailUtils;
 import android.media.projection.IMediaProjection;
@@ -60,6 +58,8 @@ import androidx.annotation.NonNull;
 
 import com.android.internal.R;
 import com.android.systemui.mediaprojection.MediaProjectionCaptureTarget;
+import com.android.systemui.screenrecord.shared.model.ScreenRecordFileFormat;
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec;
 
 import java.io.Closeable;
 import java.io.File;
@@ -68,6 +68,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,7 +81,6 @@ public class ScreenMediaRecorder {
     private static final int VIDEO_FRAME_RATE = 30;
     private static final int VIDEO_FRAME_RATE_TO_RESOLUTION_RATIO = 6;
     private static final int AUDIO_BIT_RATE = 196000;
-    private static final int AUDIO_SAMPLE_RATE = 44100;
     private static final int MAX_DURATION_MS = (int) DateUtils.HOUR_IN_MILLIS;
     private static final long MAX_FILESIZE_BYTES = 5000000000L;
     private static final long MAX_FILESIZE_BYTES_LONGER = 16106100000L; // 15 GiB
@@ -105,7 +105,7 @@ public class ScreenMediaRecorder {
     private String mAvcProfileLevel;
 
     private boolean mLongerDuration;
-    private boolean mHEVC;
+    private ScreenRecordVideoCodec mVideoCodec;
 
     private Context mContext;
     ScreenMediaRecorderListener mListener;
@@ -119,7 +119,7 @@ public class ScreenMediaRecorder {
             int displayId,
             ScreenMediaRecorderListener listener) {
         this(context, handler, uid, audioSource, captureRegion,
-                displayId, listener, false, false);
+                displayId, listener, false, ScreenRecordVideoCodec.DEFAULT);
     }
 
     public ScreenMediaRecorder(
@@ -131,7 +131,7 @@ public class ScreenMediaRecorder {
             int displayId,
             ScreenMediaRecorderListener listener,
             boolean longerDuration,
-            boolean hevc) {
+            @NonNull ScreenRecordVideoCodec videoCodec) {
         mContext = context;
         mHandler = handler;
         mUid = uid;
@@ -140,7 +140,7 @@ public class ScreenMediaRecorder {
         mAudioSource = audioSource;
         mDisplayId = displayId;
         mLongerDuration = longerDuration;
-        mHEVC = hevc;
+        mVideoCodec = videoCodec;
         mAvcProfileLevel = mContext.getResources().getString(
                 com.android.systemui.res.R.string.config_screenRecorderAVCProfileLevel);
     }
@@ -149,8 +149,8 @@ public class ScreenMediaRecorder {
         mLongerDuration = longer;
     }
 
-    public void setHEVC(boolean hevc) {
-        mHEVC = hevc;
+    public void setVideoCodec(@NonNull ScreenRecordVideoCodec videoCodec) {
+        mVideoCodec = videoCodec;
     }
 
     private void prepare() throws IOException, RemoteException, RuntimeException {
@@ -175,9 +175,10 @@ public class ScreenMediaRecorder {
         mMediaProjection = new MediaProjection(mContext, projection);
         mMediaProjection.registerCallback(mediaProjectionCallback, mHandler);
 
+        ScreenRecordFileFormat fileFormat = mVideoCodec.getFileFormat();
         File cacheDir = mContext.getCacheDir();
         cacheDir.mkdirs();
-        mTempVideoFile = File.createTempFile("temp", ".mp4", cacheDir);
+        mTempVideoFile = File.createTempFile("temp", "." + fileFormat.getFileExtension(), cacheDir);
 
         // Set up media recorder
         mMediaRecorder = new MediaRecorder(mContext);
@@ -188,7 +189,7 @@ public class ScreenMediaRecorder {
         }
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
 
-        mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mMediaRecorder.setOutputFormat(fileFormat.getMediaRecorderOutputFormat());
 
 
         // Set up video
@@ -197,19 +198,20 @@ public class ScreenMediaRecorder {
         Display display = dm.getDisplay(mDisplayId);
         display.getRealMetrics(metrics);
         int refreshRate = (int) display.getRefreshRate();
-        VideoParameters videoParameters = getSupportedSize(metrics.widthPixels,
-                metrics.heightPixels, refreshRate);
-        if (!mHEVC) {
-            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            mMediaRecorder.setVideoEncodingProfileLevel(
-                    MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
-                    getAvcProfileLevelCodeByName(mAvcProfileLevel));
-        } else {
-            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.HEVC);
-            mMediaRecorder.setVideoEncodingProfileLevel(
-                    MediaCodecInfo.CodecProfileLevel.HEVCProfileMain,
-                    MediaCodecInfo.CodecProfileLevel.HEVCHighTierLevel41);
-        }
+        String videoType = mVideoCodec.getCodecMimeType();
+        MediaCodecInfo.CodecCapabilities encoderCapabilities =
+                getCapabilitiesAndRelease(MediaCodec.createEncoderByType(videoType));
+        // Fit the size to the decoder, so the recording plays on this device, then to the encoder
+        VideoParameters playableParameters = getSupportedSize(
+                getCapabilitiesAndRelease(MediaCodec.createDecoderByType(videoType))
+                        .getVideoCapabilities(),
+                metrics.widthPixels, metrics.heightPixels, refreshRate);
+        VideoParameters videoParameters = getSupportedSize(
+                encoderCapabilities.getVideoCapabilities(), playableParameters.mWidth,
+                playableParameters.mHeight, playableParameters.mRefreshRate);
+        mMediaRecorder.setVideoEncoder(mVideoCodec.getMediaRecorderVideoEncoder());
+        mMediaRecorder.setVideoEncodingProfileLevel(
+                mVideoCodec.getProfile(), getLevel(encoderCapabilities));
         mMediaRecorder.setVideoSize(videoParameters.mWidth, videoParameters.mHeight);
         mMediaRecorder.setVideoFrameRate(videoParameters.mRefreshRate);
         mMediaRecorder.setVideoEncodingBitRate(videoParameters.bitrate());
@@ -219,10 +221,10 @@ public class ScreenMediaRecorder {
 
         // Set up audio
         if (mAudioSource == MIC) {
-            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.HE_AAC);
+            mMediaRecorder.setAudioEncoder(fileFormat.getMediaRecorderAudioEncoder());
             mMediaRecorder.setAudioChannels(TOTAL_NUM_TRACKS);
             mMediaRecorder.setAudioEncodingBitRate(AUDIO_BIT_RATE);
-            mMediaRecorder.setAudioSamplingRate(AUDIO_SAMPLE_RATE);
+            mMediaRecorder.setAudioSamplingRate(fileFormat.getAudioSampleRate());
         }
 
         mMediaRecorder.setOutputFile(mTempVideoFile);
@@ -247,12 +249,36 @@ public class ScreenMediaRecorder {
         mMediaRecorder.setOnInfoListener((mr, what, extra) -> mListener.onInfo(mr, what, extra));
         if (mAudioSource == INTERNAL ||
                 mAudioSource == MIC_AND_INTERNAL) {
-            mTempAudioFile = File.createTempFile("temp", ".aac",
+            mTempAudioFile = File.createTempFile("temp", "." + fileFormat.getFileExtension(),
                     mContext.getCacheDir());
             mAudio = new ScreenInternalAudioRecorder(mTempAudioFile.getAbsolutePath(),
-                    mMediaProjection, mAudioSource == MIC_AND_INTERNAL);
+                    mMediaProjection, mAudioSource == MIC_AND_INTERNAL, fileFormat);
         }
 
+    }
+
+    /** Returns the capabilities of {@code codec} for the recorded video type and releases it. */
+    private MediaCodecInfo.CodecCapabilities getCapabilitiesAndRelease(MediaCodec codec) {
+        try {
+            return codec.getCodecInfo().getCapabilitiesForType(mVideoCodec.getCodecMimeType());
+        } finally {
+            codec.release();
+        }
+    }
+
+    /**
+     * Returns the H.264 level configured for the device, or for any other codec the highest level
+     * the encoder supports for the profile of that codec.
+     */
+    private int getLevel(MediaCodecInfo.CodecCapabilities encoderCapabilities) {
+        if (mVideoCodec == ScreenRecordVideoCodec.H264) {
+            return getAvcProfileLevelCodeByName(mAvcProfileLevel);
+        }
+        return Arrays.stream(encoderCapabilities.profileLevels)
+                .filter(profileLevel -> profileLevel.profile == mVideoCodec.getProfile())
+                .mapToInt(profileLevel -> profileLevel.level)
+                .max()
+                .orElseThrow();
     }
 
     /**
@@ -271,28 +297,19 @@ public class ScreenMediaRecorder {
     }
 
     /**
-     * Find the highest supported screen resolution and refresh rate for the given dimensions on
-     * this device, up to actual size and given rate.
+     * Find the highest resolution and refresh rate supported by a codec for the given dimensions,
+     * up to actual size and given rate.
      * If possible this will return the same values as given, but values may be smaller on some
      * devices.
      *
+     * @param vc           Video capabilities of the codec
      * @param screenWidth  Actual pixel width of screen
      * @param screenHeight Actual pixel height of screen
      * @param refreshRate  Desired refresh rate
      * @return returns {@link VideoParameters} for the screen recording.
      */
-    private VideoParameters getSupportedSize(final int screenWidth, final int screenHeight,
-            int refreshRate)
-            throws IOException {
-        String videoType = mHEVC ? MediaFormat.MIMETYPE_VIDEO_HEVC : MediaFormat.MIMETYPE_VIDEO_AVC;
-
-        // Get max size from the decoder, to ensure recordings will be playable on device
-        MediaCodec decoder = MediaCodec.createDecoderByType(videoType);
-        MediaCodecInfo.VideoCapabilities vc = decoder.getCodecInfo().getCapabilitiesForType(
-                        videoType)
-                .getVideoCapabilities();
-        decoder.release();
-
+    private VideoParameters getSupportedSize(MediaCodecInfo.VideoCapabilities vc,
+            final int screenWidth, final int screenHeight, int refreshRate) {
         // Check if we can support screen size as-is
         int width = vc.getSupportedWidths().getUpper();
         int height = vc.getSupportedHeights().getUpper();
@@ -421,14 +438,16 @@ public class ScreenMediaRecorder {
     }
 
     public Uri createRecordingUri() {
+        ScreenRecordFileFormat fileFormat = mVideoCodec.getFileFormat();
         String saveDate = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
         String fileName = mStartTimeMillis > 0L
-                ? String.format("screen-%s-%d.mp4", saveDate, mStartTimeMillis)
-                : String.format("screen-%s.mp4", saveDate);
+                ? String.format("screen-%s-%d.%s", saveDate, mStartTimeMillis,
+                        fileFormat.getFileExtension())
+                : String.format("screen-%s.%s", saveDate, fileFormat.getFileExtension());
 
         ContentValues values = new ContentValues();
         values.put(MediaStore.Video.Media.DISPLAY_NAME, fileName);
-        values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
+        values.put(MediaStore.Video.Media.MIME_TYPE, fileFormat.getContainerMimeType());
         values.put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis());
         values.put(MediaStore.Video.Media.DATE_TAKEN, System.currentTimeMillis());
 
@@ -446,13 +465,14 @@ public class ScreenMediaRecorder {
             throws IOException, IllegalStateException {
         Log.d(TAG, itemUri.toString());
         ContentResolver resolver = mContext.getContentResolver();
+        ScreenRecordFileFormat fileFormat = mVideoCodec.getFileFormat();
         if (mAudioSource == MIC_AND_INTERNAL || mAudioSource == INTERNAL) {
             try {
                 Log.d(TAG, "muxing recording");
-                File file = File.createTempFile("temp", ".mp4",
+                File file = File.createTempFile("temp", "." + fileFormat.getFileExtension(),
                         mContext.getCacheDir());
                 ScreenRecordingMuxer muxer = new ScreenRecordingMuxer(
-                        MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+                        fileFormat.getMediaMuxerFormat(),
                         file.getAbsolutePath(),
                         mTempVideoFile.getAbsolutePath(),
                         mTempAudioFile.getAbsolutePath());
@@ -470,8 +490,8 @@ public class ScreenMediaRecorder {
         Files.copy(mTempVideoFile.toPath(), os);
         os.close();
         if (mTempAudioFile != null) mTempAudioFile.delete();
-        SavedRecording recording = new SavedRecording(
-                itemUri, mTempVideoFile, getRequiredThumbnailSize());
+        SavedRecording recording = new SavedRecording(itemUri, mTempVideoFile,
+                getRequiredThumbnailSize(), fileFormat.getContainerMimeType());
         mTempVideoFile.delete();
         return recording;
     }
@@ -551,14 +571,19 @@ public class ScreenMediaRecorder {
         private final Uri mUri;
         @Nullable
         private final Icon mThumbnailIcon;
+        @NonNull
+        private final String mMimeType;
 
-        public SavedRecording(@NonNull Uri uri, File file, Size thumbnailSize) {
-            this(uri, createThumbnail(file, thumbnailSize));
+        public SavedRecording(@NonNull Uri uri, File file, Size thumbnailSize,
+                @NonNull String mimeType) {
+            this(uri, createThumbnail(file, thumbnailSize), mimeType);
         }
 
-        public SavedRecording(@NonNull Uri uri, @Nullable Icon thumbnailIcon) {
+        public SavedRecording(@NonNull Uri uri, @Nullable Icon thumbnailIcon,
+                @NonNull String mimeType) {
             mUri = uri;
             mThumbnailIcon = thumbnailIcon;
+            mMimeType = mimeType;
         }
 
         @NonNull
@@ -568,6 +593,11 @@ public class ScreenMediaRecorder {
 
         public @Nullable Icon getThumbnail() {
             return mThumbnailIcon;
+        }
+
+        @NonNull
+        public String getMimeType() {
+            return mMimeType;
         }
 
         @Nullable

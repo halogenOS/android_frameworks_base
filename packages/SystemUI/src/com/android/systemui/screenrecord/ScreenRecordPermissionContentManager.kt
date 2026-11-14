@@ -19,8 +19,6 @@ package com.android.systemui.screenrecord
 import android.app.Activity
 import android.content.Intent
 import android.hardware.display.DisplayManager
-import android.media.MediaCodecList
-import android.media.MediaFormat
 import android.media.projection.StopReason
 import android.os.Build
 import android.os.Bundle
@@ -42,6 +40,7 @@ import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Switch
 import androidx.annotation.LayoutRes
+import androidx.core.view.isVisible
 import com.android.systemui.lifecycle.repeatWhenAttached
 import com.android.systemui.mediaprojection.MediaProjectionCaptureTarget
 import com.android.systemui.mediaprojection.MediaProjectionMetricsLogger
@@ -57,7 +56,9 @@ import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.res.R
 import com.android.systemui.screencapture.record.data.repository.ScreenCaptureRecordParametersRepository
 import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
+import com.android.systemui.screenrecord.data.repository.ScreenRecordVideoCodecRepository
 import com.android.systemui.screenrecord.data.repository.ScreenRecordingStartStopRepository
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
 import com.android.systemui.screenrecord.shared.model.ScreenRecordingParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -77,6 +78,7 @@ class ScreenRecordPermissionContentManager(
     private val onStartRecordingClicked: Runnable?,
     private val screenRecordingStartStopRepository: ScreenRecordingStartStopRepository,
     private val recordParametersRepository: ScreenCaptureRecordParametersRepository,
+    private val videoCodecRepository: ScreenRecordVideoCodecRepository,
 ) :
     BaseMediaProjectionPermissionContentManager(
         createOptionList(displayManager),
@@ -96,6 +98,7 @@ class ScreenRecordPermissionContentManager(
         @Assisted onStartRecordingClicked: Runnable?,
         screenRecordingStartStopRepository: ScreenRecordingStartStopRepository,
         recordParametersRepository: ScreenCaptureRecordParametersRepository,
+        videoCodecRepository: ScreenRecordVideoCodecRepository,
     ) : this(
         hostUserHandle,
         hostUid,
@@ -107,6 +110,7 @@ class ScreenRecordPermissionContentManager(
         onStartRecordingClicked,
         screenRecordingStartStopRepository,
         recordParametersRepository,
+        videoCodecRepository,
     )
 
     @AssistedFactory
@@ -123,17 +127,18 @@ class ScreenRecordPermissionContentManager(
     private lateinit var audioSwitch: Switch
     private lateinit var longerDurationSwitch: Switch
     private lateinit var skipTimeSwitch: Switch
-    private lateinit var hevcSwitch: Switch
     private lateinit var tapsView: View
     private lateinit var options: Spinner
+    private lateinit var videoCodecSpinner: Spinner
+    private lateinit var videoCodecAdapter: ScreenRecordVideoCodecAdapter
     private var storedOptionsBinding: DisposableHandle? = null
 
     private val switches: List<Switch>
-        get() = listOf(audioSwitch, tapsSwitch, longerDurationSwitch, skipTimeSwitch, hevcSwitch)
+        get() = listOf(audioSwitch, tapsSwitch, longerDurationSwitch, skipTimeSwitch)
 
     /** The controls that are disabled until they show the stored options. */
     private val storedOptionsControls: List<View>
-        get() = switches + options + startButton
+        get() = switches + options + videoCodecSpinner + startButton
 
     override fun bind(view: View) {
         super.bind(view)
@@ -188,7 +193,6 @@ class ScreenRecordPermissionContentManager(
         longerDurationSwitch =
             containerView.requireViewById(R.id.screenrecord_longer_timeout_switch)
         skipTimeSwitch = containerView.requireViewById(R.id.screenrecord_skip_time_switch)
-        hevcSwitch = containerView.requireViewById(R.id.screenrecord_hevc_switch)
 
         tapsView = containerView.requireViewById(R.id.show_taps)
         updateTapsViewVisibility()
@@ -208,10 +212,12 @@ class ScreenRecordPermissionContentManager(
             audioSwitch.isChecked = true
         }
 
-        // Disable HEVC when hardware accelerated codec is not available
-        if (!hasHevcHwEncoder()) {
-            containerView.requireViewById<View>(R.id.show_hevc).visibility = View.GONE
-        }
+        videoCodecSpinner = containerView.requireViewById(R.id.screenrecord_video_codec)
+        videoCodecAdapter =
+            ScreenRecordVideoCodecAdapter(containerView.context, videoCodecRepository.offered)
+        videoCodecSpinner.adapter = videoCodecAdapter
+        containerView.requireViewById<View>(R.id.show_video_codec).isVisible =
+            videoCodecRepository.offered.size > 1
 
         // disable redundant Touch & Hold accessibility action for Switch Access
         options.accessibilityDelegate =
@@ -243,7 +249,9 @@ class ScreenRecordPermissionContentManager(
             ?.let { options.setSelection(MODES.indexOf(it)) }
         longerDurationSwitch.isChecked = stored.longerDuration
         skipTimeSwitch.isChecked = stored.skipCountdown
-        hevcSwitch.isChecked = stored.hevc
+        videoCodecSpinner.setSelection(
+            videoCodecAdapter.getPosition(videoCodecRepository.offeredOrDefault(stored.videoCodec))
+        )
         switches.forEach { it.jumpDrawablesToCurrentState() }
         storedOptionsControls.forEach { it.isEnabled = true }
     }
@@ -275,7 +283,7 @@ class ScreenRecordPermissionContentManager(
             if (audioSwitch.isChecked) audioSourceWhenEnabled else ScreenRecordingAudioSource.NONE
         val longerDuration = longerDurationSwitch.isChecked
         val skipTime = skipTimeSwitch.isChecked
-        val hevc = hevcSwitch.isChecked
+        val videoCodec = videoCodecSpinner.selectedItem as ScreenRecordVideoCodec
 
         recordParametersRepository.update {
             it.copy(
@@ -283,7 +291,14 @@ class ScreenRecordPermissionContentManager(
                 audioSourceWhenEnabled = audioSourceWhenEnabled,
                 shouldShowTaps = tapsSwitch.isChecked,
                 longerDuration = longerDuration,
-                hevc = hevc,
+                // The spinner shows the default codec for a stored codec this device does not
+                // offer. That stored codec is written back unchanged unless another one is picked.
+                videoCodec =
+                    if (videoCodec == videoCodecRepository.offeredOrDefault(it.videoCodec)) {
+                        it.videoCodec
+                    } else {
+                        videoCodec
+                    },
                 skipCountdown = skipTime,
             )
         }
@@ -299,30 +314,12 @@ class ScreenRecordPermissionContentManager(
                         displayId = displayId,
                         shouldShowTaps = showTaps,
                         longerDuration = longerDuration,
-                        hevc = hevc,
+                        videoCodec = videoCodec,
                     )
                 )
             },
             { screenRecordingStartStopRepository.stopRecording(StopReason.STOP_UNKNOWN) },
         )
-    }
-
-    private fun hasHevcHwEncoder(): Boolean {
-        val mediaCodecList = MediaCodecList(MediaCodecList.REGULAR_CODECS)
-
-        for (codecInfo in mediaCodecList.getCodecInfos()) {
-            if (!codecInfo.isEncoder() || !codecInfo.isHardwareAccelerated()) {
-                continue
-            }
-
-            for (type in codecInfo.getSupportedTypes()) {
-                if (type.equals(MediaFormat.MIMETYPE_VIDEO_HEVC, ignoreCase = true)) {
-                    return true
-                }
-            }
-        }
-
-        return false
     }
 
     private inner class CaptureTargetResultReceiver :

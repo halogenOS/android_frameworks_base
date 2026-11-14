@@ -25,7 +25,8 @@ import com.android.systemui.dagger.qualifiers.Application
 import com.android.systemui.dagger.qualifiers.Background
 import com.android.systemui.domain.interactor.SharedPreferencesInteractor
 import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
-import com.android.systemui.screenrecord.ScreenRecordingAudioSource
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
+import com.android.systemui.util.kotlin.SharedPreferencesExt.getEnum
 import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineScope
@@ -43,8 +44,9 @@ private const val KEY_AUDIO_SOURCE = "audio_source"
 private const val KEY_AUDIO_SOURCE_WHEN_ENABLED = "audio_source_when_enabled"
 private const val KEY_SHOW_TAPS = "show_taps"
 private const val KEY_LONGER_DURATION = "longer_duration"
-private const val KEY_HEVC = "hevc"
+private const val KEY_VIDEO_CODEC = "video_codec"
 private const val KEY_SKIP_COUNTDOWN = "skip_countdown"
+private const val KEY_LEGACY_HEVC_SWITCH = "hevc"
 
 private val DEFAULT_OPTIONS = ScreenRecordOptions()
 
@@ -105,12 +107,12 @@ constructor(
 
 private fun SharedPreferences.readOptions() =
     ScreenRecordOptions(
-        audioSource = getAudioSource(KEY_AUDIO_SOURCE, DEFAULT_OPTIONS.audioSource),
+        audioSource = getEnum(KEY_AUDIO_SOURCE, DEFAULT_OPTIONS.audioSource),
         audioSourceWhenEnabled =
-            getAudioSource(KEY_AUDIO_SOURCE_WHEN_ENABLED, DEFAULT_OPTIONS.audioSourceWhenEnabled),
+            getEnum(KEY_AUDIO_SOURCE_WHEN_ENABLED, DEFAULT_OPTIONS.audioSourceWhenEnabled),
         shouldShowTaps = getBoolean(KEY_SHOW_TAPS, DEFAULT_OPTIONS.shouldShowTaps),
         longerDuration = getBoolean(KEY_LONGER_DURATION, DEFAULT_OPTIONS.longerDuration),
-        hevc = getBoolean(KEY_HEVC, DEFAULT_OPTIONS.hevc),
+        videoCodec = readVideoCodec(),
         skipCountdown = getBoolean(KEY_SKIP_COUNTDOWN, DEFAULT_OPTIONS.skipCountdown),
     )
 
@@ -119,15 +121,17 @@ private fun SharedPreferences.Editor.putOptions(options: ScreenRecordOptions) {
     putString(KEY_AUDIO_SOURCE_WHEN_ENABLED, options.audioSourceWhenEnabled.name)
     putBoolean(KEY_SHOW_TAPS, options.shouldShowTaps)
     putBoolean(KEY_LONGER_DURATION, options.longerDuration)
-    putBoolean(KEY_HEVC, options.hevc)
+    putString(KEY_VIDEO_CODEC, options.videoCodec.name)
     putBoolean(KEY_SKIP_COUNTDOWN, options.skipCountdown)
 }
 
-/** The audio source stored by name under [key], or [default] when no audio source has that name. */
-private fun SharedPreferences.getAudioSource(
-    key: String,
-    default: ScreenRecordingAudioSource,
-): ScreenRecordingAudioSource {
-    val name = getString(key, null)
-    return ScreenRecordingAudioSource.entries.firstOrNull { it.name == name } ?: default
-}
+private fun SharedPreferences.readVideoCodec(): ScreenRecordVideoCodec =
+    getEnum(
+        KEY_VIDEO_CODEC,
+        default =
+            if (getBoolean(KEY_LEGACY_HEVC_SWITCH, false)) {
+                ScreenRecordVideoCodec.HEVC
+            } else {
+                DEFAULT_OPTIONS.videoCodec
+            },
+    )

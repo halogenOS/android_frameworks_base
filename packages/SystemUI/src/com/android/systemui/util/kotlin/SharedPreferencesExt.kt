@@ -38,6 +38,11 @@ object SharedPreferencesExt {
     fun SharedPreferences.observeString(key: String, defValue: String): Flow<String> =
         observeValue(key) { getString(key, defValue) ?: defValue }
 
+    inline fun <reified T : Enum<T>> SharedPreferences.getEnum(key: String, default: T): T {
+        val name = getString(key, null)
+        return enumValues<T>().firstOrNull { it.name == name } ?: default
+    }
+
     private fun <T> SharedPreferences.observeValue(
         key: String,
         fetchValue: SharedPreferences.() -> T,

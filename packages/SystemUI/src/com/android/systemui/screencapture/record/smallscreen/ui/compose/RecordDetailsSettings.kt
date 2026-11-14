@@ -17,8 +17,6 @@
 package com.android.systemui.screencapture.record.smallscreen.ui.compose
 
 import android.content.res.Resources
-import android.media.MediaCodecList
-import android.media.MediaFormat
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -28,7 +26,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -65,7 +70,10 @@ import com.android.systemui.screencapture.common.ui.compose.LoadingIcon
 import com.android.systemui.screencapture.common.ui.compose.loadIcon
 import com.android.systemui.screencapture.common.ui.viewmodel.DrawableLoaderViewModel
 import com.android.systemui.screencapture.record.smallscreen.ui.viewmodel.RecordDetailsTargetViewModel
+import com.android.systemui.screencapture.record.ui.compose.VideoCodecMenu
+import com.android.systemui.screencapture.record.ui.compose.labelRes
 import com.android.systemui.screencapture.record.ui.viewmodel.ScreenCaptureRecordParametersViewModel
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
 
 @Composable
 fun RecordDetailsSettings(
@@ -182,18 +190,11 @@ fun RecordDetailsSettings(
                 onCheckedChange = { parametersViewModel.setLongerDuration(it) },
                 modifier = Modifier,
             )
-            RichSwitch(
-                visible = hasHevcHwEncoder(),
-                icon =
-                    loadIcon(
-                        viewModel = drawableLoaderViewModel,
-                        resId = R.drawable.ic_hevc,
-                        contentDescription = null,
-                    ),
-                label = stringResource(R.string.screenrecord_hevc_switch_label),
-                checked = parametersViewModel.hevc,
-                onCheckedChange = { parametersViewModel.setHevc(it) },
-                modifier = Modifier,
+            VideoCodecSelector(
+                codecs = parametersViewModel.offeredVideoCodecs,
+                selectedCodec = parametersViewModel.videoCodec,
+                onCodecSelected = { parametersViewModel.setVideoCodec(it) },
+                viewModel = drawableLoaderViewModel,
             )
             SettingsRow(visible = true, modifier = Modifier.padding(top = 4.dp)) {
                 Crossfade(
@@ -268,6 +269,69 @@ private fun RichSwitch(
             onCheckedChange = onCheckedChange,
             modifier = Modifier,
         )
+    }
+}
+
+@Composable
+private fun VideoCodecSelector(
+    codecs: List<ScreenRecordVideoCodec>,
+    selectedCodec: ScreenRecordVideoCodec,
+    onCodecSelected: (ScreenRecordVideoCodec) -> Unit,
+    viewModel: DrawableLoaderViewModel,
+    modifier: Modifier = Modifier,
+) {
+    var showCodecs by remember { mutableStateOf(false) }
+    SettingsRow(
+        visible = codecs.size > 1,
+        modifier = modifier.semantics { role = Role.DropdownList }.clickable { showCodecs = true },
+    ) {
+        LoadingIcon(
+            icon =
+                loadIcon(
+                        viewModel = viewModel,
+                        resId = R.drawable.ic_videocam,
+                        contentDescription = null,
+                    )
+                    .value,
+            modifier = Modifier.size(40.dp).padding(8.dp),
+        )
+        Text(
+            text = stringResource(R.string.screenrecord_video_codec_label),
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 8.dp).weight(1f).basicMarquee(),
+        )
+        Box {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                        .padding(start = 12.dp, top = 6.dp, end = 8.dp, bottom = 6.dp),
+            ) {
+                Text(
+                    text = stringResource(selectedCodec.labelRes),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                LoadingIcon(
+                    icon =
+                        loadIcon(
+                                viewModel = viewModel,
+                                resId = R.drawable.ic_arrow_down_24dp,
+                                contentDescription = null,
+                            )
+                            .value,
+                    modifier = Modifier.padding(start = 4.dp).size(18.dp),
+                )
+            }
+            VideoCodecMenu(
+                expanded = showCodecs,
+                onDismissRequest = { showCodecs = false },
+                codecs = codecs,
+                selectedCodec = selectedCodec,
+                onCodecSelected = onCodecSelected,
+                viewModel = viewModel,
+            )
+        }
     }
 }
 
@@ -352,19 +416,4 @@ private fun SettingsRow(
             content = content,
         )
     }
-}
-
-private fun hasHevcHwEncoder(): Boolean {
-    val mediaCodecList = MediaCodecList(MediaCodecList.REGULAR_CODECS)
-    for (codecInfo in mediaCodecList.codecInfos) {
-        if (!codecInfo.isEncoder || !codecInfo.isHardwareAccelerated) {
-            continue
-        }
-        for (type in codecInfo.supportedTypes) {
-            if (type.equals(MediaFormat.MIMETYPE_VIDEO_HEVC, ignoreCase = true)) {
-                return true
-            }
-        }
-    }
-    return false
 }

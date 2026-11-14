@@ -47,6 +47,8 @@ import com.android.systemui.screencapture.record.domain.interactor.ScreenCapture
 import com.android.systemui.screenrecord.data.repository.LegacyScreenRecordingStartStopRepository
 import com.android.systemui.screenrecord.data.repository.ScreenRecordRepository
 import com.android.systemui.screenrecord.data.repository.ScreenRecordRepositoryImpl
+import com.android.systemui.screenrecord.data.repository.ScreenRecordVideoCodecRepository
+import com.android.systemui.screenrecord.data.repository.ScreenRecordVideoCodecRepositoryImpl
 import com.android.systemui.screenrecord.data.repository.ScreenRecordingServiceRepository
 import com.android.systemui.screenrecord.data.repository.ScreenRecordingStartStopRepository
 import com.android.systemui.settings.UserTracker
@@ -85,6 +87,11 @@ interface ScreenRecordModule {
     fun bindScreenCaptureDeviceStateRepository(
         impl: ScreenCaptureDeviceStateRepositoryImpl
     ): ScreenCaptureDeviceStateRepository
+
+    @Binds
+    fun bindScreenRecordVideoCodecRepository(
+        impl: ScreenRecordVideoCodecRepositoryImpl
+    ): ScreenRecordVideoCodecRepository
 
     companion object {
         private const val SCREEN_RECORD_TILE_SPEC = "screenrecord"

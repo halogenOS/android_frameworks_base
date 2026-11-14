@@ -45,6 +45,11 @@
     <string name="screenrecord_longer_timeout_switch_summary">Limit recording size to 15 GB</string>
     <string name="screenrecord_skip_time_label">Skip timer</string>
     <string name="screenrecord_skip_time_summary">Remove the 3 second wait</string>
-    <string name="screenrecord_hevc_switch_label">HEVC encoding</string>
-    <string name="screenrecord_hevc_switch_summary">Use the more efficient HEVC encoder</string>
+    <!-- Label for the control that picks the video codec a screen recording is encoded with [CHAR LIMIT=30] -->
+    <string name="screenrecord_video_codec_label">Video codec</string>
+    <!-- These video codecs are named the same in every language -->
+    <string name="screenrecord_video_codec_h264" translatable="false">H.264</string>
+    <string name="screenrecord_video_codec_hevc" translatable="false">HEVC</string>
+    <string name="screenrecord_video_codec_vp9" translatable="false">VP9</string>
+    <string name="screenrecord_video_codec_av1" translatable="false">AV1</string>
 </resources>

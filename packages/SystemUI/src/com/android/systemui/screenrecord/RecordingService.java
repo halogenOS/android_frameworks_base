@@ -52,10 +52,12 @@ import com.android.systemui.res.R;
 import com.android.systemui.screenrecord.ScreenMediaRecorder.SavedRecording;
 import com.android.systemui.screenrecord.ScreenMediaRecorder.ScreenMediaRecorderListener;
 import com.android.systemui.screenrecord.data.repository.ScreenRecordingPreferenceRepository;
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec;
 import com.android.systemui.settings.UserContextProvider;
 import com.android.systemui.statusbar.phone.KeyguardDismissUtil;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 
 import javax.inject.Inject;
@@ -85,7 +87,7 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
     private static final String EXTRA_DISPLAY_ID = "extra_displayId";
     private static final String EXTRA_STOP_REASON = "extra_stopReason";
     private static final String EXTRA_LONGER_DURATION = "extra_longerDuration";
-    private final static String EXTRA_HEVC = "extra_HEVC";
+    private static final String EXTRA_VIDEO_CODEC = "extra_videoCodec";
 
     protected static final String ACTION_START = "com.android.systemui.screenrecord.START";
     protected static final String ACTION_SHOW_START_NOTIF =
@@ -114,7 +116,7 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
             new ScreenRecordingPreferenceRepository(this);
 
     private boolean mLongerDuration;
-    private boolean mHEVC;
+    private ScreenRecordVideoCodec mVideoCodec;
 
     @Inject
     public RecordingService(ScreenRecordUxController controller, @LongRunning Executor executor,
@@ -147,7 +149,7 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
     public static Intent getStartIntent(Context context, int resultCode,
             int audioSource, boolean showTaps,
             @Nullable MediaProjectionCaptureTarget captureTarget,
-            boolean longerDuration, boolean hevc) {
+            boolean longerDuration, ScreenRecordVideoCodec videoCodec) {
         return new Intent(context, RecordingService.class)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_RESULT_CODE, resultCode)
@@ -155,7 +157,7 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
                 .putExtra(EXTRA_SHOW_TAPS, showTaps)
                 .putExtra(EXTRA_CAPTURE_TARGET, captureTarget)
                 .putExtra(EXTRA_LONGER_DURATION, longerDuration)
-                .putExtra(EXTRA_HEVC, hevc);
+                .putExtra(EXTRA_VIDEO_CODEC, videoCodec);
     }
 
     /**
@@ -179,9 +181,9 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
             int displayId,
             @Nullable MediaProjectionCaptureTarget captureTarget,
             boolean longerDuration,
-            boolean hevc) {
+            ScreenRecordVideoCodec videoCodec) {
         return getStartIntent(context, resultCode, audioSource, showTaps, captureTarget,
-            longerDuration, hevc)
+            longerDuration, videoCodec)
                 .putExtra(EXTRA_DISPLAY_ID, displayId);
     }
 
@@ -211,7 +213,11 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
                         .values()[intent.getIntExtra(EXTRA_AUDIO_SOURCE, 0)];
                 Log.d(getTag(), "recording with audio source " + mAudioSource);
                 mLongerDuration = intent.getBooleanExtra(EXTRA_LONGER_DURATION, false);
-                mHEVC = intent.getBooleanExtra(EXTRA_HEVC, true);
+                // The start intent of an issue recording does not contain a video codec
+                mVideoCodec = Objects.requireNonNullElse(
+                        intent.getSerializableExtra(
+                                EXTRA_VIDEO_CODEC, ScreenRecordVideoCodec.class),
+                        ScreenRecordVideoCodec.DEFAULT);
                 MediaProjectionCaptureTarget captureTarget =
                         intent.getParcelableExtra(EXTRA_CAPTURE_TARGET,
                                 MediaProjectionCaptureTarget.class);
@@ -233,7 +239,7 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
                         this
                 );
                 setLongerDuration(mLongerDuration);
-                setHEVC(mHEVC);
+                setVideoCodec(mVideoCodec);
 
                 if (startRecording()) {
                     updateState(true);
@@ -270,7 +276,7 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
                 Uri shareUri = intent.getParcelableExtra(EXTRA_PATH, Uri.class);
 
                 Intent shareIntent = new Intent(Intent.ACTION_SEND)
-                        .setType("video/mp4")
+                        .setType(getContentResolver().getType(shareUri))
                         .putExtra(Intent.EXTRA_STREAM, shareUri);
                 mKeyguardDismissUtil.executeWhenUnlocked(() -> {
                     String shareLabel = strings().getShareLabel();
@@ -436,9 +442,10 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
     @VisibleForTesting
     protected Notification createSaveNotification(@Nullable SavedRecording recording) {
         Uri uri = recording != null ? recording.getUri() : null;
+        String mimeType = recording != null ? recording.getMimeType() : null;
         Intent viewIntent = new Intent(Intent.ACTION_VIEW)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                .setDataAndType(uri, "video/mp4");
+                .setDataAndType(uri, mimeType);
 
         Notification.Action shareAction = new Notification.Action.Builder(
                 Icon.createWithResource(this, R.drawable.ic_screenrecord),
@@ -580,9 +587,9 @@ public class RecordingService extends Service implements ScreenMediaRecorderList
         }
     }
 
-    private void setHEVC(boolean hevc) {
+    private void setVideoCodec(ScreenRecordVideoCodec videoCodec) {
         if (getRecorder() != null) {
-            getRecorder().setHEVC(hevc);
+            getRecorder().setVideoCodec(videoCodec);
         }
     }
 

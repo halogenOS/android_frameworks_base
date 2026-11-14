@@ -16,8 +16,6 @@
 
 package com.android.systemui.screencapture.record.largescreen.ui.compose
 
-import android.media.MediaCodecList
-import android.media.MediaFormat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,6 +49,9 @@ import com.android.systemui.screencapture.common.ui.compose.LoadingIcon
 import com.android.systemui.screencapture.common.ui.compose.StyledTooltip
 import com.android.systemui.screencapture.common.ui.compose.loadIcon
 import com.android.systemui.screencapture.record.largescreen.ui.viewmodel.PreCaptureToolbarViewModel
+import com.android.systemui.screencapture.record.ui.compose.VideoCodecMenu
+import com.android.systemui.screencapture.record.ui.compose.labelRes
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -166,19 +167,12 @@ fun CaptureSettingsMenu(viewModel: PreCaptureToolbarViewModel, screenRecordingSe
                 enabled = screenRecordingSelected,
             )
 
-            if (hasHevcHwEncoder()) {
-                val hevcIcon by
-                    loadIcon(
-                        viewModel = viewModel,
-                        resId = R.drawable.ic_hevc,
-                        contentDescription = null,
-                    )
-
-                SettingsMenuItem(
-                    text = stringResource(R.string.screenrecord_hevc_switch_label),
-                    leadingIcon = hevcIcon,
-                    checked = recordParameters.hevc,
-                    onCheckedChange = { recordParameters.setHevc(it) },
+            if (recordParameters.offeredVideoCodecs.size > 1) {
+                VideoCodecMenuItem(
+                    viewModel = viewModel,
+                    codecs = recordParameters.offeredVideoCodecs,
+                    selectedCodec = recordParameters.videoCodec,
+                    onCodecSelected = { recordParameters.setVideoCodec(it) },
                     enabled = screenRecordingSelected,
                 )
             }
@@ -220,17 +214,38 @@ private fun SettingsMenuItem(
     )
 }
 
-private fun hasHevcHwEncoder(): Boolean {
-    val mediaCodecList = MediaCodecList(MediaCodecList.REGULAR_CODECS)
-    for (codecInfo in mediaCodecList.codecInfos) {
-        if (!codecInfo.isEncoder || !codecInfo.isHardwareAccelerated) {
-            continue
-        }
-        for (type in codecInfo.supportedTypes) {
-            if (type.equals(MediaFormat.MIMETYPE_VIDEO_HEVC, ignoreCase = true)) {
-                return true
-            }
-        }
+@Composable
+private fun VideoCodecMenuItem(
+    viewModel: PreCaptureToolbarViewModel,
+    codecs: List<ScreenRecordVideoCodec>,
+    selectedCodec: ScreenRecordVideoCodec,
+    onCodecSelected: (ScreenRecordVideoCodec) -> Unit,
+    enabled: Boolean,
+) {
+    var showCodecs by remember { mutableStateOf(false) }
+    val videoCodecIcon by
+        loadIcon(viewModel = viewModel, resId = R.drawable.ic_videocam, contentDescription = null)
+    Box {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.screenrecord_video_codec_label)) },
+            onClick = { showCodecs = true },
+            leadingIcon = {
+                videoCodecIcon?.let {
+                    Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                        Icon(icon = it)
+                    }
+                }
+            },
+            trailingIcon = { Text(stringResource(selectedCodec.labelRes)) },
+            enabled = enabled,
+        )
+        VideoCodecMenu(
+            expanded = showCodecs,
+            onDismissRequest = { showCodecs = false },
+            codecs = codecs,
+            selectedCodec = selectedCodec,
+            onCodecSelected = onCodecSelected,
+            viewModel = viewModel,
+        )
     }
-    return false
 }

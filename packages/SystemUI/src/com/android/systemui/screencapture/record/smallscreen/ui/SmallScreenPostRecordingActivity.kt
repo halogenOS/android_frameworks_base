@@ -66,7 +66,6 @@ import androidx.compose.ui.res.booleanResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.MimeTypes
 import com.android.compose.PlatformOutlinedButton
 import com.android.compose.theme.PlatformTheme
 import com.android.systemui.common.shared.model.ContentDescription
@@ -319,7 +318,7 @@ constructor(
         ): Intent {
             return Intent(context, SmallScreenPostRecordingActivity::class.java)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                .setDataAndType(videoUri, MimeTypes.VIDEO_MP4)
+                .setData(videoUri)
                 .apply(setup)
         }
 

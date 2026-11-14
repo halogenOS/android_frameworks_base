@@ -24,7 +24,6 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import android.media.projection.StopReason
 import android.os.Bundle
-import androidx.media3.common.MimeTypes
 import com.android.systemui.res.R
 import com.android.systemui.screencapture.ScreenCaptureUiReceiver
 import com.android.systemui.screencapture.common.shared.model.ScreenCaptureUiParameters
@@ -148,7 +147,7 @@ constructor(
                     .addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
                     )
-                    .setDataAndType(savedRecording.uri, MimeTypes.VIDEO_MP4)
+                    .setDataAndType(savedRecording.uri, savedRecording.mimeType)
             }
 
         val shareAction: Notification.Action =
@@ -162,7 +161,7 @@ constructor(
                             Intent(Intent.ACTION_SEND)
                                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 .putExtra(Intent.EXTRA_STREAM, savedRecording.uri)
-                                .setDataAndType(savedRecording.uri, MimeTypes.VIDEO_MP4),
+                                .setDataAndType(savedRecording.uri, savedRecording.mimeType),
                             context.getString(R.string.screenrecord_share_label),
                         ),
                         PendingIntent.FLAG_IMMUTABLE,

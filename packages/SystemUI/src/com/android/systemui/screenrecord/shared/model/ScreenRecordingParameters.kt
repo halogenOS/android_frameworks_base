@@ -31,7 +31,7 @@ constructor(
     val shouldShowSeconds: Boolean = false,
     val notificationId: Int = 0,
     val longerDuration: Boolean = false,
-    val hevc: Boolean = false,
+    val videoCodec: ScreenRecordVideoCodec = ScreenRecordVideoCodec.DEFAULT,
 ) : Parcelable {
 
     constructor(
@@ -41,16 +41,27 @@ constructor(
             MediaProjectionCaptureTarget::class.java.classLoader,
             MediaProjectionCaptureTarget::class.java,
         ),
-        parcel.readSerializable(
-            ScreenRecordingAudioSource::class.java.classLoader,
-            ScreenRecordingAudioSource::class.java,
-        ) as ScreenRecordingAudioSource,
+        requireNotNull(
+            parcel.readSerializable(
+                ScreenRecordingAudioSource::class.java.classLoader,
+                ScreenRecordingAudioSource::class.java,
+            )
+        ) {
+            "ScreenRecordingParameters parcel is missing the audio source"
+        },
         parcel.readInt(),
         parcel.readBoolean(),
         parcel.readBoolean(),
         parcel.readInt(),
         parcel.readBoolean(),
-        parcel.readBoolean(),
+        requireNotNull(
+            parcel.readSerializable(
+                ScreenRecordVideoCodec::class.java.classLoader,
+                ScreenRecordVideoCodec::class.java,
+            )
+        ) {
+            "ScreenRecordingParameters parcel is missing the video codec"
+        },
     )
 
     override fun describeContents(): Int = 0
@@ -64,7 +75,7 @@ constructor(
             writeBoolean(shouldShowSeconds)
             writeInt(notificationId)
             writeBoolean(longerDuration)
-            writeBoolean(hevc)
+            writeSerializable(videoCodec)
         }
 
     companion object CREATOR : Parcelable.Creator<ScreenRecordingParameters> {

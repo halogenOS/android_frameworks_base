@@ -6,6 +6,7 @@
 package com.android.systemui.screencapture.record.shared.model
 
 import com.android.systemui.screenrecord.ScreenRecordingAudioSource
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
 
 /**
  * Screen recording options a user chose, saved for their next recording. The default values are
@@ -20,6 +21,6 @@ data class ScreenRecordOptions(
     val audioSourceWhenEnabled: ScreenRecordingAudioSource = ScreenRecordingAudioSource.INTERNAL,
     val shouldShowTaps: Boolean = false,
     val longerDuration: Boolean = false,
-    val hevc: Boolean = false,
+    val videoCodec: ScreenRecordVideoCodec = ScreenRecordVideoCodec.DEFAULT,
     val skipCountdown: Boolean = false,
 )

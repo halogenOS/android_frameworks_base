@@ -16,6 +16,7 @@
 
 package com.android.systemui.screenrecord;
 
+import android.annotation.Nullable;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaMuxer;
@@ -78,29 +79,46 @@ public class ScreenRecordingMuxer {
         muxer.start();
 
         for (Pair<MediaExtractor, Integer> pair: mExtractorIndexToMuxerIndex.keySet()) {
-            MediaExtractor extractor = pair.first;
-            extractor.selectTrack(pair.second);
-            int muxId = mExtractorIndexToMuxerIndex.get(pair);
-            Log.d(TAG, "track format: " + extractor.getTrackFormat(pair.second));
+            pair.first.selectTrack(pair.second);
+            Log.d(TAG, "track format: " + pair.first.getTrackFormat(pair.second));
+        }
+        for (MediaExtractor extractor: mExtractors) {
             extractor.seekTo(0, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
-            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-            MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
-            int offset;
-            while (true) {
-                offset = buffer.arrayOffset();
-                info.size = extractor.readSampleData(buffer, offset);
-                if (info.size < 0) break;
-                info.presentationTimeUs = extractor.getSampleTime();
-                info.flags = extractor.getSampleFlags();
-                muxer.writeSampleData(muxId, buffer, info);
-                extractor.advance();
-            }
         }
 
-        for (MediaExtractor extractor: mExtractors) {
-            extractor.release();
+        // Write the samples of all tracks in the order of their time. A muxer that waits for a
+        // sample of every track before it writes, such as the one for WebM, then has only a few
+        // samples in memory.
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+        MediaExtractor extractor;
+        while ((extractor = findExtractorWithEarliestSample()) != null) {
+            info.size = extractor.readSampleData(buffer, buffer.arrayOffset());
+            info.presentationTimeUs = extractor.getSampleTime();
+            info.flags = extractor.getSampleFlags();
+            int muxId = mExtractorIndexToMuxerIndex.get(
+                    Pair.create(extractor, extractor.getSampleTrackIndex()));
+            muxer.writeSampleData(muxId, buffer, info);
+            extractor.advance();
+        }
+
+        for (MediaExtractor finished: mExtractors) {
+            finished.release();
         }
         muxer.stop();
         muxer.release();
+    }
+
+    /** Returns the extractor whose next sample is the earliest, or null once all are at the end. */
+    @Nullable
+    private MediaExtractor findExtractorWithEarliestSample() {
+        MediaExtractor earliest = null;
+        for (MediaExtractor extractor: mExtractors) {
+            long sampleTime = extractor.getSampleTime();
+            if (sampleTime >= 0 && (earliest == null || sampleTime < earliest.getSampleTime())) {
+                earliest = extractor;
+            }
+        }
+        return earliest;
     }
 }

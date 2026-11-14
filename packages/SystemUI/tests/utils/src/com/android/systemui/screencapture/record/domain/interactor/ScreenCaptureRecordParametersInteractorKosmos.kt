@@ -19,6 +19,7 @@ package com.android.systemui.screencapture.record.domain.interactor
 import com.android.systemui.kosmos.Kosmos
 import com.android.systemui.kosmos.backgroundScope
 import com.android.systemui.screencapture.record.data.repository.screenCaptureRecordParametersRepository
+import com.android.systemui.screenrecord.data.repository.screenRecordVideoCodecRepository
 import com.android.systemui.screenrecord.domain.interactor.screenRecordingServiceInteractor
 
 val Kosmos.screenCaptureRecordParametersInteractor by
@@ -27,5 +28,6 @@ val Kosmos.screenCaptureRecordParametersInteractor by
             coroutineScope = backgroundScope,
             serviceInteractor = screenRecordingServiceInteractor,
             repository = screenCaptureRecordParametersRepository,
+            videoCodecRepository = screenRecordVideoCodecRepository,
         )
     }

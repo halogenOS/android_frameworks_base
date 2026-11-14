@@ -30,6 +30,7 @@ import com.android.systemui.screencapture.record.smallscreen.domain.interactor.R
 import com.android.systemui.screencapture.record.smallscreen.shared.model.currentTargetModel
 import com.android.systemui.screenrecord.ScreenRecordingAudioSource
 import com.android.systemui.screenrecord.domain.interactor.ScreenRecordingServiceInteractor
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.combine
@@ -88,8 +89,11 @@ constructor(
     val longerDuration: Boolean
         get() = shownOptions.longerDuration
 
-    val hevc: Boolean
-        get() = shownOptions.hevc
+    val videoCodec: ScreenRecordVideoCodec
+        get() = recordedVideoCodec(shownOptions)
+
+    val offeredVideoCodecs: List<ScreenRecordVideoCodec>
+        get() = interactor.offeredVideoCodecs
 
     var shouldRecordDevice: Boolean
         get() =
@@ -163,12 +167,15 @@ constructor(
     /** The stored options. A recording started before they are read waits for them. */
     suspend fun storedOptions(): ScreenRecordOptions = interactor.options.filterNotNull().first()
 
+    fun recordedVideoCodec(options: ScreenRecordOptions): ScreenRecordVideoCodec =
+        interactor.recordedVideoCodec(options)
+
     fun setLongerDuration(longerDuration: Boolean) {
         interactor.setLongerDuration(longerDuration)
     }
 
-    fun setHevc(hevc: Boolean) {
-        interactor.setHevc(hevc)
+    fun setVideoCodec(videoCodec: ScreenRecordVideoCodec) {
+        interactor.setVideoCodec(videoCodec)
     }
 
     @AssistedFactory

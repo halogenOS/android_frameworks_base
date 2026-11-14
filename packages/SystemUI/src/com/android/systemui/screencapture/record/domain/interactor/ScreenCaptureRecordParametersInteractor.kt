@@ -24,7 +24,9 @@ import com.android.systemui.screencapture.common.ScreenCaptureScope
 import com.android.systemui.screencapture.record.data.repository.ScreenCaptureRecordParametersRepository
 import com.android.systemui.screencapture.record.shared.model.ScreenRecordOptions
 import com.android.systemui.screenrecord.ScreenRecordingAudioSource
+import com.android.systemui.screenrecord.data.repository.ScreenRecordVideoCodecRepository
 import com.android.systemui.screenrecord.domain.interactor.ScreenRecordingServiceInteractor
+import com.android.systemui.screenrecord.shared.model.ScreenRecordVideoCodec
 import com.android.systemui.screenrecord.shared.model.ScreenRecordingStatus
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -40,10 +42,14 @@ constructor(
     @ScreenCapture coroutineScope: CoroutineScope,
     private val serviceInteractor: ScreenRecordingServiceInteractor,
     private val repository: ScreenCaptureRecordParametersRepository,
+    private val videoCodecRepository: ScreenRecordVideoCodecRepository,
 ) {
 
     /** The stored options of the selected user, null until they are read. */
     val options: StateFlow<ScreenRecordOptions?> = repository.options
+
+    val offeredVideoCodecs: List<ScreenRecordVideoCodec>
+        get() = videoCodecRepository.offered
 
     private var _shouldShowFrontCamera: Boolean by mutableStateOf(false)
 
@@ -75,7 +81,12 @@ constructor(
     fun setLongerDuration(longerDuration: Boolean) =
         repository.update { it.copy(longerDuration = longerDuration) }
 
-    fun setHevc(hevc: Boolean) = repository.update { it.copy(hevc = hevc) }
+    fun setVideoCodec(videoCodec: ScreenRecordVideoCodec) =
+        repository.update { it.copy(videoCodec = videoCodec) }
+
+    /** The video codec a recording with [options] is encoded with on this device. */
+    fun recordedVideoCodec(options: ScreenRecordOptions): ScreenRecordVideoCodec =
+        videoCodecRepository.offeredOrDefault(options.videoCodec)
 
     private fun updateAudioSource(
         transform: (ScreenRecordingAudioSource) -> ScreenRecordingAudioSource

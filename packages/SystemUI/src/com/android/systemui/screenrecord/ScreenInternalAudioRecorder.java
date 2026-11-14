@@ -21,13 +21,14 @@ import android.media.AudioFormat;
 import android.media.AudioPlaybackCaptureConfiguration;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
-import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.media.MediaRecorder;
 import android.media.projection.MediaProjection;
 import android.util.Log;
 import android.util.MathUtils;
+
+import com.android.systemui.screenrecord.shared.model.ScreenRecordFileFormat;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -51,12 +52,16 @@ public class ScreenInternalAudioRecorder {
     private boolean mMic;
     private boolean mStarted;
 
+    private final ScreenRecordFileFormat mFileFormat;
+
     private int mTrackId = -1;
 
-    public ScreenInternalAudioRecorder(String outFile, MediaProjection mp, boolean includeMicInput)
-            throws IOException {
+    public ScreenInternalAudioRecorder(String outFile, MediaProjection mp, boolean includeMicInput,
+            ScreenRecordFileFormat fileFormat) throws IOException {
         mMic = includeMicInput;
-        mMuxer = new MediaMuxer(outFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+        mMuxer = new MediaMuxer(outFile, fileFormat.getMediaMuxerFormat());
+        mFileFormat = fileFormat;
+        mConfig.sampleRate = fileFormat.getAudioSampleRate();
         mMediaProjection = mp;
         Log.d(TAG, "creating audio file " + outFile);
         setupSimple();
@@ -68,7 +73,7 @@ public class ScreenInternalAudioRecorder {
         public int channelOutMask = AudioFormat.CHANNEL_OUT_MONO;
         public int channelInMask = AudioFormat.CHANNEL_IN_MONO;
         public int encoding = AudioFormat.ENCODING_PCM_16BIT;
-        public int sampleRate = 44100;
+        public int sampleRate;
         public int bitRate = 196000;
         public int bufferSizeBytes = 1 << 17;
         public boolean privileged = true;
@@ -116,11 +121,13 @@ public class ScreenInternalAudioRecorder {
                     mConfig.sampleRate, AudioFormat.CHANNEL_IN_MONO, mConfig.encoding, size);
         }
 
-        mCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC);
+        mCodec = MediaCodec.createEncoderByType(mFileFormat.getAudioMimeType());
         MediaFormat medFormat = MediaFormat.createAudioFormat(
-                MediaFormat.MIMETYPE_AUDIO_AAC, mConfig.sampleRate, 1);
-        medFormat.setInteger(MediaFormat.KEY_AAC_PROFILE,
-                MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+                mFileFormat.getAudioMimeType(), mConfig.sampleRate, 1);
+        Integer aacProfile = mFileFormat.getAacProfile();
+        if (aacProfile != null) {
+            medFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, aacProfile);
+        }
         medFormat.setInteger(MediaFormat.KEY_BIT_RATE, mConfig.bitRate);
         medFormat.setInteger(MediaFormat.KEY_PCM_ENCODING, mConfig.encoding);
         mCodec.configure(medFormat,

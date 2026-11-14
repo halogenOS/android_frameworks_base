@@ -42,8 +42,6 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 
-private const val MIME_TYPE = "video/mp4"
-
 private fun Intent.addNewTaskAndUriGrantFlags(): Intent =
     addFlags(
         Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -70,11 +68,14 @@ constructor(
     var parentUri: Uri? by mutableStateOf(null)
         private set
 
+    private var videoMimeType: String? = null
+
     /** Whether the current user has an activity for the intent sent by [edit]. */
     var hasVideoEditor: Boolean by mutableStateOf(false)
         private set
 
     override suspend fun onActivated() {
+        videoMimeType = context.contentResolver.getType(videoUri)
         parentUri = parentUriRepository.getParentDirectoryUri(videoUri)
         hasVideoEditor =
             intentResolutionRepository.hasActivityFor(createEditIntent(), userTracker.userId)
@@ -132,7 +133,7 @@ constructor(
 
     private fun createVideoIntent(
         action: String,
-        mimeType: String = MIME_TYPE,
+        mimeType: String? = videoMimeType,
         uri: Uri = videoUri,
     ): Intent =
         Intent(action)

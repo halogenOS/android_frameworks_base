@@ -255,7 +255,7 @@ constructor(
         val options = recordDetailsParametersViewModel.storedOptions()
         val audioSource = options.audioSource
         val longerDuration = options.longerDuration
-        val hevc = options.hevc
+        val videoCodec = recordDetailsParametersViewModel.recordedVideoCodec(options)
         when (target) {
             is ScreenCaptureTarget.Fullscreen -> {
                 val shouldShowTaps = options.shouldShowTaps
@@ -266,7 +266,7 @@ constructor(
                         shouldShowTaps = shouldShowTaps,
                         audioSource = audioSource,
                         longerDuration = longerDuration,
-                        hevc = hevc,
+                        videoCodec = videoCodec,
                     )
                 )
             }
@@ -304,7 +304,7 @@ constructor(
                         shouldShowTaps = false,
                         audioSource = audioSource,
                         longerDuration = longerDuration,
-                        hevc = hevc,
+                        videoCodec = videoCodec,
                     )
                 )
             }
