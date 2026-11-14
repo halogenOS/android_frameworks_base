@@ -11677,6 +11677,14 @@ public final class Settings {
         public static final String AUDIO_DEVICE_INVENTORY = "audio_device_inventory";
 
         /**
+         * The output devices remembered by the audio service, each with whether audio policy
+         * switches it to the format of a lone media track. Stored for the system user only,
+         * because audio policy applies it to every user.
+         * @hide
+         */
+        public static final String AUDIO_DEVICE_FORMAT_SWITCHING = "audio_device_format_switching";
+
+        /**
          * Stores a boolean that defines whether the CSD as a feature is enabled or not.
          * @hide
          */

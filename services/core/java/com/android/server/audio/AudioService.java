@@ -198,6 +198,7 @@ import android.media.IDeviceVolumeBehaviorDispatcher;
 import android.media.IDevicesForAttributesCallback;
 import android.media.ILoudnessCodecUpdatesDispatcher;
 import android.media.IMuteAwaitConnectionCallback;
+import android.media.IOutputFormatManager;
 import android.media.IPlaybackConfigDispatcher;
 import android.media.IPreferredMixerAttributesDispatcher;
 import android.media.IRecordingConfigDispatcher;
@@ -218,6 +219,7 @@ import android.media.MediaMetrics;
 import android.media.MediaRecorder.AudioSource;
 import android.media.PlayerBase;
 import android.media.Spatializer;
+import android.media.UsbDeviceIds;
 import android.media.Utils;
 import android.media.VolumeInfo;
 import android.media.VolumePolicy;
@@ -371,6 +373,7 @@ public class AudioService extends IAudioService.Stub
     private final SystemServerAdapter mSystemServer;
     private final SettingsAdapter mSettings;
     private final AudioPolicyFacade mAudioPolicy;
+    private final OutputFormatSwitching mOutputFormatSwitching;
 
     private final AudioServerPermissionProvider mPermissionProvider;
 
@@ -1533,6 +1536,8 @@ public class AudioService extends IAudioService.Stub
         mAudioPolicy.registerOnStartTask(() -> {
             mAudioPolicy.setHardeningOverride((byte) mHardeningOverride.get());
         });
+        mOutputFormatSwitching = new OutputFormatSwitching(
+                new OutputFormatChoiceStore(mContentResolver, settings), audioPolicy, enforcer);
         if (!mAudioPolicy.isServiceAvailable()) {
             Log.e(TAG, "AudioPolicy not available on AudioService start!");
         }
@@ -1548,7 +1553,8 @@ public class AudioService extends IAudioService.Stub
 
         mDeviceBroker = new AudioDeviceBroker(mContext, this,
                 new AudioDeviceInventory(mAudioSystem,
-                        audioSystem.getAudioProductStrategies(/* filterInternal= */ true)),
+                        audioSystem.getAudioProductStrategies(/* filterInternal= */ true),
+                        mOutputFormatSwitching),
                 SystemServerAdapter.getDefaultAdapter(mContext), mAudioSystem, brokerWakeLock);
 
         mIsSingleVolume = AudioSystem.isSingleVolume(context);
@@ -12310,6 +12316,13 @@ public class AudioService extends IAudioService.Stub
         return mDeviceBroker.createAudioModeSession(request, callback);
     }
 
+    @Override
+    @android.annotation.EnforcePermission(MODIFY_AUDIO_SETTINGS_PRIVILEGED)
+    public IOutputFormatManager getOutputFormatManager() {
+        super.getOutputFormatManager_enforcePermission();
+        return mOutputFormatSwitching;
+    }
+
     /** only public for mocking/spying, do not call outside of AudioService */
     @VisibleForTesting
     public void checkMusicActive(int deviceType, String caller) {
@@ -15165,6 +15178,14 @@ public class AudioService extends IAudioService.Stub
                 }
             }
             return false;
+        }
+
+        @Override
+        public void setUsbDeviceConnectionState(@NonNull AudioDeviceAttributes device,
+                @NonNull UsbDeviceIds ids, boolean connected, @NonNull String caller) {
+            mOutputFormatSwitching.setUsbDeviceConnectionState(device, ids, connected);
+            setWiredDeviceConnectionState(device,
+                    connected ? CONNECTION_STATE_CONNECTED : CONNECTION_STATE_DISCONNECTED, caller);
         }
     }
 

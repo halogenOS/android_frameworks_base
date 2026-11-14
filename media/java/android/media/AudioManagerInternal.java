@@ -15,6 +15,7 @@
  */
 package android.media;
 
+import android.annotation.NonNull;
 import android.annotation.SpecialUsers.CannotBeSpecialUser;
 import android.annotation.UserIdInt;
 import android.util.IntArray;
@@ -77,6 +78,14 @@ public abstract class AudioManagerInternal {
 
     /** Returns whether the given user is currently playing audio. */
     public abstract boolean isUserPlayingAudio(@CannotBeSpecialUser @UserIdInt int userId);
+
+    /**
+     * Connects or disconnects {@code device}, the ALSA card of the USB device with {@code ids}, as
+     * IAudioService.setWiredDeviceConnectionState does. While the USB output is connected, the
+     * audio service stores whether it switches format under {@code ids}.
+     */
+    public abstract void setUsbDeviceConnectionState(@NonNull AudioDeviceAttributes device,
+            @NonNull UsbDeviceIds ids, boolean connected, @NonNull String caller);
 
     public interface RingerModeDelegate {
         /** Called when external ringer mode is evaluated, returns the new internal ringer mode */

@@ -17,13 +17,18 @@
 package com.android.server.audio;
 
 import android.annotation.Nullable;
+import android.media.AudioDeviceAttributes;
 import android.media.IAudioPolicyService;
+import android.media.audio.common.AidlConversion;
+import android.media.audio.common.AudioDeviceDescription;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.android.media.permission.INativePermissionController;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
@@ -33,6 +38,8 @@ import java.util.function.Function;
  * dependencies. This forwards calls as-is to IAudioPolicyService.
  */
 public class DefaultAudioPolicyFacade implements AudioPolicyFacade {
+
+    private static final String TAG = "AS.DefaultAudioPolicyFacade";
 
     private static final String AUDIO_POLICY_SERVICE_NAME = "media.audio_policy";
 
@@ -83,6 +90,31 @@ public class DefaultAudioPolicyFacade implements AudioPolicyFacade {
             ap.setHardeningOverride(hardeningOverride);
         } catch (RemoteException e) {
             mServiceHolder.attemptClear(ap.asBinder());
+        }
+    }
+
+    @Override
+    public void setFormatSwitchingEnabled(AudioDeviceAttributes device, boolean enabled) {
+        IAudioPolicyService ap = mServiceHolder.checkService();
+        if (ap == null) return;
+        try {
+            ap.setFormatSwitchingEnabled(
+                    AidlConversion.api2aidl_AudioDeviceAttributes_AudioDevice(device), enabled);
+        } catch (RemoteException e) {
+            mServiceHolder.attemptClear(ap.asBinder());
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "An output of " + device + " failed to open at its default format", e);
+        }
+    }
+
+    @Override
+    public List<AudioDeviceDescription> getFormatSwitchingDeviceTypes() {
+        IAudioPolicyService ap = mServiceHolder.waitForService();
+        try {
+            return List.of(ap.getFormatSwitchingDeviceTypes());
+        } catch (RemoteException e) {
+            mServiceHolder.attemptClear(ap.asBinder());
+            return List.of();
         }
     }
 

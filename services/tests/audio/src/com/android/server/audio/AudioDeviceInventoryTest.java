@@ -69,7 +69,8 @@ public class AudioDeviceInventoryTest {
 
         mMockAudioService = mock(AudioService.class);
         mSpyAudioSystem = spy(new NoOpAudioSystemAdapter());
-        mDevInventory = new AudioDeviceInventory(mSpyAudioSystem, new ArrayList<>());
+        mDevInventory = new AudioDeviceInventory(mSpyAudioSystem, new ArrayList<>(),
+                device -> {});
         mSystemServer = new NoOpSystemServerAdapter();
         mSpyAudioDeviceBroker = spy(new AudioDeviceBroker(context, mMockAudioService, mDevInventory,
                 mSystemServer, mSpyAudioSystem, mMockWakelock));

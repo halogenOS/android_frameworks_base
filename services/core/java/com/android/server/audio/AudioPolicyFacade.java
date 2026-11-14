@@ -16,7 +16,12 @@
 
 package com.android.server.audio;
 
+import android.media.AudioDeviceAttributes;
+import android.media.audio.common.AudioDeviceDescription;
+
 import com.android.media.permission.INativePermissionController;
+
+import java.util.List;
 
 /**
  * Facade to IAudioPolicyService which fulfills AudioService dependencies.
@@ -27,5 +32,16 @@ public interface AudioPolicyFacade {
     public INativePermissionController getPermissionController();
     public void registerOnStartTask(Runnable r);
     public void setHardeningOverride(byte hardeningOverride);
+    /**
+     * Sets whether audio policy switches device to the format of a media track that plays alone
+     * on it. Does nothing while audio policy is not running, and logs an output that fails to open
+     * again at its default format.
+     */
+    public void setFormatSwitchingEnabled(AudioDeviceAttributes device, boolean enabled);
+    /**
+     * The output device types that audio policy switches to the format of a lone media track, or
+     * none when audio policy stops before it returns them.
+     */
+    public List<AudioDeviceDescription> getFormatSwitchingDeviceTypes();
     public boolean isServiceAvailable();
 }

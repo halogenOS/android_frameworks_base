@@ -66,7 +66,8 @@ public class SpatializerHelperTest {
         mSpyAudioSystem = spy(new NoOpAudioSystemAdapter());
         mSpyDeviceBroker = spy(new AudioDeviceBroker(context, mMockAudioService,
                 new AudioDeviceInventory(mSpyAudioSystem,
-                        mSpyAudioSystem.getAudioProductStrategies(/* filterInternal= */ true)),
+                        mSpyAudioSystem.getAudioProductStrategies(/* filterInternal= */ true),
+                        device -> {}),
                 SystemServerAdapter.getDefaultAdapter(context), mSpyAudioSystem, mMockWakelock));
 
         mSpatHelper = new SpatializerHelper(mMockAudioService, mSpyAudioSystem,

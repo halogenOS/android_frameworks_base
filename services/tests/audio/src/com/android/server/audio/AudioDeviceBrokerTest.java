@@ -96,7 +96,8 @@ public class AudioDeviceBrokerTest {
                 .thenReturn(AudioSystem.STREAM_MUSIC);
 
         mSpyAudioSystem = spy(new NoOpAudioSystemAdapter());
-        mSpyDevInventory = spy(new AudioDeviceInventory(mSpyAudioSystem, new ArrayList<>()));
+        mSpyDevInventory = spy(new AudioDeviceInventory(mSpyAudioSystem, new ArrayList<>(),
+                device -> {}));
         mSpySystemServer = spy(new NoOpSystemServerAdapter());
         mAudioDeviceBroker = new AudioDeviceBroker(context, mMockAudioService, mSpyDevInventory,
                 mSpySystemServer, mSpyAudioSystem, mMockWakelock);

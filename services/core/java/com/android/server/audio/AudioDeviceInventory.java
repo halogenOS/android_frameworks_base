@@ -639,6 +639,13 @@ public class AudioDeviceInventory {
 
     private @NonNull AudioDeviceBroker mDeviceBroker;
 
+    private final @NonNull OutputConnectingListener mOutputConnectingListener;
+
+    /** Called right before the inventory connects an output device to audio policy. */
+    interface OutputConnectingListener {
+        void onOutputConnecting(@NonNull AudioDeviceAttributes device);
+    }
+
     // Monitoring of audio routes.  Protected by mAudioRoutes.
     final AudioRoutesInfo mCurAudioRoutes = new AudioRoutesInfo();
     final RemoteCallbackList<IAudioRoutesObserver> mRoutesObservers =
@@ -660,8 +667,10 @@ public class AudioDeviceInventory {
 
     AudioDeviceInventory(
             @Nullable AudioSystemAdapter audioSystem,
-            List<AudioProductStrategy> strategies) {
+            List<AudioProductStrategy> strategies,
+            @NonNull OutputConnectingListener outputConnectingListener) {
         mAudioSystem = audioSystem;
+        mOutputConnectingListener = outputConnectingListener;
         mStrategies = Objects.requireNonNull(strategies,
                 "Audio product strategies must not be null");
         mBluetoothDualModeEnabled = SystemProperties.getBoolean(
@@ -911,6 +920,7 @@ public class AudioDeviceInventory {
                     mApmConnectedDevices.add(di.getKey());
                     continue;
                 }
+                mOutputConnectingListener.onOutputConnecting(di.toAudioDeviceAttributes());
                 // device disconnected: call setDeviceConnectionState(AVAILABLE)
                 res = mAudioSystem.setDeviceConnectionState(di.toAudioDeviceAttributes(),
                         AudioSystem.DEVICE_STATE_AVAILABLE,
@@ -3449,7 +3459,7 @@ public class AudioDeviceInventory {
      * {@link AudioSystemAdapter#setDeviceConnectionState(AudioDeviceAttributes, int, int, boolean)}
      * for DEVICE_STATE_AVAILABLE, which handles whether the call should go through, or
      * be delayed because AudioService is waiting for audioserver to restart and the devices to
-     * be restored.
+     * be restored. A call that goes through calls the OutputConnectingListener first.
      * @param ada the device to connect
      * @param codec the codec/format parameter to the AudioSystem API
      * @param deviceSwitch the deviceSwitch parameter to the AudioSystem API
@@ -3459,11 +3469,12 @@ public class AudioDeviceInventory {
      */
     private int setApmDeviceConnectionAvailable(@NonNull AudioDeviceAttributes ada, int codec,
             boolean deviceSwitch) {
-        return mDeviceBroker.isWaitingForDeviceRestore()
-                ? AudioSystem.AUDIO_STATUS_SERVER_DIED
-                : mAudioSystem.setDeviceConnectionState(Objects.requireNonNull(ada),
-                        AudioSystem.DEVICE_STATE_AVAILABLE, codec,
-                        deviceSwitch);
+        if (mDeviceBroker.isWaitingForDeviceRestore()) {
+            return AudioSystem.AUDIO_STATUS_SERVER_DIED;
+        }
+        mOutputConnectingListener.onOutputConnecting(Objects.requireNonNull(ada));
+        return mAudioSystem.setDeviceConnectionState(ada, AudioSystem.DEVICE_STATE_AVAILABLE,
+                codec, deviceSwitch);
     }
 
     /**

@@ -45,6 +45,7 @@ import android.media.IDeviceVolumeBehaviorDispatcher;
 import android.media.IDevicesForAttributesCallback;
 import android.media.ILoudnessCodecUpdatesDispatcher;
 import android.media.IMuteAwaitConnectionCallback;
+import android.media.IOutputFormatManager;
 import android.media.IPlaybackConfigDispatcher;
 import android.media.IPreferredMixerAttributesDispatcher;
 import android.media.IRecordingConfigDispatcher;
@@ -892,4 +893,8 @@ interface IAudioService {
     @EnforcePermission("MODIFY_PHONE_STATE")
     IAudioModeSession createAudioModeSession(in AudioModeSessionRequest request,
             in IAudioModeSessionCallback callback);
+
+    @EnforcePermission("MODIFY_AUDIO_SETTINGS_PRIVILEGED")
+    @JavaPassthrough(annotation="@android.annotation.RequiresPermission(android.Manifest.permission.MODIFY_AUDIO_SETTINGS_PRIVILEGED)")
+    IOutputFormatManager getOutputFormatManager();
 }
