@@ -21,11 +21,11 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.hardware.usb.UsbDevice;
 import android.media.AudioManager;
-import android.media.IAudioService;
+import android.media.AudioManagerInternal;
+import android.media.UsbDeviceIds;
 import android.media.midi.MidiDeviceInfo;
 import android.os.Bundle;
 import android.os.FileObserver;
-import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.provider.Settings;
@@ -34,6 +34,7 @@ import android.util.Slog;
 
 import com.android.internal.alsa.AlsaCardsParser;
 import com.android.internal.util.dump.DualDumpOutputStream;
+import com.android.server.LocalServices;
 import com.android.server.usb.descriptors.UsbDescriptorParser;
 import com.android.server.usb.flags.Flags;
 
@@ -73,7 +74,7 @@ public final class UsbAlsaManager {
     private static final int ALSA_DEVICE_TYPE_MIDI = 3;
 
     private final Context mContext;
-    private IAudioService mAudioService;
+    private AudioManagerInternal mAudioManagerInternal;
     private final boolean mHasMidiFeature;
 
     private final AlsaCardsParser mCardsParser = new AlsaCardsParser();
@@ -165,8 +166,7 @@ public final class UsbAlsaManager {
     }
 
     public void systemReady() {
-        mAudioService = IAudioService.Stub.asInterface(
-                        ServiceManager.getService(Context.AUDIO_SERVICE));
+        mAudioManagerInternal = LocalServices.getService(AudioManagerInternal.class);
         mAlsaObserver.startWatching();
     }
 
@@ -352,14 +352,17 @@ public final class UsbAlsaManager {
             boolean isOutputHeadset = parser.isOutputHeadset();
             boolean isDock = parser.isDock();
 
-            if (mAudioService == null) {
+            if (mAudioManagerInternal == null) {
                 Slog.e(TAG, "no AudioService");
                 return;
             }
 
+            UsbDeviceIds usbDeviceIds = new UsbDeviceIds();
+            usbDeviceIds.vendorId = usbDevice.getVendorId();
+            usbDeviceIds.productId = usbDevice.getProductId();
             UsbAlsaDevice alsaDevice =
-                    new UsbAlsaDevice(mAudioService, cardRec.getCardNum(), 0 /*device*/,
-                                      deviceAddress, hasOutput, hasInput,
+                    new UsbAlsaDevice(mAudioManagerInternal, usbDeviceIds, cardRec.getCardNum(),
+                                      0 /*device*/, deviceAddress, hasOutput, hasInput,
                                       isInputHeadset, isOutputHeadset, isDock);
             alsaDevice.setDeviceNameAndDescription(
                     cardRec.getCardName(), cardRec.getCardDescription());

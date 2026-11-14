@@ -18,9 +18,9 @@ package com.android.server.usb;
 
 import android.annotation.NonNull;
 import android.media.AudioDeviceAttributes;
+import android.media.AudioManagerInternal;
 import android.media.AudioSystem;
-import android.media.IAudioService;
-import android.os.RemoteException;
+import android.media.UsbDeviceIds;
 import android.service.usb.UsbAlsaDeviceProto;
 import android.util.Slog;
 
@@ -54,17 +54,20 @@ public final class UsbAlsaDevice {
     private boolean[] mIsSelected = new boolean[NUM_DIRECTIONS];
     private int[] mState = new int[NUM_DIRECTIONS];
     private UsbAlsaJackDetector mJackDetector;
-    private IAudioService mAudioService;
+    private final AudioManagerInternal mAudioManagerInternal;
+    private final UsbDeviceIds mUsbDeviceIds;
 
     private String mDeviceName = "";
     private String mDeviceDescription = "";
 
     private boolean mHasJackDetect = true;
 
-    public UsbAlsaDevice(IAudioService audioService, int card, int device, String deviceAddress,
+    public UsbAlsaDevice(AudioManagerInternal audioManagerInternal, UsbDeviceIds usbDeviceIds,
+            int card, int device, String deviceAddress,
             boolean hasOutput, boolean hasInput,
             boolean isInputHeadset, boolean isOutputHeadset, boolean isDock) {
-        mAudioService = audioService;
+        mAudioManagerInternal = audioManagerInternal;
+        mUsbDeviceIds = usbDeviceIds;
         mCardNum = card;
         mDeviceNum = device;
         mDeviceAddress = deviceAddress;
@@ -307,13 +310,8 @@ public final class UsbAlsaDevice {
             mState[direction] = state;
             AudioDeviceAttributes attributes = new AudioDeviceAttributes(
                     mDeviceType[direction], mAlsaCardDeviceString, mDeviceName);
-            try {
-                mAudioService.setWiredDeviceConnectionState(attributes, state, TAG);
-            } catch (RemoteException e) {
-                Slog.e(TAG, "RemoteException in setWiredDeviceConnectionState for "
-                        + DIRECTION_STR[direction]);
-                return false;
-            }
+            mAudioManagerInternal.setUsbDeviceConnectionState(attributes, mUsbDeviceIds,
+                    state == 1 /*connected*/, TAG);
         }
         return true;
     }
