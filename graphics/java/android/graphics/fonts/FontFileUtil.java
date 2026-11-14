@@ -140,6 +140,19 @@ public class FontFileUtil {
     }
 
     /**
+     * Reads weight and slant from the OS/2 table of a font file. A variable font reports those of
+     * its default instance. A font whose style cannot be read counts as normal and upright.
+     */
+    public static @NonNull FontStyle readFontStyle(@NonNull ByteBuffer buffer) {
+        final int packed = analyzeStyle(buffer, 0, null /* varSettings */);
+        if (!isSuccess(packed)) {
+            return new FontStyle(FontStyle.FONT_WEIGHT_NORMAL, FontStyle.FONT_SLANT_UPRIGHT);
+        }
+        return new FontStyle(unpackWeight(packed),
+                unpackItalic(packed) ? FontStyle.FONT_SLANT_ITALIC : FontStyle.FONT_SLANT_UPRIGHT);
+    }
+
+    /**
      * Analyze head OpenType table and return fontRevision value as 32bit integer.
      *
      * The font revision is stored in 16.16 bit fixed point value. This function returns this fixed

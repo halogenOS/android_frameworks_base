@@ -489,8 +489,9 @@ public class FontManager {
     }
 
     /**
-     * Returns a map from font family ID to human-readable display name for
-     * pre-installed font families shipped in the system image.
+     * Returns a map from the name of each font family provided by a font package preinstalled on
+     * the system image to the label of that package. The name of such a font family is the
+     * package name.
      *
      * <p>The caller must hold {@code INSTALL_CUSTOM_FONTS}.
      *

@@ -76,9 +76,8 @@ import java.nio.NioUtils;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,16 +91,9 @@ public final class FontManagerService extends IFontManager.Stub {
     private static final String FONT_FILES_DIR = "/data/fonts/files";
     private static final String CONFIG_XML_FILE = "/data/fonts/config/config.xml";
 
-    /** Pre-installed named font families discovered from the system image. */
+    /** The font packages on the system image, found at boot. */
     @NonNull
-    private final Set<String> mPreinstalledFontFamilies = new HashSet<>();
-
-    /**
-     * Maps pre-installed font family ID (font map key) to its display name
-     * (PostScript name from the font file). Populated at boot.
-     */
-    @NonNull
-    private final Map<String, String> mPreinstalledFontDisplayNames = new HashMap<>();
+    private volatile FontPackages mFontPackages = FontPackages.EMPTY;
 
     @android.annotation.EnforcePermission(android.Manifest.permission.UPDATE_FONTS)
     @RequiresPermission(Manifest.permission.UPDATE_FONTS)
@@ -201,8 +193,9 @@ public final class FontManagerService extends IFontManager.Stub {
     @Override
     public int removeCustomFontFamily(@NonNull String familyName) {
         super.removeCustomFontFamily_enforcePermission();
-        if (mPreinstalledFontFamilies.contains(familyName)) {
-            Slog.w(TAG, "Cannot remove pre-installed font family: " + familyName);
+        if (mFontPackages.contains(familyName)) {
+            Slog.w(TAG, "Cannot remove a font family that comes from a font package: "
+                    + familyName);
             return FontManager.RESULT_ERROR_INVALID_FONT_NAME;
         }
         final List<Integer> affectedUsers = new ArrayList<>();
@@ -243,17 +236,7 @@ public final class FontManagerService extends IFontManager.Stub {
     public @NonNull List<String> getCustomFontFamilyNames() {
         super.getCustomFontFamilyNames_enforcePermission();
         synchronized (mUpdatableFontDirLock) {
-            if (mUpdatableFontDir == null) {
-                return new ArrayList<>(mPreinstalledFontFamilies);
-            }
-            List<String> names = new ArrayList<>(
-                    mUpdatableFontDir.getCustomFontFamilyNames());
-            for (String family : mPreinstalledFontFamilies) {
-                if (!names.contains(family)) {
-                    names.add(family);
-                }
-            }
-            return names;
+            return new ArrayList<>(getInstalledFontFamilyNames());
         }
     }
 
@@ -337,9 +320,7 @@ public final class FontManagerService extends IFontManager.Stub {
             if (mUpdatableFontDir == null) {
                 return FontManager.RESULT_ERROR_FONT_UPDATER_DISABLED;
             }
-            if (familyName != null
-                    && !mUpdatableFontDir.getCustomFontFamilyNames().contains(familyName)
-                    && !mPreinstalledFontFamilies.contains(familyName)) {
+            if (familyName != null && !getInstalledFontFamilyNames().contains(familyName)) {
                 Slog.e(TAG, "Custom font family not installed: " + familyName);
                 return FontManager.RESULT_ERROR_FONT_NOT_FOUND;
             }
@@ -530,18 +511,7 @@ public final class FontManagerService extends IFontManager.Stub {
                 familyName = psName;
             }
 
-            final int packed = FontFileUtil.analyzeStyle(buffer, 0, null /* varSettings */);
-            final FontStyle style;
-            if (FontFileUtil.isSuccess(packed)) {
-                style = new FontStyle(
-                        FontFileUtil.unpackWeight(packed),
-                        FontFileUtil.unpackItalic(packed)
-                                ? FontStyle.FONT_SLANT_ITALIC : FontStyle.FONT_SLANT_UPRIGHT);
-            } else {
-                style = new FontStyle(
-                        FontStyle.FONT_WEIGHT_NORMAL, FontStyle.FONT_SLANT_UPRIGHT);
-            }
-            return new InstalledFont(psName, familyName, style);
+            return new InstalledFont(psName, familyName, FontFileUtil.readFontStyle(buffer));
         } catch (IOException e) {
             mUpdatableFontDir.removeCustomFontFileByPsName(psName);
             throw new SystemFontException(
@@ -579,6 +549,17 @@ public final class FontManagerService extends IFontManager.Stub {
 
     private static int styleKey(FontStyle style) {
         return style.getWeight() | (style.getSlant() << 16);
+    }
+
+    /** The custom font families, followed by the font families of the font packages. */
+    @GuardedBy("mUpdatableFontDirLock")
+    private @NonNull Set<String> getInstalledFontFamilyNames() {
+        final Set<String> names = new LinkedHashSet<>();
+        if (mUpdatableFontDir != null) {
+            names.addAll(mUpdatableFontDir.getCustomFontFamilyNames());
+        }
+        names.addAll(mFontPackages.getFamilyNames());
+        return names;
     }
 
     private void applyCustomFontOverlayForUser(@Nullable String familyName, int userId) {
@@ -779,11 +760,11 @@ public final class FontManagerService extends IFontManager.Stub {
             SystemServerInitThreadPool.submit(() -> {
                 initialize();
 
-                // Set system font map only if there is updatable font directory.
-                // If there is no updatable font directory, `initialize` will have already loaded
-                // the system font map, so there's no need to set the system font map again here.
+                // Set system font map only if it is not the preinstalled one. Otherwise
+                // `initialize` will have already loaded the system font map, so there's no need
+                // to set the system font map again here.
                 synchronized (mUpdatableFontDirLock) {
-                    if  (mUpdatableFontDir != null) {
+                    if (!usesPreinstalledFontMap()) {
                         setSystemFontMap();
                     }
                 }
@@ -836,20 +817,25 @@ public final class FontManagerService extends IFontManager.Stub {
     }
 
     private void initialize() {
+        // Font packages do not depend on fs-verity. FontPackages.load runs before the lock is
+        // taken, since it calls PackageManager, reads APK files and writes font files to /data.
+        final FontPackages fontPackages = FontPackages.load(mContext.getPackageManager());
         synchronized (mUpdatableFontDirLock) {
+            mFontPackages = fontPackages;
             mUpdatableFontDir = createUpdatableFontDir();
-            if (mUpdatableFontDir == null) {
+            if (usesPreinstalledFontMap()) {
                 if (Flags.useOptimizedBoottimeFontLoading()) {
-                    // If fs-verity is not supported, load preinstalled system font map and use it
-                    // for all apps.
+                    // Without fs-verity and font packages, load preinstalled system font map and
+                    // use it for all apps.
                     Typeface.loadPreinstalledSystemFontMap();
                 }
                 setSerializedFontMap(serializeSystemServerFontMap());
-                return;
+            } else {
+                if (mUpdatableFontDir != null) {
+                    mUpdatableFontDir.loadFontFileMap();
+                }
+                updateSerializedFontMap();
             }
-            mUpdatableFontDir.loadFontFileMap();
-            loadPreinstalledFontFamilies();
-            updateSerializedFontMap();
         }
         applyDefaultFontForAllUsers();
         registerUserRemovedReceiver();
@@ -857,33 +843,19 @@ public final class FontManagerService extends IFontManager.Stub {
     }
 
     /**
-     * Discovers named font families shipped in the system image and populates
-     * {@link #mPreinstalledFontFamilies} (IDs) and
-     * {@link #mPreinstalledFontDisplayNames} (ID → display name) so they are
-     * surfaced through the custom font API alongside user-installed fonts.
+     * Whether the font map is the preinstalled system font map, as there are neither updatable
+     * fonts nor font packages.
      */
-    private void loadPreinstalledFontFamilies() {
-        FontConfig config = SystemFonts.getSystemPreinstalledFontConfig();
-        for (FontConfig.NamedFamilyList namedList : config.getNamedFamilyLists()) {
-            String key = namedList.getName();
-            String displayName = key;
-            List<FontConfig.FontFamily> families = namedList.getFamilies();
-            if (!families.isEmpty()) {
-                List<FontConfig.Font> fonts = families.get(0).getFontList();
-                if (!fonts.isEmpty()) {
-                    displayName = fonts.get(0).getPostScriptName();
-                }
-            }
-            mPreinstalledFontFamilies.add(key);
-            mPreinstalledFontDisplayNames.put(key, displayName);
-        }
+    @GuardedBy("mUpdatableFontDirLock")
+    private boolean usesPreinstalledFontMap() {
+        return mUpdatableFontDir == null && mFontPackages.isEmpty();
     }
 
     @android.annotation.EnforcePermission(android.Manifest.permission.INSTALL_CUSTOM_FONTS)
     @Override
     public @NonNull Map<String, String> getCustomFontFamilyDisplayNames() {
         super.getCustomFontFamilyDisplayNames_enforcePermission();
-        return new HashMap<>(mPreinstalledFontDisplayNames);
+        return mFontPackages.getDisplayNames(mContext.getPackageManager());
     }
 
     /**
@@ -1088,10 +1060,15 @@ public final class FontManagerService extends IFontManager.Stub {
     public @NonNull FontConfig getSystemFontConfig() {
         synchronized (mUpdatableFontDirLock) {
             if (mUpdatableFontDir == null) {
-                return SystemFonts.getSystemPreinstalledFontConfig();
+                return getSystemImageFontConfig();
             }
-            return mUpdatableFontDir.getSystemFontConfig();
+            return mFontPackages.addFamiliesTo(mUpdatableFontDir.getSystemFontConfig());
         }
+    }
+
+    /** The preinstalled fonts and the fonts of the font packages, all from the system image. */
+    private @NonNull FontConfig getSystemImageFontConfig() {
+        return mFontPackages.addFamiliesTo(SystemFonts.getSystemPreinstalledFontConfig());
     }
 
     /**
@@ -1100,8 +1077,8 @@ public final class FontManagerService extends IFontManager.Stub {
     private void updateSerializedFontMap() {
         SharedMemory serializedFontMap = serializeFontMap(getSystemFontConfig());
         if (serializedFontMap == null) {
-            // Fallback to the preloaded config.
-            serializedFontMap = serializeSystemServerFontMap();
+            // Fallback to the fonts on the system image.
+            serializedFontMap = serializeFontMap(getSystemImageFontConfig());
         }
         setSerializedFontMap(serializedFontMap);
     }

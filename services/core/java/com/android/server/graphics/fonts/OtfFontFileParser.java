@@ -22,6 +22,8 @@ import android.graphics.Typeface;
 import android.graphics.fonts.Font;
 import android.graphics.fonts.FontFamily;
 import android.graphics.fonts.FontFileUtil;
+import android.graphics.fonts.FontVariationAxis;
+import android.text.FontConfig;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -34,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.nio.DirectByteBuffer;
 import java.nio.NioUtils;
 import java.nio.channels.FileChannel;
+import java.util.Set;
 
 /* package */  class OtfFontFileParser implements UpdatableFontDir.FontFileParser {
     @Override
@@ -123,6 +126,38 @@ import java.nio.channels.FileChannel;
         } finally {
             unmap(buffer);
         }
+    }
+
+    /** Reads the font map entry of the font file at {@code file}. */
+    static FontConfig.Font readFont(File file) throws IOException {
+        final ByteBuffer buffer = mmap(file);
+        try {
+            final String postScriptName = FontFileUtil.getPostScriptName(buffer, 0);
+            if (postScriptName == null) {
+                throw new IOException("PostScript name missing from font: " + file);
+            }
+            return new FontConfig.Font(file, null /* originalFile */, postScriptName,
+                    FontFileUtil.readFontStyle(buffer), 0 /* index */,
+                    "" /* fontVariationSettings */, null /* fontFamilyName */,
+                    readVarTypeAxes(buffer));
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+            // FontFileUtil reports malformed font data through these.
+            throw new IOException("Malformed font: " + file, e);
+        } finally {
+            unmap(buffer);
+        }
+    }
+
+    /**
+     * Returns the flags for the variation axes {@code wght} and {@code ital} supported by the
+     * font in {@code buffer}.
+     */
+    private static @FontConfig.Font.VarTypeAxes int readVarTypeAxes(ByteBuffer buffer) {
+        final Set<Integer> axes = FontFileUtil.getSupportedAxes(buffer, 0 /* index */);
+        return (axes.contains(FontVariationAxis.makeTag("wght"))
+                        ? FontConfig.Font.VAR_TYPE_AXES_WGHT : 0)
+                | (axes.contains(FontVariationAxis.makeTag("ital"))
+                        ? FontConfig.Font.VAR_TYPE_AXES_ITAL : 0);
     }
 
     private static ByteBuffer mmap(File file) throws IOException {
