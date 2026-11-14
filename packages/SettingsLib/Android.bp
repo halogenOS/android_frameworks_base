@@ -20,6 +20,7 @@ android_library {
         "androidx.localbroadcastmanager_localbroadcastmanager",
         "androidx.room_room-runtime",
         "androidx.sqlite_sqlite",
+        "bluetooth-audio-quality-aidl",
         "guava",
         "zxing-core",
         "usertypelib",

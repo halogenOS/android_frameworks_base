@@ -5,9 +5,9 @@
 
 package com.android.settingslib.bluetooth.audioquality
 
-import android.bluetooth.audioquality.AudioQuality
-import android.bluetooth.audioquality.AudioQualityLevel
 import android.content.Context
+import com.android.bluetooth.audioquality.aidl.AudioQuality
+import com.android.bluetooth.audioquality.aidl.AudioQualityLevel
 import com.android.settingslib.R
 import kotlin.math.roundToInt
 
@@ -41,10 +41,8 @@ fun AudioQualityLevel.formatLabel(context: Context): String =
                 R.string.bluetooth_audio_quality_kbps,
                 (bitrate.bitsPerSecond / BITS_PER_KILOBIT).roundToInt(),
             )
-        is AudioQualityLevel.Bitrate.Variable ->
+        AudioQualityLevel.Bitrate.Variable ->
             context.getString(R.string.bluetooth_audio_quality_variable)
-        is AudioQualityLevel.Bitrate.Adaptive ->
+        AudioQualityLevel.Bitrate.Adaptive ->
             context.getString(R.string.bluetooth_audio_quality_adaptive)
-        // Bitrate has only these kinds, closed by its private constructor, which Kotlin cannot see.
-        else -> error("Unknown bitrate $bitrate")
     }
