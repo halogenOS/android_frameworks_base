@@ -21,12 +21,17 @@
 #include <jni.h>
 #include <log/log.h>
 #include <media/AidlConversion.h>
+#include <nativehelper/ScopedPrimitiveArray.h>
 #include <system/audio.h>
 
+#include <algorithm>
+#include <iterator>
+#include <optional>
 #include <sstream>
 #include <type_traits>
 
 #include "android_media_AudioFormat.h"
+#include "android_media_AudioProfile.h"
 #include "core_jni_helpers.h"
 
 namespace {
@@ -35,6 +40,7 @@ using namespace android;
 using media::audio::common::AudioChannelLayout;
 using media::audio::common::AudioEncapsulationMode;
 using media::audio::common::AudioFormatDescription;
+using media::audio::common::AudioProfile;
 using media::audio::common::AudioStreamType;
 using media::audio::common::AudioUsage;
 
@@ -117,23 +123,16 @@ int aidlParcel2legacy(JNIEnv* env, jobject jParcel, const ConvFunc& conv, int fa
     return fallbackValue;
 }
 
-template <typename LegacyType, typename ConvFunc>
-jobject legacy2aidlParcel(JNIEnv* env, LegacyType legacy, const ConvFunc& conv) {
-    auto aidl = conv(legacy);
-    if (!aidl.ok()) {
-        std::ostringstream msg;
-        msg << "Failed to convert legacy " << type_info<LegacyType>::name << " value " << legacy;
-        jniThrowException(env, "java/lang/IllegalArgumentException", msg.str().c_str());
-        return 0;
-    }
+template <typename AidlType>
+jobject aidlToJavaParcel(JNIEnv* env, const AidlType& aidl) {
     if (jobject jParcel = createJavaParcelObject(env); jParcel != 0) {
         if (Parcel* parcel = parcelForJavaObject(env, jParcel); parcel != nullptr) {
-            if (status_t status = aidl.value().writeToParcel(parcel); status == OK) {
+            if (status_t status = aidl.writeToParcel(parcel); status == OK) {
                 parcel->setDataPosition(0);
                 return jParcel;
             } else {
                 ALOGE("legacy2aidl: Failed to write to parcel: %s, aidl value: %s",
-                      statusToString(status).c_str(), aidl.value().toString().c_str());
+                      statusToString(status).c_str(), aidl.toString().c_str());
             }
         } else {
             ALOGE("legacy2aidl: Failed to retrieve the native parcel from Java parcel");
@@ -143,6 +142,18 @@ jobject legacy2aidlParcel(JNIEnv* env, LegacyType legacy, const ConvFunc& conv) 
         ALOGE("legacy2aidl: Failed to create Java parcel");
     }
     return 0;
+}
+
+template <typename LegacyType, typename ConvFunc>
+jobject legacy2aidlParcel(JNIEnv* env, LegacyType legacy, const ConvFunc& conv) {
+    auto aidl = conv(legacy);
+    if (!aidl.ok()) {
+        std::ostringstream msg;
+        msg << "Failed to convert legacy " << type_info<LegacyType>::name << " value " << legacy;
+        jniThrowException(env, "java/lang/IllegalArgumentException", msg.str().c_str());
+        return 0;
+    }
+    return aidlToJavaParcel(env, aidl.value());
 }
 
 int aidl2legacy_AudioChannelLayout_Parcel_audio_channel_mask_t(JNIEnv* env, jobject,
@@ -232,6 +243,59 @@ jobject api2aidl_AudioFormat_AudioConfigBase_Parcel(JNIEnv* env, jobject, jint s
     });
 }
 
+std::optional<AudioProfile> api2aidl_AudioProfile(JNIEnv* env, jint encoding,
+                                                  jintArray jSampleRates, jintArray jPositionMasks,
+                                                  jintArray jIndexMasks, jint encapsulationType,
+                                                  jboolean isInput) {
+    ScopedIntArrayRO sampleRates(env, jSampleRates);
+    ScopedIntArrayRO positionMasks(env, jPositionMasks);
+    ScopedIntArrayRO indexMasks(env, jIndexMasks);
+    audio_profile legacy{};
+    if (sampleRates.size() > std::size(legacy.sample_rates) ||
+        positionMasks.size() + indexMasks.size() > std::size(legacy.channel_masks)) {
+        return std::nullopt;
+    }
+    const auto nativeEncapsulationType = audioEncapsulationTypeToNative(encapsulationType);
+    if (!nativeEncapsulationType.has_value()) {
+        return std::nullopt;
+    }
+    legacy.format = audioFormatToNative(encoding);
+    legacy.encapsulation_type = nativeEncapsulationType.value();
+    legacy.num_sample_rates = sampleRates.size();
+    std::copy_n(sampleRates.get(), sampleRates.size(), legacy.sample_rates);
+    legacy.num_channel_masks = positionMasks.size() + indexMasks.size();
+    auto channelMask =
+            std::transform(positionMasks.get(), positionMasks.get() + positionMasks.size(),
+                           legacy.channel_masks, [isInput](jint mask) {
+                               return ChannelMasks{.positionMask = mask}.toNative(isInput);
+                           });
+    std::transform(indexMasks.get(), indexMasks.get() + indexMasks.size(), channelMask,
+                   [isInput](jint mask) {
+                       return ChannelMasks{.indexMask = mask}.toNative(isInput);
+                   });
+    const auto aidl = legacy2aidl_audio_profile_AudioProfile(legacy, isInput);
+    if (!aidl.ok()) {
+        return std::nullopt;
+    }
+    return aidl.value();
+}
+
+// Returns null without an exception for a profile that audio policy cannot represent, so that
+// the caller can leave that one profile out of a device connection.
+jobject api2aidl_AudioProfile_AudioProfile_Parcel(JNIEnv* env, jobject, jint encoding,
+                                                  jintArray sampleRates, jintArray positionMasks,
+                                                  jintArray indexMasks, jint encapsulationType,
+                                                  jboolean isInput) {
+    const auto aidl = api2aidl_AudioProfile(env, encoding, sampleRates, positionMasks, indexMasks,
+                                            encapsulationType, isInput);
+    if (!aidl.has_value()) {
+        ALOGW("Leaving out an audio profile of encoding %d that audio policy cannot represent",
+              encoding);
+        return 0;
+    }
+    return aidlToJavaParcel(env, aidl.value());
+}
+
 const JNINativeMethod gMethods[] = {
         {"aidl2legacy_AudioChannelLayout_Parcel_audio_channel_mask_t", "(Landroid/os/Parcel;Z)I",
          reinterpret_cast<void*>(aidl2legacy_AudioChannelLayout_Parcel_audio_channel_mask_t)},
@@ -258,6 +322,8 @@ const JNINativeMethod gMethods[] = {
         {"api2aidl_AudioFormat_AudioConfigBase_Parcel",
          "(IILjava/lang/Object;Z)Landroid/os/Parcel;",
          reinterpret_cast<void*>(api2aidl_AudioFormat_AudioConfigBase_Parcel)},
+        {"api2aidl_AudioProfile_AudioProfile_Parcel", "(I[I[I[IIZ)Landroid/os/Parcel;",
+         reinterpret_cast<void*>(api2aidl_AudioProfile_AudioProfile_Parcel)},
 };
 
 } // namespace

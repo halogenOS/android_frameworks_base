@@ -26,6 +26,7 @@ import android.os.Parcel;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -610,12 +611,14 @@ public class AidlConversion {
             @NonNull AudioDeviceAttributes attributes) {
         AudioPort port = new AudioPort();
         port.name = attributes.getName();
-        // TO DO: b/211611504 Convert attributes.getAudioProfiles() to AIDL as well.
-        port.profiles = new AudioProfile[]{};
+        final boolean isInput = attributes.getRole() == AudioDeviceAttributes.ROLE_INPUT;
+        port.profiles = attributes.getAudioProfiles().stream()
+                .flatMap(profile -> api2aidl_AudioProfile_AudioProfile(profile, isInput).stream())
+                .toArray(AudioProfile[]::new);
         port.extraAudioDescriptors = attributes.getAudioDescriptors().stream()
                 .map(descriptor -> api2aidl_AudioDescriptor_ExtraAudioDescriptor(descriptor))
                 .collect(Collectors.toList()).toArray(ExtraAudioDescriptor[]::new);
-        port.flags = new AudioIoFlags();
+        port.flags = isInput ? AudioIoFlags.input(0) : AudioIoFlags.output(0);
         port.gains = new AudioGain[]{};
         AudioPortDeviceExt deviceExt = new AudioPortDeviceExt();
         deviceExt.device = new AudioDevice();
@@ -625,6 +628,25 @@ public class AidlConversion {
         deviceExt.device.address = AudioDeviceAddress.id(attributes.getAddress());
         port.ext = AudioPortExt.device(deviceExt);
         return port;
+    }
+
+    /**
+     * Convert from SDK AudioProfile to AIDL AudioProfile. A profile that audio policy cannot
+     * represent converts to nothing.
+     */
+    public static @NonNull Optional<AudioProfile> api2aidl_AudioProfile_AudioProfile(
+            @NonNull android.media.AudioProfile apiProfile, boolean isInput) {
+        Parcel in = api2aidl_AudioProfile_AudioProfile_Parcel(apiProfile.getFormat(),
+                apiProfile.getSampleRates(), apiProfile.getChannelMasks(),
+                apiProfile.getChannelIndexMasks(), apiProfile.getEncapsulationType(), isInput);
+        if (in == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(AudioProfile.CREATOR.createFromParcel(in));
+        } finally {
+            in.recycle();
+        }
     }
 
     /**
@@ -1018,4 +1040,7 @@ public class AidlConversion {
     private static native Parcel api2aidl_AudioFormat_AudioConfigBase_Parcel(
             int sampleRate, int encoding, Object /*AudioFormat.ChannelMasks*/ channelMasks,
             boolean isInput);
+    private static native Parcel api2aidl_AudioProfile_AudioProfile_Parcel(
+            int encoding, int[] sampleRates, int[] positionMasks, int[] indexMasks,
+            @android.media.AudioProfile.EncapsulationType int encapsulationType, boolean isInput);
 }

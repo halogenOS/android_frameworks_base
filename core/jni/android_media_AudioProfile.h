@@ -20,6 +20,8 @@
 #include <system/audio.h>
 #include <utils/Errors.h>
 
+#include <optional>
+
 namespace android {
 
 // keep these values in sync with AudioProfile.java
@@ -44,6 +46,20 @@ static inline status_t audioEncapsulationTypeFromNative(
             result = BAD_VALUE;
     }
     return result;
+}
+
+static inline std::optional<audio_encapsulation_type_t> audioEncapsulationTypeToNative(
+        int encapsulationType) {
+    switch (encapsulationType) {
+        case ENCAPSULATION_TYPE_NONE:
+            return AUDIO_ENCAPSULATION_TYPE_NONE;
+        case ENCAPSULATION_TYPE_IEC61937:
+            return AUDIO_ENCAPSULATION_TYPE_IEC61937;
+        case ENCAPSULATION_TYPE_PCM:
+            return AUDIO_ENCAPSULATION_TYPE_PCM;
+        default:
+            return std::nullopt;
+    }
 }
 
 } // namespace android
