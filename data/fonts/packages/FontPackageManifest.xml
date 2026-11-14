@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: The halogenOS Project
+     SPDX-License-Identifier: Apache-2.0 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="custom.font.defaults">
+    <application>
+        <property android:name="custom.font.FONT_PACKAGE" android:value="true" />
+    </application>
+</manifest>

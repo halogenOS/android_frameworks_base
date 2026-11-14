@@ -34,7 +34,10 @@ import java.util.TreeMap;
 final class FontPackages {
     private static final String TAG = "FontPackages";
 
-    /** The manifest property, on the application element, that marks a font package. */
+    /**
+     * The manifest property, on the application element, that marks a font package.
+     * custom_font_package_defaults in data/fonts/packages/Android.bp adds it to every font package.
+     */
     static final String PROPERTY_FONT_PACKAGE = "custom.font.FONT_PACKAGE";
 
     /** Locked by {@link #load}, so that two calls never write the same copy at once. */

@@ -1,0 +1,20 @@
+// SPDX-FileCopyrightText: The halogenOS Project
+// SPDX-License-Identifier: Apache-2.0
+
+package {
+    default_applicable_licenses: ["frameworks_base_data_fonts_license"],
+}
+
+// Defaults for font packages. A font package is an android_app that contains only resources and
+// its font files, directly under assets/fonts/. The defaults add the manifest property that marks
+// the font package for FontManagerService.
+java_defaults {
+    name: "custom_font_package_defaults",
+    sdk_version: "current",
+    additional_manifests: [":custom_font_package_manifest"],
+}
+
+filegroup {
+    name: "custom_font_package_manifest",
+    srcs: ["FontPackageManifest.xml"],
+}
