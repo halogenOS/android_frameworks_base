@@ -71,6 +71,7 @@ import android.media.AudioFormat;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.media.AudioManager.AudioDeviceCategory;
+import android.media.AudioProfile;
 import android.media.AudioRoutesInfo;
 import android.media.AudioSystem;
 import android.media.BluetoothProfileConnectionInfo;
@@ -1704,6 +1705,11 @@ public class AudioDeviceBroker {
 
     /*package*/ boolean getBluetoothA2dpEnabled() {
         return mBluetoothA2dpEnabled.get();
+    }
+
+    /*package*/ @NonNull List<AudioProfile> getBtAudioProfiles(
+            @AudioService.BtProfile int profile) {
+        return mBtHelper.getAudioProfiles(profile);
     }
 
     /*package*/ int getLeAudioDeviceGroupId(BluetoothDevice device, int profile) {

@@ -733,7 +733,8 @@ public class AudioDeviceInventory {
 
         /** Constructor for all devices except A2DP sink and LE Audio */
         DeviceInfo(int deviceType, String deviceName, String address) {
-            this(deviceType, deviceName, address, null, AudioSystem.AUDIO_FORMAT_DEFAULT);
+            this(deviceType, deviceName, address, null, AudioSystem.AUDIO_FORMAT_DEFAULT,
+                    new ArrayList<>());
         }
 
         /** Constructor for HDMI OUT, HDMI ARC/EARC sink devices */
@@ -745,9 +746,17 @@ public class AudioDeviceInventory {
 
         /** Constructor for A2DP sink devices */
         DeviceInfo(int deviceType, String deviceName, String address,
-                   String identityAddress, int codecFormat) {
+                   String identityAddress, int codecFormat, List<AudioProfile> profiles) {
             this(deviceType, deviceName, address, identityAddress, codecFormat,
-                    BluetoothLeAudio.GROUP_ID_INVALID, null, null);
+                    BluetoothLeAudio.GROUP_ID_INVALID, null, null, profiles, new ArrayList<>());
+        }
+
+        AudioDeviceAttributes toAudioDeviceAttributes() {
+            return new AudioDeviceAttributes(
+                    AudioSystem.isInputDevice(mDeviceType)
+                            ? AudioDeviceAttributes.ROLE_INPUT
+                            : AudioDeviceAttributes.ROLE_OUTPUT,
+                    mDeviceAddress, mDeviceType, mDeviceName, mAudioProfiles, mAudioDescriptors);
         }
 
         void setModeDisabled(String mode) {
@@ -903,15 +912,7 @@ public class AudioDeviceInventory {
                     continue;
                 }
                 // device disconnected: call setDeviceConnectionState(AVAILABLE)
-                res = mAudioSystem.setDeviceConnectionState(new AudioDeviceAttributes(
-                            AudioSystem.isInputDevice(di.mDeviceType)
-                                ? AudioDeviceAttributes.ROLE_INPUT
-                                : AudioDeviceAttributes.ROLE_OUTPUT,
-                            di.mDeviceAddress,
-                            di.mDeviceType,
-                            di.mDeviceName,
-                            di.mAudioProfiles,
-                            di.mAudioDescriptors),
+                res = mAudioSystem.setDeviceConnectionState(di.toAudioDeviceAttributes(),
                         AudioSystem.DEVICE_STATE_AVAILABLE,
                         di.mDeviceCodecFormat, false /*deviceSwitch*/);
                 if (res == AudioSystem.AUDIO_STATUS_SERVER_DIED) {
@@ -1166,10 +1167,10 @@ public class AudioDeviceInventory {
                         || btInfo.mProfile == BluetoothProfile.LE_AUDIO_BROADCAST) {
                     if (codecChanged) {
                         di.mDeviceCodecFormat = codec;
+                        di.mAudioProfiles = mDeviceBroker.getBtAudioProfiles(btInfo.mProfile);
                         mConnectedDevices.replace(key, di);
                         final int res = mAudioSystem.handleDeviceConfigChange(
-                                new AudioDeviceAttributes(btInfo.mAudioSystemDevice, address,
-                                        BtHelper.getName(btDevice)), codec);
+                                di.toAudioDeviceAttributes(), codec);
                         if (res != AudioSystem.AUDIO_STATUS_OK) {
                             AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
                                     "APM handleDeviceConfigChange failed for device addr="
@@ -2373,9 +2374,11 @@ public class AudioDeviceInventory {
         mDeviceBroker.setBluetoothA2dpOnInt(true, true /*fromA2dp*/, eventSource);
         // at this point there could be another A2DP device already connected in APM, but it
         // doesn't matter as this new one will overwrite the previous one
-        AudioDeviceAttributes ada = new AudioDeviceAttributes(
-                AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, address, name);
-        final int res = setApmDeviceConnectionAvailable(ada, codec, false /*deviceSwitch*/);
+        final DeviceInfo di = new DeviceInfo(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, name,
+                address, btInfo.mDevice.getIdentityAddress(), codec,
+                mDeviceBroker.getBtAudioProfiles(BluetoothProfile.A2DP));
+        final int res = setApmDeviceConnectionAvailable(di.toAudioDeviceAttributes(), codec,
+                false /*deviceSwitch*/);
 
         if (res == AudioSystem.AUDIO_STATUS_ERROR) {
             AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
@@ -2384,8 +2387,6 @@ public class AudioDeviceInventory {
                             + " error=" + res).printSlog(EventLogger.Event.ALOGE, TAG));
             return;
         } else {
-            final DeviceInfo di = new DeviceInfo(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, name,
-                    address, btInfo.mDevice.getIdentityAddress(), codec);
             String message = "A2DP sink device addr=" + Utils.anonymizeBluetoothAddress(address);
             trackDeviceApmAvailable(res, di, message);
         }

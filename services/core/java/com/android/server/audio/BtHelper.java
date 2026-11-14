@@ -49,6 +49,7 @@ import android.bluetooth.BluetoothLeAudioCodecStatus;
 import android.bluetooth.BluetoothLeAudioPeripheral;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.audioquality.A2dpHardwareOffload;
+import android.bluetooth.audioquality.A2dpPcmFormats;
 import android.bluetooth.audioquality.AudioQuality;
 import android.bluetooth.audioquality.AudioQualityManager;
 import android.content.AttributionSource;
@@ -57,6 +58,7 @@ import android.media.AudioDeviceAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioManager.AudioDeviceCategory;
+import android.media.AudioProfile;
 import android.media.AudioSystem;
 import android.media.BluetoothProfileConnectionInfo;
 import android.os.Binder;
@@ -73,6 +75,7 @@ import com.android.server.utils.EventLogger;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,6 +122,8 @@ public class BtHelper {
 
     @GuardedBy("BtHelper.this")
     private @Nullable BluetoothCodecConfig mA2dpCodecConfig;
+    // The A2DP codec status read by the last getCodec, from which mA2dpCodecConfig comes.
+    private @Nullable BluetoothCodecStatus mA2dpCodecStatus;
     private int mA2dpAudioFormat = AudioSystem.AUDIO_FORMAT_DEFAULT;
 
     @GuardedBy("BtHelper.this")
@@ -861,6 +866,37 @@ public class BtHelper {
                         + ", status " + status).printLog(TAG));
     }
 
+    /**
+     * Returns the audio profiles of the PCM formats accepted by the running codec of
+     * {@code profile}, from the codec status read by the last getCodec. Only A2DP has them.
+     */
+    /*package*/ synchronized @NonNull List<AudioProfile> getAudioProfiles(
+            @AudioService.BtProfile int profile) {
+        return profile == BluetoothProfile.A2DP ? getA2dpAudioProfiles() : List.of();
+    }
+
+    /**
+     * Returns one stereo profile per PCM encoding offered by the running A2DP codec, each with the
+     * sample rates offered by the codec. The list is empty while the codec is unknown or offers
+     * no sample rate.
+     */
+    private @NonNull List<AudioProfile> getA2dpAudioProfiles() {
+        if (mA2dpCodecStatus == null) {
+            return List.of();
+        }
+        A2dpPcmFormats offered = A2dpPcmFormats.offeredByRunningCodec(mA2dpCodecStatus);
+        int[] sampleRates = offered.getSampleRates();
+        if (sampleRates.length == 0) {
+            return List.of();
+        }
+        return Arrays.stream(offered.getEncodings())
+                .mapToObj(encoding -> new AudioProfile(encoding, sampleRates,
+                        new int[]{AudioFormat.CHANNEL_OUT_STEREO},
+                        new int[0] /*channelIndexMasks*/,
+                        AudioProfile.AUDIO_ENCAPSULATION_TYPE_NONE))
+                .toList();
+    }
+
     private synchronized Pair<Integer, Boolean> getCodec(
             @NonNull BluetoothDevice device, @AudioService.BtProfile int profile) {
 
@@ -869,6 +905,7 @@ public class BtHelper {
                 boolean changed = mA2dpCodecConfig != null;
                 if (mA2dp == null) {
                     mA2dpCodecConfig = null;
+                    mA2dpCodecStatus = null;
                     return new Pair<>(AudioSystem.AUDIO_FORMAT_DEFAULT, changed);
                 }
                 BluetoothCodecStatus btCodecStatus = null;
@@ -877,6 +914,7 @@ public class BtHelper {
                 } catch (Exception e) {
                     Log.e(TAG, "Exception while getting status of " + device, e);
                 }
+                mA2dpCodecStatus = btCodecStatus;
                 if (btCodecStatus == null) {
                     Log.e(TAG, "getCodec, null A2DP codec status for device: " + device);
                     mA2dpCodecConfig = null;
