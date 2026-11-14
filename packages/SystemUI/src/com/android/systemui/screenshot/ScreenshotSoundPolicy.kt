@@ -17,6 +17,7 @@
 package com.android.systemui.screenshot
 
 import android.hardware.camera2.CameraManager
+import android.media.AudioManager
 import android.media.MediaActionSound
 import com.android.systemui.dagger.qualifiers.Application
 import com.android.systemui.dagger.qualifiers.Background
@@ -33,6 +34,7 @@ open class ScreenshotSoundPolicy
 @Inject
 constructor(
     cameraManager: CameraManager,
+    private val audioManager: AudioManager,
     private val shutterPolicy: MediaShutterSoundPolicy,
     @Main private val mainExecutor: Executor,
     @Background private val bgDispatcher: CoroutineDispatcher,
@@ -59,6 +61,14 @@ constructor(
 
     suspend fun shouldForceShutterSound(): Boolean {
         return shutterPolicy.mustPlayShutterSound() && cameraOpen
+    }
+
+    /** Whether the screenshot sound would be heard, given ringer mode, DND and volume. */
+    suspend fun isScreenshotSoundAudible(): Boolean {
+        val stream = SCREENSHOT_SOUND_ATTRIBUTES.volumeControlStream
+        return withContext(bgDispatcher) {
+            !audioManager.isStreamMute(stream) && audioManager.getStreamVolume(stream) > 0
+        }
     }
 }
 

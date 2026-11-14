@@ -58,6 +58,7 @@ class ScreenshotSoundControllerTest : SysuiTestCase() {
         whenever(soundProvider.getScreenshotSound()).thenReturn(mediaPlayer)
         whenever(soundProvider.getForcedShutterSound()).thenReturn(mediaActionSound)
         soundPolicy.stub { onBlocking { shouldForceShutterSound() }.doReturn(false) } // default
+        soundPolicy.stub { onBlocking { isScreenshotSoundAudible() }.doReturn(true) }
     }
 
     @Test

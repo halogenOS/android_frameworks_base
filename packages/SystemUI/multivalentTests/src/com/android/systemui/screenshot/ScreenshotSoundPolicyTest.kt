@@ -17,6 +17,7 @@
 package com.android.systemui.screenshot
 
 import android.hardware.camera2.CameraManager
+import android.media.AudioManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.android.systemui.SysuiTestCase
@@ -62,6 +63,7 @@ class ScreenshotSoundPolicyTest : SysuiTestCase() {
         screenshotSoundPolicy =
             ScreenshotSoundPolicy(
                 cameraManager,
+                mock<AudioManager>(),
                 shutterSoundPolicy,
                 context.mainExecutor,
                 testDispatcher,

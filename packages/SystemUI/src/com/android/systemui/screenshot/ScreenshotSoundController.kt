@@ -86,7 +86,7 @@ constructor(
             try {
                 if (soundPolicy.shouldForceShutterSound()) {
                     forcedShutterSound.await()?.play(MediaActionSound.SHUTTER_CLICK)
-                } else {
+                } else if (soundPolicy.isScreenshotSoundAudible()) {
                     player.await()?.start()
                 }
             } catch (e: IllegalStateException) {

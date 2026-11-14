@@ -27,6 +27,12 @@ import com.android.systemui.dagger.SysUISingleton
 import java.io.File
 import javax.inject.Inject
 
+internal val SCREENSHOT_SOUND_ATTRIBUTES: AudioAttributes =
+    AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build()
+
 /** Provides a [MediaPlayer] that reproduces the screenshot sound. */
 interface ScreenshotSoundProvider {
 
@@ -48,10 +54,7 @@ class ScreenshotSoundProviderImpl @Inject constructor(private val context: Conte
             context,
             Uri.fromFile(File(context.resources.getString(R.string.config_cameraShutterSound))),
             /* holder = */ null,
-            AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build(),
+            SCREENSHOT_SOUND_ATTRIBUTES,
             AudioSystem.newAudioSessionId(),
         )
     }
