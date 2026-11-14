@@ -48,10 +48,6 @@ import android.bluetooth.BluetoothLeAudioCodecConfig;
 import android.bluetooth.BluetoothLeAudioCodecStatus;
 import android.bluetooth.BluetoothLeAudioPeripheral;
 import android.bluetooth.BluetoothProfile;
-import android.bluetooth.audioquality.A2dpHardwareOffload;
-import android.bluetooth.audioquality.A2dpPcmFormats;
-import android.bluetooth.audioquality.AudioQuality;
-import android.bluetooth.audioquality.AudioQualityManager;
 import android.content.AttributionSource;
 import android.content.Intent;
 import android.media.AudioDeviceAttributes;
@@ -70,6 +66,9 @@ import android.util.IntArray;
 import android.util.Log;
 import android.util.Pair;
 
+import com.android.bluetooth.audioquality.aidl.A2dpPcmFormats;
+import com.android.bluetooth.audioquality.aidl.AudioQuality;
+import com.android.bluetooth.audioquality.aidl.AudioQualityCall;
 import com.android.internal.annotations.GuardedBy;
 import com.android.server.utils.EventLogger;
 
@@ -125,6 +124,10 @@ public class BtHelper {
     // The A2DP codec status read by the last getCodec, from which mA2dpCodecConfig comes.
     private @Nullable BluetoothCodecStatus mA2dpCodecStatus;
     private int mA2dpAudioFormat = AudioSystem.AUDIO_FORMAT_DEFAULT;
+
+    // The audio quality service of the Bluetooth app, bound while the A2DP profile proxy is
+    // connected, so only while the Bluetooth stack runs.
+    private final @NonNull AudioQualityServiceConnection mAudioQuality;
 
     @GuardedBy("BtHelper.this")
     private @Nullable BluetoothLeAudioPeripheral mLeAudioPeripheral = null;
@@ -685,6 +688,8 @@ public class BtHelper {
 
     BtHelper(@NonNull AudioDeviceBroker broker) {
         mDeviceBroker = broker;
+        mAudioQuality = new AudioQualityServiceConnection(
+                broker.getContext(), this::onAudioQualityServiceConnected);
         if (!mDeviceBroker.isScoManagedByAudio()) {
             mScoHelper = new LegacyScoHelper();
         }
@@ -833,18 +838,37 @@ public class BtHelper {
      * Returns whether the Bluetooth stack encodes {@code codecType} in software although the phone
      * can offload it, because hardware offload is switched off for that codec.
      */
+    @GuardedBy("BtHelper.this")
     private boolean isEncodedInSoftwareByChoice(
             @NonNull BluetoothDevice device, @NonNull BluetoothCodecType codecType) {
-        AudioQualityManager audioQualityManager =
-                mDeviceBroker.getContext().getSystemService(AudioQualityManager.class);
-        AudioQuality quality =
-                audioQualityManager == null ? null : audioQualityManager.getQuality(device);
-        if (quality == null) {
-            return false;
+        AudioQualityCall<AudioQuality> call = mAudioQuality.getQuality(device);
+        if (call instanceof AudioQualityCall.Returned<AudioQuality> returned) {
+            AudioQuality quality = returned.getValue();
+            return quality != null
+                    && quality.getHardwareOffload().isEncodedInSoftwareByChoice(codecType);
         }
-        A2dpHardwareOffload offload = quality.getHardwareOffload();
-        return offload.getOffloadableCodecTypes().contains(codecType)
-                && !offload.getOffloadedCodecTypes().contains(codecType);
+        // onAudioQualityServiceConnected reads the codec again once the binding connects.
+        Log.w(TAG, "No hardware offload choice for " + device + ": " + call);
+        return false;
+    }
+
+    /**
+     * Reads the codec of the active A2DP device again, so its route follows the hardware offload
+     * choice, which the codec read before the binding connected could not read.
+     */
+    private void onAudioQualityServiceConnected() {
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+        if (adapter == null) {
+            return;
+        }
+        List<BluetoothDevice> activeDevices = adapter.getActiveDevices(BluetoothProfile.A2DP);
+        if (activeDevices.isEmpty() || activeDevices.get(0) == null) {
+            return;
+        }
+        BluetoothDevice device = activeDevices.get(0);
+        mDeviceBroker.postBluetoothDeviceConfigChange(new AudioDeviceBroker.BtDeviceChangedData(
+                device, device, BluetoothProfileConnectionInfo.createA2dpInfo(false, -1),
+                "AudioQualityServiceConnected"));
     }
 
     /**
@@ -855,15 +879,13 @@ public class BtHelper {
     /*package*/ void requestA2dpPcmFormat(
             @NonNull AudioDeviceAttributes device, @NonNull AudioFormat trackFormat) {
         BluetoothDevice btDevice = getBluetoothDevice(device.getAddress());
-        AudioQualityManager audioQualityManager =
-                mDeviceBroker.getContext().getSystemService(AudioQualityManager.class);
-        if (btDevice == null || audioQualityManager == null) {
+        if (btDevice == null) {
             return;
         }
-        int status = audioQualityManager.requestPcmFormat(btDevice, trackFormat);
+        AudioQualityCall<Integer> call = mAudioQuality.requestPcmFormat(btDevice, trackFormat);
         AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
-                "requestA2dpPcmFormat " + trackFormat + " for " + device
-                        + ", status " + status).printLog(TAG));
+                "requestA2dpPcmFormat " + trackFormat + " for " + device + ": " + call)
+                .printLog(TAG));
     }
 
     /**
@@ -1113,6 +1135,7 @@ public class BtHelper {
             case BluetoothProfile.A2DP:
                 mA2dp = null;
                 mA2dpCodecConfig = null;
+                mAudioQuality.unbind();
                 break;
             case BluetoothProfile.HEARING_AID:
                 mHearingAid = null;
@@ -1219,6 +1242,8 @@ public class BtHelper {
                     return;
                 }
                 mA2dp = (BluetoothA2dp) proxy;
+                mAudioQuality.unbind();
+                mAudioQuality.bind();
                 break;
             case BluetoothProfile.HEARING_AID:
                 if (((BluetoothHearingAid) proxy).equals(mHearingAid)) {
