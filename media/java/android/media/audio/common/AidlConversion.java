@@ -621,13 +621,21 @@ public class AidlConversion {
         port.flags = isInput ? AudioIoFlags.input(0) : AudioIoFlags.output(0);
         port.gains = new AudioGain[]{};
         AudioPortDeviceExt deviceExt = new AudioPortDeviceExt();
-        deviceExt.device = new AudioDevice();
+        deviceExt.device = api2aidl_AudioDeviceAttributes_AudioDevice(attributes);
         deviceExt.encodedFormats = new AudioFormatDescription[]{};
-        deviceExt.device.type =
-                api2aidl_NativeType_AudioDeviceDescription(attributes.getInternalType());
-        deviceExt.device.address = AudioDeviceAddress.id(attributes.getAddress());
         port.ext = AudioPortExt.device(deviceExt);
         return port;
+    }
+
+    /**
+     * Convert from the type and the address of SDK AudioDeviceAttributes to AIDL AudioDevice.
+     */
+    public static AudioDevice api2aidl_AudioDeviceAttributes_AudioDevice(
+            @NonNull AudioDeviceAttributes attributes) {
+        AudioDevice device = new AudioDevice();
+        device.type = api2aidl_NativeType_AudioDeviceDescription(attributes.getInternalType());
+        device.address = AudioDeviceAddress.id(attributes.getAddress());
+        return device;
     }
 
     /**
