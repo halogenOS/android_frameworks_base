@@ -5,8 +5,9 @@
 
 package com.android.systemui.qs.tiles.impl.audioquality
 
-import android.bluetooth.audioquality.AudioQualityManager
 import android.content.Context
+import com.android.settingslib.bluetooth.audioquality.AudioQualityServiceClient
+import com.android.systemui.dagger.SysUISingleton
 import com.android.systemui.dagger.qualifiers.Application
 import com.android.systemui.qs.QsEventLogger
 import com.android.systemui.qs.pipeline.shared.TileSpec
@@ -21,6 +22,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.multibindings.IntoMap
 import dagger.multibindings.StringKey
+import kotlinx.coroutines.CoroutineScope
 
 @Module
 interface AudioQualityTileModule {
@@ -30,10 +32,12 @@ interface AudioQualityTileModule {
     fun bindAudioQualityTile(tile: AudioQualityTile): QSTileImpl<*>
 
     companion object {
-        /** Null on devices without Bluetooth. */
         @Provides
-        fun provideAudioQualityManager(@Application context: Context): AudioQualityManager? =
-            context.getSystemService(AudioQualityManager::class.java)
+        @SysUISingleton
+        fun provideAudioQualityServiceClient(
+            @Application context: Context,
+            @Application scope: CoroutineScope,
+        ): AudioQualityServiceClient = AudioQualityServiceClient(context, scope)
 
         @Provides
         @IntoMap

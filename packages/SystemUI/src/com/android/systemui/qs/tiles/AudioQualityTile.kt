@@ -7,9 +7,6 @@ package com.android.systemui.qs.tiles
 
 import android.bluetooth.BluetoothA2dp
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.audioquality.AudioQuality
-import android.bluetooth.audioquality.AudioQualityLevel
-import android.bluetooth.audioquality.AudioQualityManager
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
@@ -19,13 +16,14 @@ import android.service.quicksettings.Tile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.coroutineScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.android.bluetooth.audioquality.aidl.AudioQuality
+import com.android.bluetooth.audioquality.aidl.AudioQualityLevel
 import com.android.internal.logging.MetricsLogger
 import com.android.settingslib.bluetooth.LocalBluetoothManager
+import com.android.settingslib.bluetooth.audioquality.AudioQualityServiceClient
 import com.android.settingslib.bluetooth.audioquality.currentLevelIndex
 import com.android.settingslib.bluetooth.audioquality.formatSummary
 import com.android.settingslib.bluetooth.audioquality.isAdjustable
-import com.android.settingslib.bluetooth.qualityFlow
-import com.android.settingslib.bluetooth.setLevelAndLogFailure
 import com.android.systemui.animation.Expandable
 import com.android.systemui.bluetooth.bluetoothDeviceDetailsIntent
 import com.android.systemui.broadcast.BroadcastDispatcher
@@ -69,7 +67,7 @@ constructor(
     qsLogger: QSLogger,
     private val broadcastDispatcher: BroadcastDispatcher,
     private val localBluetoothManager: LocalBluetoothManager?,
-    private val audioQualityManager: AudioQualityManager?,
+    private val audioQualityClient: AudioQualityServiceClient,
     @Background private val backgroundDispatcher: CoroutineDispatcher,
 ) :
     QSTileImpl<State>(
@@ -91,10 +89,10 @@ constructor(
     @Volatile private var activeHeadset: ActiveHeadset? = null
 
     init {
-        audioQualityManager?.let(::collectActiveHeadset)
+        collectActiveHeadset()
     }
 
-    private fun collectActiveHeadset(manager: AudioQualityManager) {
+    private fun collectActiveHeadset() {
         lifecycle.coroutineScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 try {
@@ -105,7 +103,7 @@ constructor(
                         .distinctUntilChanged()
                         .flatMapLatest { device ->
                             device?.let {
-                                manager.qualityFlow(it).map { quality ->
+                                audioQualityClient.qualityFlow(it).map { quality ->
                                     ActiveHeadset(it, quality)
                                 }
                             } ?: flowOf(null)
@@ -124,14 +122,14 @@ constructor(
         }
     }
 
-    override fun isAvailable() = localBluetoothManager != null && audioQualityManager != null
+    override fun isAvailable() = localBluetoothManager != null
 
     override fun newTileState() = State()
 
     override fun handleClick(expandable: Expandable?) {
         val headset = activeHeadset ?: return
         val level = headset.quality?.nextLevel ?: return
-        checkNotNull(audioQualityManager).setLevelAndLogFailure(headset.device, level)
+        audioQualityClient.setLevel(headset.device, level)
     }
 
     override fun getLongClickIntent(): Intent =
