@@ -45,6 +45,7 @@ import android.os.SharedMemory;
 import android.os.ShellCallback;
 import android.system.ErrnoException;
 import android.text.FontConfig;
+import android.text.TextUtils;
 import android.util.AndroidException;
 import android.util.ArrayMap;
 import android.util.IndentingPrintWriter;
@@ -94,6 +95,10 @@ public final class FontManagerService extends IFontManager.Stub {
     /** The font packages on the system image, found at boot. */
     @NonNull
     private volatile FontPackages mFontPackages = FontPackages.EMPTY;
+
+    /** The value of config_defaultFontPackage, or {@code null} when it is empty. */
+    @Nullable
+    private final String mDefaultFontPackage;
 
     @android.annotation.EnforcePermission(android.Manifest.permission.UPDATE_FONTS)
     @RequiresPermission(Manifest.permission.UPDATE_FONTS)
@@ -222,10 +227,9 @@ public final class FontManagerService extends IFontManager.Stub {
         }
         for (int userId : affectedUsers) {
             try {
-                applyCustomFontOverlayForUser(null, userId);
+                applyDefaultFontForUser(userId);
             } catch (RuntimeException e) {
-                Slog.e(TAG, "Failed to auto-disable font overlay after removal for user "
-                        + userId, e);
+                Slog.e(TAG, "Failed to apply default font after removal for user " + userId, e);
             }
         }
         return FontManager.RESULT_SUCCESS;
@@ -326,7 +330,8 @@ public final class FontManagerService extends IFontManager.Stub {
             }
         }
         try {
-            applyCustomFontOverlayForUser(familyName, userId);
+            applyCustomFontOverlayForUser(
+                    familyName != null ? familyName : getDefaultFontFamilyName(), userId);
         } catch (RuntimeException e) {
             Slog.e(TAG, "Failed to apply custom font overlay", e);
             return FontManager.RESULT_ERROR_FAILED_UPDATE_CONFIG;
@@ -346,7 +351,10 @@ public final class FontManagerService extends IFontManager.Stub {
     @Override
     public @Nullable String getActiveCustomFontFamily() {
         super.getActiveCustomFontFamily_enforcePermission();
-        final int userId = UserHandle.getCallingUserId();
+        return getChosenFontFamily(UserHandle.getCallingUserId());
+    }
+
+    private @Nullable String getChosenFontFamily(int userId) {
         synchronized (mUpdatableFontDirLock) {
             if (mUpdatableFontDir == null) {
                 return null;
@@ -359,9 +367,8 @@ public final class FontManagerService extends IFontManager.Stub {
     @Override
     public @Nullable String getDefaultFontFamily() {
         super.getDefaultFontFamily_enforcePermission();
-        String defaultFamily = mContext.getResources().getString(
-                com.android.internal.R.string.config_defaultCustomFontFamily);
-        if (defaultFamily != null && !defaultFamily.isEmpty()) {
+        final String defaultFamily = getDefaultFontFamilyName();
+        if (defaultFamily != null) {
             return defaultFamily;
         }
         String bodyFamily = mContext.getResources().getString(
@@ -562,6 +569,17 @@ public final class FontManagerService extends IFontManager.Stub {
         return names;
     }
 
+    /** The font family of the default font package, or {@code null} for the stock font. */
+    private @Nullable String getDefaultFontFamilyName() {
+        return mDefaultFontPackage != null && mFontPackages.contains(mDefaultFontPackage)
+                ? mDefaultFontPackage : null;
+    }
+
+    private void applyDefaultFontForUser(int userId) {
+        applyCustomFontOverlayForUser(getDefaultFontFamilyName(), userId);
+    }
+
+    /** Applies {@code familyName} through a fabricated overlay, or removes it when {@code null}. */
     private void applyCustomFontOverlayForUser(@Nullable String familyName, int userId) {
         final OverlayManagerInternal om =
                 LocalServices.getService(OverlayManagerInternal.class);
@@ -754,6 +772,8 @@ public final class FontManagerService extends IFontManager.Stub {
         }
         mContext = context;
         mIsSafeMode = safeMode;
+        mDefaultFontPackage = TextUtils.nullIfEmpty(context.getResources().getString(
+                com.android.internal.R.string.config_defaultFontPackage));
 
         if (Flags.useOptimizedBoottimeFontLoading()) {
             Slog.i(TAG, "Using optimized boot-time font loading.");
@@ -837,6 +857,10 @@ public final class FontManagerService extends IFontManager.Stub {
                 updateSerializedFontMap();
             }
         }
+        if (mDefaultFontPackage != null && getDefaultFontFamilyName() == null) {
+            Slog.e(TAG, "Using the stock font, as the default font package is missing: "
+                    + mDefaultFontPackage);
+        }
         applyDefaultFontForAllUsers();
         registerUserRemovedReceiver();
         registerUserAddedReceiver();
@@ -859,40 +883,24 @@ public final class FontManagerService extends IFontManager.Stub {
     }
 
     /**
-     * For every existing user that has no active custom font, applies the
-     * system default (read from {@code config_defaultCustomFontFamily}) through
-     * the same fabricated-overlay path as user-initiated font changes.
+     * Applies the default font to every existing user without a chosen font, also after the
+     * default changed. The overlay that applies a chosen font family is left in place, also when
+     * the font family is missing at this boot, so that it applies again once the family is back.
      */
     private void applyDefaultFontForAllUsers() {
-        String defaultFamily = mContext.getResources().getString(
-                com.android.internal.R.string.config_defaultCustomFontFamily);
-        if (defaultFamily == null || defaultFamily.isEmpty()) {
-            return;
-        }
         UserManager um = mContext.getSystemService(UserManager.class);
         if (um == null) {
             return;
         }
         for (UserHandle user : um.getUserHandles(true)) {
-            int userId = user.getIdentifier();
-            String active;
-            synchronized (mUpdatableFontDirLock) {
-                if (mUpdatableFontDir == null) {
-                    continue;
-                }
-                active = mUpdatableFontDir.getActiveCustomFontFamily(userId);
+            final int userId = user.getIdentifier();
+            if (getChosenFontFamily(userId) != null) {
+                continue;
             }
-            if (active == null) {
-                try {
-                    applyCustomFontOverlayForUser(defaultFamily, userId);
-                    synchronized (mUpdatableFontDirLock) {
-                        if (mUpdatableFontDir != null) {
-                            mUpdatableFontDir.setActiveCustomFontFamily(userId, defaultFamily);
-                        }
-                    }
-                } catch (Exception e) {
-                    Slog.w(TAG, "Failed to apply default font for user " + userId, e);
-                }
+            try {
+                applyDefaultFontForUser(userId);
+            } catch (RuntimeException e) {
+                Slog.w(TAG, "Failed to apply default font for user " + userId, e);
             }
         }
     }
@@ -940,24 +948,10 @@ public final class FontManagerService extends IFontManager.Stub {
                 if (userId < 0) {
                     return;
                 }
-                String defaultFamily = mContext.getResources().getString(
-                        com.android.internal.R.string.config_defaultCustomFontFamily);
-                if (defaultFamily == null || defaultFamily.isEmpty()) {
-                    return;
-                }
                 try {
-                    applyCustomFontOverlayForUser(defaultFamily, userId);
+                    applyDefaultFontForUser(userId);
                 } catch (RuntimeException e) {
                     Slog.w(TAG, "Failed to apply default font overlay for new user " + userId, e);
-                }
-                try {
-                    synchronized (mUpdatableFontDirLock) {
-                        if (mUpdatableFontDir != null) {
-                            mUpdatableFontDir.setActiveCustomFontFamily(userId, defaultFamily);
-                        }
-                    }
-                } catch (SystemFontException e) {
-                    Slog.e(TAG, "Failed to persist default font for new user " + userId, e);
                 }
             }
         }, filter, null /* broadcastPermission */, null /* handler */);

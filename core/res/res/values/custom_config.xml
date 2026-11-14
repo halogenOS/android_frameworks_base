@@ -29,10 +29,11 @@
         <item>com.android.settings</item>
     </string-array>
 
-    <!-- Default custom font family applied per-user at boot via a fabricated overlay.
-         If empty, no overlay is created and the system falls back to stock fonts.
-         Product overlays may set this to a pre-installed font family name. -->
-    <string name="config_defaultCustomFontFamily" translatable="false"></string>
+    <!-- Package name of the font package, preinstalled on the system image, that provides the
+         default font. FontManagerService applies it to every user without a chosen font through
+         a fabricated overlay. If empty, or if the named font package is not found on the system
+         image, the default is the stock font. -->
+    <string name="config_defaultFontPackage" translatable="false"></string>
 
     <!-- Font family aliases for per-user custom font theming.
          Each entry maps a hardcoded font family name to itself by default.

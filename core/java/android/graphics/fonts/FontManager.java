@@ -545,9 +545,10 @@ public class FontManager {
     }
 
     /**
-     * Returns the default font family name for this device, taking build-time overlays into
-     * account. This is the family that should be previewed for the "Default / Stock" option in
-     * a font picker. The returned name is safe to pass to {@link Typeface#create(String, int)}.
+     * Returns the default font family name for this device: the font family provided by the
+     * default font package when the device sets one, the body font family otherwise. A font picker
+     * previews this family for the "Default / Stock" option. The returned name is safe to pass to
+     * {@link Typeface#create(String, int)}.
      *
      * <p>The caller must hold {@code INSTALL_CUSTOM_FONTS}.
      *
