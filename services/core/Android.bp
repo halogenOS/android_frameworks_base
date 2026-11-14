@@ -181,6 +181,7 @@ java_library_static {
         "service-rkp.stubs.system_server",
         "service-sdksandbox.stubs.system_server",
         "service-telecom.stubs.system_server",
+        "services.bluetoothaudioquality",
         "services.net",
     ],
     plugins: ["ImmutabilityAnnotationProcessor"],

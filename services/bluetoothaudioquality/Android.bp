@@ -1,0 +1,15 @@
+// SPDX-FileCopyrightText: The halogenOS Project
+// SPDX-License-Identifier: Apache-2.0
+
+package {
+    default_applicable_licenses: ["frameworks_base_license"],
+}
+
+// The library of the audio quality service of the Bluetooth app, for the audio service in
+// system_server
+java_library_static {
+    name: "services.bluetoothaudioquality",
+    defaults: ["platform_service_defaults"],
+    static_libs: ["bluetooth-audio-quality-aidl"],
+    jarjar_rules: "jarjar-rules.txt",
+}

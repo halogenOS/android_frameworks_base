@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: The halogenOS Project
+# SPDX-License-Identifier: Apache-2.0
+
+# The rule renames the Kotlin standard library linked into the Bluetooth audio quality library, so
+# the library in system_server uses a private copy of it. The methods of the library have only Java
+# types in their signatures, so the audio service calls them from Java.
+rule kotlin.** com.android.server.bluetoothaudioquality.jarjar.@0
