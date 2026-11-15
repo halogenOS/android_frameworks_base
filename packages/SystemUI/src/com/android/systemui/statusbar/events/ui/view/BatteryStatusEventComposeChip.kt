@@ -30,15 +30,13 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import com.android.compose.theme.PlatformTheme
+import com.android.systemui.lifecycle.rememberViewModel
 import com.android.systemui.res.R
 import com.android.systemui.statusbar.core.NewStatusBarIcons
 import com.android.systemui.statusbar.events.BackgroundAnimatableView
-import com.android.systemui.statusbar.pipeline.battery.domain.interactor.BatteryInteractor
-import com.android.systemui.statusbar.pipeline.battery.shared.ui.BatteryColors
-import com.android.systemui.statusbar.pipeline.battery.shared.ui.BatteryGlyph
-import com.android.systemui.statusbar.pipeline.battery.ui.composable.BatteryLayout
+import com.android.systemui.statusbar.phone.domain.interactor.IsAreaDark
+import com.android.systemui.statusbar.pipeline.battery.ui.composable.UnifiedBattery
 import com.android.systemui.statusbar.pipeline.battery.ui.viewmodel.BatteryViewModel
-import com.android.systemui.statusbar.pipeline.battery.ui.viewmodel.BatteryViewModel.Companion.glyphRepresentation
 
 /**
  * [StatusEvent] chip for the battery plugged in status event. Shows the current battery level and
@@ -49,8 +47,11 @@ import com.android.systemui.statusbar.pipeline.battery.ui.viewmodel.BatteryViewM
 @SuppressLint("ViewConstructor")
 class BatteryStatusEventComposeChip
 @JvmOverloads
-constructor(level: Int, context: Context, attrs: AttributeSet? = null) :
-    FrameLayout(context, attrs), BackgroundAnimatableView {
+constructor(
+    viewModelFactory: BatteryViewModel.Factory,
+    context: Context,
+    attrs: AttributeSet? = null,
+) : FrameLayout(context, attrs), BackgroundAnimatableView {
     private val roundedContainer: LinearLayout
     private val composeInner: ComposeView
     override val contentView: View
@@ -62,7 +63,7 @@ constructor(level: Int, context: Context, attrs: AttributeSet? = null) :
         inflate(context, R.layout.status_bar_event_chip_compose, this)
         roundedContainer = requireViewById(R.id.rounded_container)
         composeInner = requireViewById(R.id.compose_view)
-        composeInner.apply { setContent { PlatformTheme { UnifiedBatteryChip(level) } } }
+        composeInner.apply { setContent { PlatformTheme { UnifiedBatteryChip(viewModelFactory) } } }
         updateResources()
     }
 
@@ -82,20 +83,16 @@ constructor(level: Int, context: Context, attrs: AttributeSet? = null) :
 }
 
 @Composable
-private fun UnifiedBatteryChip(level: Int) {
-    val isFull = BatteryInteractor.isBatteryFull(level)
+private fun UnifiedBatteryChip(viewModelFactory: BatteryViewModel.Factory) {
+    val viewModel =
+        rememberViewModel(traceName = "BatteryStatusEventComposeChip") { viewModelFactory.create() }
     val height =
         with(LocalDensity.current) {
             BatteryViewModel.getStatusBarBatteryHeight(LocalContext.current).toDp()
         }
-    BatteryLayout(
-        attribution = BatteryGlyph.Bolt, // Always charging
-        levelProvider = { level },
-        isFullProvider = { isFull },
-        glyphsProvider = { level.glyphRepresentation() },
-        colorsProvider = { BatteryColors.DarkTheme.Charging },
+    UnifiedBattery(
+        viewModel = viewModel,
+        isDarkProvider = { IsAreaDark { true } },
         modifier = Modifier.height(height).wrapContentWidth(),
-        // TODO(b/394659067): get a content description for this chip
-        contentDescription = "",
     )
 }
