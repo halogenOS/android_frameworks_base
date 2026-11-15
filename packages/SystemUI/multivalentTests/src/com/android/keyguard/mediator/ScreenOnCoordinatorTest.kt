@@ -28,6 +28,7 @@ import com.android.systemui.shade.display.PendingDisplayChangeController
 import com.android.systemui.unfold.FoldAodAnimationController
 import com.android.systemui.unfold.FullscreenLightRevealAnimation
 import com.android.systemui.unfold.SysUIUnfoldComponent
+import com.android.systemui.util.mockito.any
 import com.android.systemui.util.mockito.capture
 import com.android.systemui.utils.os.FakeHandler
 import com.android.systemui.utils.os.FakeHandler.Mode.QUEUEING
@@ -38,6 +39,7 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.Mock
 import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -66,6 +68,9 @@ class ScreenOnCoordinatorTest : SysuiTestCase() {
     @Mock
     private lateinit var pendingDisplayChangeController: PendingDisplayChangeController
 
+    @Mock
+    private lateinit var bootLockscreenFadeInWait: BootLockscreenFadeInWait
+
     @Captor
     private lateinit var readyCaptor: ArgumentCaptor<Runnable>
 
@@ -81,6 +86,9 @@ class ScreenOnCoordinatorTest : SysuiTestCase() {
             .thenReturn(fullScreenLightRevealAnimations)
         `when`(unfoldComponent.getFoldAodAnimationController())
             .thenReturn(foldAodAnimationController)
+        doAnswer { it.getArgument<Runnable>(0).run() }
+            .`when`(bootLockscreenFadeInWait)
+            .onScreenTurningOn(any())
 
         screenOnCoordinator =
             createScreenOnCoordinator(unfoldComponent = Optional.of(unfoldComponent))
@@ -194,6 +202,7 @@ class ScreenOnCoordinatorTest : SysuiTestCase() {
             unfoldComponent,
             testHandler,
             pendingDisplayChangeController,
+            bootLockscreenFadeInWait,
         )
 
     private fun onUnfoldOverlayReady() {

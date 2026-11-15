@@ -25,11 +25,14 @@ import com.android.systemui.keyguard.data.repository.KeyguardTransitionRepositor
 import com.android.systemui.keyguard.shared.model.KeyguardState
 import com.android.systemui.keyguard.shared.model.KeyguardState.LOCKSCREEN
 import com.android.systemui.keyguard.shared.model.KeyguardState.OFF
+import com.android.systemui.keyguard.shared.model.TransitionStep
 import com.android.systemui.scene.domain.interactor.OnBootTransitionInteractor
 import com.android.systemui.scene.shared.flag.SceneContainerFlag
 import com.android.systemui.statusbar.policy.domain.interactor.DeviceProvisioningInteractor
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** Handles initialization of the KeyguardTransitionRepository on boot. */
 @SysUISingleton
@@ -45,6 +48,14 @@ constructor(
     val keyguardInteractor: KeyguardInteractor,
     val repository: KeyguardTransitionRepository,
 ) {
+    /**
+     * Whether the boot transition has not started yet or is still fading in the lock screen. Until
+     * [start] emits the first step, the boot target is unknown. A boot that leads to another state
+     * also counts as pending until then.
+     */
+    val isLockscreenFadeInPending: Flow<Boolean> =
+        keyguardTransitionInteractor.transitionState.map { it.isBootLockscreenFadeInPending }
+
     fun start() {
         scope.launch {
             if (internalTransitionInteractor.currentTransitionInfoInternal().from != OFF) {
@@ -71,4 +82,14 @@ constructor(
             }
         }
     }
+
+    /** Before [start], the step is the initial OFF to OFF step of the transition repository. */
+    private val TransitionStep.isBootLockscreenFadeInPending: Boolean
+        get() =
+            from == OFF &&
+                when (to) {
+                    OFF -> true
+                    LOCKSCREEN -> transitionState.isTransitioning()
+                    else -> false
+                }
 }

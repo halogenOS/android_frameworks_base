@@ -41,7 +41,8 @@ class ScreenOnCoordinator
 constructor(
     unfoldComponent: Optional<SysUIUnfoldComponent>,
     @Main private val mainHandler: Handler,
-    private val pendingDisplayChangeController: PendingDisplayChangeController
+    private val pendingDisplayChangeController: PendingDisplayChangeController,
+    private val bootLockscreenFadeInWait: BootLockscreenFadeInWait,
 ) {
 
     private val foldAodAnimationController =
@@ -69,6 +70,10 @@ constructor(
             pendingDisplayChangeController.onScreenTurningOn(reason,
                 pendingTasks.registerTask("pending-display-change-controller"));
         }
+
+        bootLockscreenFadeInWait.onScreenTurningOn(
+            pendingTasks.registerTask("boot-lockscreen-fade-in")
+        )
 
         pendingTasks.onTasksComplete {
             // called by whatever thread completes the last task registered.
