@@ -21,6 +21,7 @@ import static android.app.WallpaperManager.COMMAND_UNFREEZE;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
 import static com.android.internal.protolog.WmProtoLogGroups.WM_DEBUG_WALLPAPER;
+import static com.android.server.policy.WindowManagerPolicy.FINISH_LAYOUT_REDO_WALLPAPER;
 import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_SCREENSHOT;
 import static com.android.server.wm.WindowManagerDebugConfig.DEBUG_WALLPAPER;
 import static com.android.server.wm.WindowManagerDebugConfig.TAG_WITH_CLASS_NAME;
@@ -107,8 +108,10 @@ class WallpaperController {
         // The animating window can still be visible on screen if it is in transition, so we
         // should check whether this window can be wallpaper target even when visibleRequested
         // is false.
-        if (ar != null && !ar.isVisibleRequested() && !ar.isVisible()) {
-            // An activity that is not going to remain visible shouldn't be the target.
+        if (ar != null && !ar.isVisibleRequested()
+                && (!ar.isVisible() || mFindResults.isKeyguardShowingBeforeFirstDraw)) {
+            // An activity that is not going to remain visible shouldn't be the target. Before the
+            // first keyguard draw, one that is still animating out would hide the lock wallpaper.
             return false;
         }
         if (DEBUG_WALLPAPER) Slog.v(TAG, "Win " + w + ": isOnScreen=" + w.isOnScreen()
@@ -511,7 +514,8 @@ class WallpaperController {
     private WallpaperWindowToken getTokenForTarget(WindowState target) {
         if (target == null) return null;
         WindowState window = mFindResults.getTopWallpaper(
-                (target.canShowWhenLocked() && mService.isKeyguardLocked())
+                mFindResults.isKeyguardShowingBeforeFirstDraw
+                        || (target.canShowWhenLocked() && mService.isKeyguardLocked())
                         || (Flags.aodTransition() && mDisplayContent.isAodShowing()));
         return window == null ? null : window.mToken.asWallpaperToken();
     }
@@ -522,19 +526,49 @@ class WallpaperController {
 
     private void findWallpaperTarget() {
         mFindResults.reset();
+        mFindResults.isKeyguardShowingBeforeFirstDraw = isKeyguardShowingBeforeFirstDraw();
         findWallpapers();
         mDisplayContent.forAllWindows(mFindWallpaperTargetFunction, true /* traverseTopToBottom */);
-        if (mFindResults.mNeedsShowWhenLockedWallpaper) {
-            // Keep wallpaper visible if the show-when-locked activities doesn't fill screen.
+        if (mFindResults.mNeedsShowWhenLockedWallpaper
+                || mFindResults.isKeyguardShowingBeforeFirstDraw) {
+            // Keep wallpaper visible if the show-when-locked activities doesn't fill screen, or
+            // while the keyguard is presumed showing before its first draw.
             mFindResults.setUseTopWallpaperAsTarget(true);
         }
 
         if (mFindResults.wallpaperTarget == null && mFindResults.useTopWallpaperAsTarget) {
             mFindResults.setWallpaperTarget(
-                    mFindResults.getTopWallpaper(Flags.aodTransition()
-                            ? mDisplayContent.isKeyguardLockedOrAodShowing()
-                            : mDisplayContent.isKeyguardLocked()));
+                    mFindResults.getTopWallpaper(isKeyguardLockedForWallpaper()));
         }
+    }
+
+    private boolean isKeyguardLockedForWallpaper() {
+        return mFindResults.isKeyguardShowingBeforeFirstDraw
+                || (Flags.aodTransition()
+                        ? mDisplayContent.isKeyguardLockedOrAodShowing()
+                        : mDisplayContent.isKeyguardLocked());
+    }
+
+    /**
+     * Until the keyguard is drawn for the first time after boot, the wallpaper of the default
+     * display uses the keyguard state of the policy. The policy presumes a showing keyguard until
+     * SystemUI reports. The display does not know about the keyguard before that report. Between
+     * the report and the first draw, the activity behind the keyguard animates out and no window
+     * of the keyguard is ready yet. The presumption shows the lock wallpaper through both spans.
+     */
+    private boolean isKeyguardShowingBeforeFirstDraw() {
+        return mService.mPolicy.isKeyguardShowing() && isBeforeFirstKeyguardDraw();
+    }
+
+    private boolean isBeforeFirstKeyguardDraw() {
+        return mDisplayContent.isDefaultDisplay && !mService.mPolicy.isKeyguardDrawnLw();
+    }
+
+    /** Re-evaluates the wallpaper while it uses the keyguard state of the policy. */
+    void onPolicyKeyguardShowingChanged() {
+        if (!isBeforeFirstKeyguardDraw()) return;
+        mDisplayContent.pendingLayoutChanges |= FINISH_LAYOUT_REDO_WALLPAPER;
+        mService.mWindowPlacerLocked.requestTraversal();
     }
 
     private void findWallpapers() {
@@ -631,19 +665,18 @@ class WallpaperController {
             }
         }
 
-        final boolean visibleRequested =
-                mWallpaperTarget != null && mWallpaperTarget.isVisibleRequested();
-        updateWallpaperTokens(visibleRequested,
-                Flags.aodTransition()
-                        ? mDisplayContent.isKeyguardLockedOrAodShowing()
-                        : mDisplayContent.isKeyguardLocked());
+        // A wallpaper window that is its own target before the first keyguard draw asks for the
+        // visibility its token cannot ask for while it is hidden.
+        final boolean visibleRequested = mWallpaperTarget != null
+                && (mWallpaperTarget.isVisibleRequested()
+                        || (mFindResults.isKeyguardShowingBeforeFirstDraw
+                                && mWallpaperTarget.mIsWallpaper));
+        final boolean keyguardLocked = isKeyguardLockedForWallpaper();
+        updateWallpaperTokens(visibleRequested, keyguardLocked);
 
         ProtoLog.v(WM_DEBUG_WALLPAPER,
                 "Wallpaper at display %d - visibility: %b, keyguardLocked: %b",
-                mDisplayContent.getDisplayId(), visible,
-                Flags.aodTransition()
-                        ? mDisplayContent.isKeyguardLockedOrAodShowing()
-                        : mDisplayContent.isKeyguardLocked());
+                mDisplayContent.getDisplayId(), visible, keyguardLocked);
 
         if (visible && mLastFrozen != mFindResults.isWallpaperTargetForLetterbox) {
             mLastFrozen = mFindResults.isWallpaperTargetForLetterbox;
@@ -857,6 +890,7 @@ class WallpaperController {
 
         TopWallpaper mTopWallpaper = new TopWallpaper();
         boolean mNeedsShowWhenLockedWallpaper;
+        boolean isKeyguardShowingBeforeFirstDraw;
         boolean useTopWallpaperAsTarget;
         WindowState wallpaperTarget;
         boolean isWallpaperTargetForLetterbox;

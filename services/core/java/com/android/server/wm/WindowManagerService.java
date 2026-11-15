@@ -3670,6 +3670,13 @@ public class WindowManagerService extends IWindowManager.Stub
     public void onKeyguardShowingAndNotOccludedChanged() {
         mH.sendEmptyMessage(H.RECOMPUTE_FOCUS);
         dispatchKeyguardLockedState();
+        // Posted because the policy calls this inside a synchronized block of ScreenLockTimeout.
+        mH.post(() -> {
+            synchronized (mGlobalLock) {
+                mRoot.forAllDisplays(
+                        dc -> dc.mWallpaperController.onPolicyKeyguardShowingChanged());
+            }
+        });
     }
 
     @Override
