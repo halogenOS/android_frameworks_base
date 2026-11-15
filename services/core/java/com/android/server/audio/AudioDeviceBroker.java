@@ -2002,6 +2002,9 @@ public class AudioDeviceBroker {
                     }
                     break;
                 case MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE: {
+                    // Where the codec changed, the outputs of the device reopen while this message
+                    // is handled, so the music mute ends right after it.
+                    muteCheckDelayMs = 0;
                     final BtDeviceChangedData data = ((QueuedBtDeviceConfigChange) msg.obj).mData;
                     if (data.mNewDevice == null) {
                         Slog.e(TAG, "Malformed MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE message");
@@ -2014,7 +2017,7 @@ public class AudioDeviceBroker {
                             btInfo.mDevice, btInfo.mProfile, btInfo.mIsLeOutput,
                             "MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE");
                     synchronized (mDeviceStateLock) {
-                        muteCheckDelayMs += mDeviceInventory.onBluetoothDeviceConfigChange(btInfo,
+                        mDeviceInventory.onBluetoothDeviceConfigChange(btInfo,
                                 codecAndChanged.first, codecAndChanged.second,
                                 BtHelper.EVENT_DEVICE_CONFIG_CHANGE);
                     }
