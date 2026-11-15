@@ -44,6 +44,7 @@ public class MenuPopupWindow extends ListPopupWindow implements MenuItemHoverLis
 
     public MenuPopupWindow(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+        mPopup.setClipContentToBackground(true);
     }
 
     @Override

@@ -278,6 +278,8 @@ public class PopupWindow {
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P)
     private boolean mOverlapAnchor;
 
+    private boolean mClipContentToBackground;
+
     private boolean mPopupViewInitialLayoutDirectionInherited;
 
     private OnBackInvokedCallback mBackCallback;
@@ -1254,6 +1256,15 @@ public class PopupWindow {
     }
 
     /**
+     * Sets whether the content is clipped to the outline of the popup background, so that
+     * touch feedback of the content is drawn only inside rounded background corners. Takes
+     * effect the next time the popup is shown.
+     */
+    void setClipContentToBackground(boolean clipContentToBackground) {
+        mClipContentToBackground = clipContentToBackground;
+    }
+
+    /**
      * Returns whether the popup window should overlap its anchor view when
      * displayed as a drop-down.
      *
@@ -1532,6 +1543,7 @@ public class PopupWindow {
         final PopupBackgroundView.LayoutParams listParams = new PopupBackgroundView.LayoutParams(
                 MATCH_PARENT, height);
         backgroundView.addView(contentView, listParams);
+        backgroundView.setClipToOutline(mClipContentToBackground);
 
         return backgroundView;
     }
