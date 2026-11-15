@@ -860,6 +860,33 @@ public class AudioDeviceBroker {
         }
     }
 
+    /**
+     * The message object of MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE. Two objects are equal when they
+     * describe a configuration change of the same device, profile and direction (output or
+     * input), so a posted change replaces the queued one.
+     */
+    private static final class QueuedBtDeviceConfigChange {
+        final @NonNull BtDeviceChangedData mData;
+
+        QueuedBtDeviceConfigChange(@NonNull BtDeviceChangedData data) {
+            mData = data;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof QueuedBtDeviceConfigChange other
+                    && Objects.equals(mData.mNewDevice, other.mData.mNewDevice)
+                    && mData.mInfo.getProfile() == other.mData.mInfo.getProfile()
+                    && mData.mInfo.isLeOutput() == other.mData.mInfo.isLeOutput();
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(mData.mNewDevice, mData.mInfo.getProfile(),
+                    mData.mInfo.isLeOutput());
+        }
+    }
+
     /*package*/ static final class BtDeviceInfo {
         final @NonNull BluetoothDevice mDevice;
         final @AudioService.BtProfileConnectionState int mState;
@@ -1259,7 +1286,10 @@ public class AudioDeviceBroker {
     }
 
     /*package*/ void postBluetoothDeviceConfigChange(@NonNull BtDeviceChangedData data) {
-        sendLMsgNoDelay(MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE, SENDMSG_QUEUE, data);
+        // The handler reads the codec of the device when it runs, so repeated reports for one
+        // device reopen its outputs once.
+        sendLMsgNoDelay(MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE, SENDMSG_REPLACE_EQUAL,
+                new QueuedBtDeviceConfigChange(data));
     }
 
     /*package*/ void postBluetoothDeviceConnectionChange(@NonNull BtDeviceChangedData data) {
@@ -1972,7 +2002,7 @@ public class AudioDeviceBroker {
                     }
                     break;
                 case MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE: {
-                    final BtDeviceChangedData data = (BtDeviceChangedData) msg.obj;
+                    final BtDeviceChangedData data = ((QueuedBtDeviceConfigChange) msg.obj).mData;
                     if (data.mNewDevice == null) {
                         Slog.e(TAG, "Malformed MSG_L_BLUETOOTH_DEVICE_CONFIG_CHANGE message");
                         break;
@@ -2283,6 +2313,8 @@ public class AudioDeviceBroker {
     private static final int SENDMSG_NOOP = 1;
     /** If the msg is already queued, queue this one and leave the old. */
     private static final int SENDMSG_QUEUE = 2;
+    /** If the msg is already queued with an equal object, replace it with this one. */
+    private static final int SENDMSG_REPLACE_EQUAL = 3;
 
     private void sendMsg(int msg, int existingMsgPolicy, int delay) {
         sendIILMsg(msg, existingMsgPolicy, 0, 0, null, delay);
@@ -2328,6 +2360,8 @@ public class AudioDeviceBroker {
                             int delay) {
         if (existingMsgPolicy == SENDMSG_REPLACE) {
             mBrokerHandler.removeMessages(msg);
+        } else if (existingMsgPolicy == SENDMSG_REPLACE_EQUAL) {
+            mBrokerHandler.removeEqualMessages(msg, obj);
         } else if (existingMsgPolicy == SENDMSG_NOOP && mBrokerHandler.hasMessages(msg)) {
             return;
         }
