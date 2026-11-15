@@ -42,9 +42,11 @@ import libcore.io.IoUtils;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class PackageCacher implements IPackageCacher {
 
@@ -197,6 +199,19 @@ public class PackageCacher implements IPackageCacher {
     }
 
     /**
+     * Whether {@code parsed} has an APK that is neither {@code packageFile} itself nor a file
+     * directly inside it. Signing certificates are read from these APKs, so a cache entry on /data
+     * must not point them at files outside the package it was stored for.
+     */
+    private static boolean hasApksOutside(ParsedPackage parsed, File packageFile) {
+        return Stream.concat(Stream.of(parsed.getBaseApkPath()),
+                        Arrays.stream(parsed.getSplitCodePaths()))
+                .map(File::new)
+                .anyMatch(apk -> !apk.equals(packageFile)
+                        && !packageFile.equals(apk.getParentFile()));
+    }
+
+    /**
      * Returns the cached parse result for {@code packageFile} for parse flags {@code flags},
      * or {@code null} if no cached result exists.
      */
@@ -215,6 +230,10 @@ public class PackageCacher implements IPackageCacher {
             final ParsedPackage parsed = fromCacheEntry(bytes);
             if (!packageFile.getAbsolutePath().equals(parsed.getPath())) {
                 // Don't use this cache if the path doesn't match
+                return null;
+            }
+            if (hasApksOutside(parsed, packageFile.getAbsoluteFile())) {
+                Slog.w(TAG, "Cached result for " + packageFile + " points to APKs outside of it");
                 return null;
             }
 

@@ -4550,10 +4550,8 @@ final class InstallPackageHelper {
                     ? pkgSetting.getPackageName() : parsedPackage.getPackageName();
             final boolean isSystemPkgUpdated;
             final PackageSetting disabledPkgSetting;
-            final boolean isUpgrade;
 
             synchronized (mPm.mLock) {
-                isUpgrade = mPm.isDeviceUpgrading();
                 if (scanSystemPartition && !pkgAlreadyExists
                         && mPm.mSettings.getDisabledSystemPkgLPr(disabledPkgName) != null) {
                     // The updated-package data for /system apk remains inconsistently
@@ -4636,24 +4634,22 @@ final class InstallPackageHelper {
             // equal to the version on the /data partition. Throw an exception and use
             // the application already installed on the /data partition.
             if (scanSystemPartition && isSystemPkgUpdated && !isSystemPkgBetter) {
-                // For some updated system packages, during addForInit we want to ensure the
+                // For every updated system package, during addForInit we want to ensure the
                 // PackageSetting has the correct SigningDetails compares to the original version on
                 // the system partition. For the check to happen later during the /data scan, update
                 // the disabled package setting per the original APK on a system partition so that
                 // it can be trusted during reconcile.
-                if (needSignatureMatchToSystem(parsedPackage.getPackageName())) {
-                    final ParseTypeImpl input = ParseTypeImpl.forDefaultParsing();
-                    final ParseResult<SigningDetails> result =
-                            ParsingPackageUtils.getSigningDetails(input, parsedPackage,
-                                    // It is safe to skip the full verification here because the APK
-                                    // is in an immutable partition secured by dm-verity.
-                                    Flags.trustSystemApkSignatures() /*skipVerify*/);
-                    if (result.isError()) {
-                        throw new PrepareFailure("Failed collect during scanPackageForInitLI",
-                                result.getException());
-                    }
-                    disabledPkgSetting.setSigningDetails(result.getResult());
+                final ParseTypeImpl input = ParseTypeImpl.forDefaultParsing();
+                final ParseResult<SigningDetails> result =
+                        ParsingPackageUtils.getSigningDetails(input, parsedPackage,
+                                // It is safe to skip the full verification here because the APK
+                                // is in an immutable partition secured by dm-verity.
+                                Flags.trustSystemApkSignatures() /*skipVerify*/);
+                if (result.isError()) {
+                    throw new PrepareFailure("Failed collect during scanPackageForInitLI",
+                            result.getException());
                 }
+                disabledPkgSetting.setSigningDetails(result.getResult());
 
                 // Any Exception thrown here when scanning an APK-in-APEX will cause
                 // processParseResult() to fail installation of the APEX. Having a newer
@@ -4683,10 +4679,12 @@ final class InstallPackageHelper {
 
             // Verify certificates against what was last scanned. Force re-collecting certificate in
             // two special cases:
-            // 1) when scanning system, force re-collect only if system is upgrading.
+            // 1) when scanning system, always force re-collect, so that signing details stored on
+            //    the writable /data partition are never used instead of the APK on a verified
+            //    partition.
             // 2) when scanning /data, force re-collect only if the package name is allowlisted.
-            final boolean forceCollect = scanSystemPartition ? isUpgrade
-                    : pkgAlreadyExists && needSignatureMatchToSystem(pkgSetting.getPackageName());
+            final boolean forceCollect = scanSystemPartition || (pkgAlreadyExists
+                    && needSignatureMatchToSystem(pkgSetting.getPackageName()));
             if (DEBUG_VERIFY && forceCollect) {
                 Slog.d(TAG, "Force collect certificate of " + parsedPackage.getPackageName());
             }

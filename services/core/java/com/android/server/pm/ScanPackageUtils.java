@@ -1053,9 +1053,8 @@ final class ScanPackageUtils {
 
             Slog.w(TAG, "PackageSetting for " + ps.getPackageName()
                     + " is missing signatures.  Collecting certs again to recover them.");
-        } else {
-            Slog.i(TAG, parsedPackage.getPath() + " changed; collecting certs"
-                    + (forceCollect ? " (forced)" : ""));
+        } else if (!forceCollect) {
+            Slog.i(TAG, parsedPackage.getPath() + " changed; collecting certs");
         }
 
         try {
