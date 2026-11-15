@@ -119,6 +119,17 @@ public class DefaultAudioPolicyFacade implements AudioPolicyFacade {
     }
 
     @Override
+    public void onDeviceFormatRequestDone(int trackPortId) {
+        IAudioPolicyService ap = mServiceHolder.checkService();
+        if (ap == null) return;
+        try {
+            ap.onDeviceFormatRequestDone(trackPortId);
+        } catch (RemoteException e) {
+            mServiceHolder.attemptClear(ap.asBinder());
+        }
+    }
+
+    @Override
     public void registerOnStartTask(Runnable task) {
         mServiceHolder.registerOnStartTask(unused -> task.run());
     }

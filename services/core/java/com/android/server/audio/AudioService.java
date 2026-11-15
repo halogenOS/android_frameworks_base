@@ -9694,6 +9694,11 @@ public class AudioService extends IAudioService.Stub
         getVssForStreamOrDefault(AudioSystem.STREAM_MUSIC).muteInternally(mute);
     }
 
+    /** Tells audio policy that the format request it sent for a track is done. */
+    /*package*/ void onDeviceFormatRequestDone(int trackPortId) {
+        mAudioPolicy.onDeviceFormatRequestDone(trackPortId);
+    }
+
     /** Mute or unmute call audio */
     /*package*/ void setCallMute(boolean mute) {
         getVssForStreamOrDefault(AudioSystem.STREAM_VOICE_CALL).muteInternally(mute);

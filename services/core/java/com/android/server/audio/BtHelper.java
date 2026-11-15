@@ -48,6 +48,7 @@ import android.bluetooth.BluetoothLeAudioCodecConfig;
 import android.bluetooth.BluetoothLeAudioCodecStatus;
 import android.bluetooth.BluetoothLeAudioPeripheral;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothStatusCodes;
 import android.content.AttributionSource;
 import android.content.Intent;
 import android.media.AudioDeviceAttributes;
@@ -720,7 +721,6 @@ public class BtHelper {
         if (mScoHelper != null) {
             mScoHelper.resetBluetoothSco();
         }
-        AudioSystem.setDeviceFormatRequestCallback(mDeviceBroker::postRequestA2dpPcmFormat);
 
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter != null) {
@@ -873,18 +873,22 @@ public class BtHelper {
 
     /**
      * Asks the Bluetooth stack to run the A2DP codec used by {@code device} at the PCM format that
-     * the codec offers for {@code trackFormat}.
+     * the codec offers for {@code trackFormat}. Returns whether the Bluetooth stack runs
+     * {@code onDone} once the request is done. Otherwise {@code onDone} never runs.
      */
-    /*package*/ void requestA2dpPcmFormat(
-            @NonNull AudioDeviceAttributes device, @NonNull AudioFormat trackFormat) {
+    /*package*/ boolean requestA2dpPcmFormat(@NonNull AudioDeviceAttributes device,
+            @NonNull AudioFormat trackFormat, @NonNull Runnable onDone) {
         BluetoothDevice btDevice = getBluetoothDevice(device.getAddress());
         if (btDevice == null) {
-            return;
+            return false;
         }
-        AudioQualityCall<Integer> call = mAudioQuality.requestPcmFormat(btDevice, trackFormat);
+        AudioQualityCall<Integer> call =
+                mAudioQuality.requestPcmFormat(btDevice, trackFormat, onDone);
         AudioService.sDeviceLogger.enqueue(new EventLogger.StringEvent(
                 "requestA2dpPcmFormat " + trackFormat + " for " + device + ": " + call)
                 .printLog(TAG));
+        return call instanceof AudioQualityCall.Returned<Integer> returned
+                && returned.getValue() == BluetoothStatusCodes.SUCCESS;
     }
 
     /**

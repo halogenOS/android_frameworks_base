@@ -16,6 +16,7 @@ import com.android.bluetooth.audioquality.aidl.AudioQualityCall;
 import com.android.bluetooth.audioquality.aidl.AudioQualityCalls;
 import com.android.bluetooth.audioquality.aidl.AudioQualityServiceBinding;
 import com.android.bluetooth.audioquality.aidl.IAudioQuality;
+import com.android.bluetooth.audioquality.aidl.IPcmFormatRequestCallback;
 
 /**
  * Connection of the audio service to the audio quality service of the Bluetooth app, bound as the
@@ -60,11 +61,18 @@ final class AudioQualityServiceConnection {
     /**
      * Requests the sample rate and the encoding of {@code format} on the A2DP codec used by
      * {@code device}. A returned call has the BluetoothStatusCodes value returned by the service.
+     * {@code onDone} runs on a binder thread once a request returned with SUCCESS is done.
      */
-    @NonNull AudioQualityCall<Integer> requestPcmFormat(
-            @NonNull BluetoothDevice device, @NonNull AudioFormat format) {
+    @NonNull AudioQualityCall<Integer> requestPcmFormat(@NonNull BluetoothDevice device,
+            @NonNull AudioFormat format, @NonNull Runnable onDone) {
+        IPcmFormatRequestCallback callback = new IPcmFormatRequestCallback.Stub() {
+            @Override
+            public void onRequestDone() {
+                onDone.run();
+            }
+        };
         return AudioQualityCalls.callService(mService,
-                service -> service.requestPcmFormat(device, format,
+                service -> service.requestPcmFormat(device, format, callback,
                         mContext.getAttributionSource()));
     }
 }

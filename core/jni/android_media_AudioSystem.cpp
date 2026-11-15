@@ -670,7 +670,8 @@ static void android_media_AudioSystem_vol_range_init_req_callback()
 }
 
 static void android_media_AudioSystem_device_format_request_callback(
-        const AudioDeviceTypeAddr& device, const audio_config_base_t& trackConfig) {
+        const AudioDeviceTypeAddr& device, const audio_config_base_t& trackConfig,
+        audio_port_handle_t trackPortId) {
     JNIEnv *env = AndroidRuntime::getJNIEnv();
     if (env == NULL) {
         return;
@@ -683,7 +684,8 @@ static void android_media_AudioSystem_device_format_request_callback(
                               gAudioPolicyEventHandlerMethods.postDeviceFormatRequestFromNative,
                               static_cast<jint>(device.mType), jAddress.get(),
                               static_cast<jint>(trackConfig.sample_rate),
-                              audioFormatFromNative(trackConfig.format));
+                              audioFormatFromNative(trackConfig.format),
+                              static_cast<jint>(trackPortId));
     if (env->ExceptionCheck()) {
         ALOGW("An exception occurred while requesting a device format.");
         env->ExceptionClear();
@@ -3823,7 +3825,7 @@ int register_android_media_AudioSystem(JNIEnv *env)
                     "volRangeInitReqCallbackFromNative", "()V");
     gAudioPolicyEventHandlerMethods.postDeviceFormatRequestFromNative =
             GetStaticMethodIDOrDie(env, env->FindClass(kClassPathName),
-                    "deviceFormatRequestCallbackFromNative", "(ILjava/lang/String;II)V");
+                    "deviceFormatRequestCallbackFromNative", "(ILjava/lang/String;III)V");
 
     jclass audioMixClass = FindClassOrDie(env, "android/media/audiopolicy/AudioMix");
     gAudioMixClass = MakeGlobalRefOrDie(env, audioMixClass);

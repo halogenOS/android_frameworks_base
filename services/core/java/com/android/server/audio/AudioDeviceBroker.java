@@ -193,9 +193,12 @@ public class AudioDeviceBroker {
      * communicated by AudioService */
     static final record AudioModeInfo(int mMode, int mPid, int mUid, IBinder mToken) {}
 
-    /** The format of a lone A2DP track, sent by audio policy for the device that plays it. */
-    static final record A2dpPcmFormatRequest(
-            @NonNull AudioDeviceAttributes mDevice, @NonNull AudioFormat mTrackFormat) {}
+    /**
+     * The format of a lone A2DP track, sent by audio policy for the device that plays it, with the
+     * port ID of the track.
+     */
+    static final record A2dpPcmFormatRequest(@NonNull AudioDeviceAttributes mDevice,
+            @NonNull AudioFormat mTrackFormat, int mTrackPortId) {}
 
     private AudioModeInfo mAudioModeOwner = new AudioModeInfo(AudioSystem.MODE_NORMAL, 0, 0, null);
 
@@ -236,6 +239,7 @@ public class AudioDeviceBroker {
         deviceInventory.setDeviceBroker(this);
 
         setupMessaging();
+        AudioSystem.setDeviceFormatRequestCallback(this::postRequestA2dpPcmFormat);
 
         mCommunicationActivityDebouncer =
                 new ActivityDebouncer(mBrokerHandler, MSG_L_COMMUNICATION_ROUTE_INACTIVE,
@@ -1279,10 +1283,10 @@ public class AudioDeviceBroker {
                 SENDMSG_REPLACE, new AudioModeInfo(mode, pid, uid, token));
     }
 
-    /*package*/ void postRequestA2dpPcmFormat(
-            @NonNull AudioDeviceAttributes device, @NonNull AudioFormat trackFormat) {
-        sendLMsgNoDelay(MSG_L_REQUEST_A2DP_PCM_FORMAT, SENDMSG_REPLACE,
-                new A2dpPcmFormatRequest(device, trackFormat));
+    private void postRequestA2dpPcmFormat(@NonNull AudioDeviceAttributes device,
+            @NonNull AudioFormat trackFormat, int trackPortId) {
+        sendLMsgNoDelay(MSG_L_REQUEST_A2DP_PCM_FORMAT, SENDMSG_QUEUE,
+                new A2dpPcmFormatRequest(device, trackFormat, trackPortId));
     }
 
     /*package*/ void postBluetoothDeviceConfigChange(@NonNull BtDeviceChangedData data) {
@@ -2207,8 +2211,18 @@ public class AudioDeviceBroker {
                     break;
                 case MSG_L_REQUEST_A2DP_PCM_FORMAT: {
                     final A2dpPcmFormatRequest request = (A2dpPcmFormatRequest) msg.obj;
-                    mBtHelper.requestA2dpPcmFormat(request.mDevice(), request.mTrackFormat());
+                    // The Bluetooth stack ends a request after it sent the codec report that
+                    // follows the request, so the end is handled after that report.
+                    final Runnable onDone = () -> sendIMsgNoDelay(MSG_I_DEVICE_FORMAT_REQUEST_DONE,
+                            SENDMSG_QUEUE, request.mTrackPortId());
+                    if (!mBtHelper.requestA2dpPcmFormat(
+                            request.mDevice(), request.mTrackFormat(), onDone)) {
+                        onDone.run();
+                    }
                 } break;
+                case MSG_I_DEVICE_FORMAT_REQUEST_DONE:
+                    mAudioService.onDeviceFormatRequestDone(msg.arg1);
+                    break;
 
                 default:
                     Log.wtf(TAG, "Invalid message " + msg.what);
@@ -2289,6 +2303,7 @@ public class AudioDeviceBroker {
     private static final int MSG_I_MUTE_CALL = 62;
     private static final int MSG_L_CONNECTED_DEVICES_CHANGED = 63;
     private static final int MSG_L_REQUEST_A2DP_PCM_FORMAT = 64;
+    private static final int MSG_I_DEVICE_FORMAT_REQUEST_DONE = 65;
 
 
     private static boolean isMessageHandledUnderWakelock(int msgId) {

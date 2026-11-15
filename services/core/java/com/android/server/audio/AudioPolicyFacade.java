@@ -43,5 +43,11 @@ public interface AudioPolicyFacade {
      * none when audio policy stops before it returns them.
      */
     public List<AudioDeviceDescription> getFormatSwitchingDeviceTypes();
+    /**
+     * Tells audio policy that the format request it sent for the track with the port ID
+     * {@code trackPortId} is done, so that the track starts where it waits for the request. Does
+     * nothing while audio policy is not running.
+     */
+    public void onDeviceFormatRequestDone(int trackPortId);
     public boolean isServiceAvailable();
 }

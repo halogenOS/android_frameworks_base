@@ -1044,10 +1044,12 @@ public class AudioSystem
     public interface DeviceFormatRequestCallback {
         /**
          * Callback to switch {@code device}, such as a Bluetooth A2DP headset, to
-         * {@code trackFormat} where the device supports that format
+         * {@code trackFormat} where the device supports that format. Audio policy waits for
+         * a call to {@code IAudioPolicyService.onDeviceFormatRequestDone} with
+         * {@code trackPortId}, the port ID of the track, once the request is done.
          */
         void onDeviceFormatRequested(@NonNull AudioDeviceAttributes device,
-                @NonNull AudioFormat trackFormat);
+                @NonNull AudioFormat trackFormat, int trackPortId);
     }
 
     @GuardedBy("AudioSystem.class")
@@ -1062,7 +1064,7 @@ public class AudioSystem
     }
 
     private static void deviceFormatRequestCallbackFromNative(int deviceType, String address,
-            int sampleRate, int encoding) {
+            int sampleRate, int encoding, int trackPortId) {
         final DeviceFormatRequestCallback cb;
         synchronized (AudioSystem.class) {
             cb = sDeviceFormatRequestCallback;
@@ -1072,7 +1074,8 @@ public class AudioSystem
             return;
         }
         cb.onDeviceFormatRequested(new AudioDeviceAttributes(deviceType, address),
-                new AudioFormat.Builder().setSampleRate(sampleRate).setEncoding(encoding).build());
+                new AudioFormat.Builder().setSampleRate(sampleRate).setEncoding(encoding).build(),
+                trackPortId);
     }
 
     /*
