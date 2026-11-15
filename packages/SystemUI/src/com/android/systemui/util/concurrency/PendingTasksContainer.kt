@@ -25,36 +25,43 @@ import java.util.concurrent.atomic.AtomicReference
  */
 class PendingTasksContainer {
 
-    @Volatile
-    private var pendingTasksCount = AtomicInteger(0)
+    /** The tasks registered since the last [reset] and the callback that waits for them. */
+    private class Round {
+        val pendingTasksCount = AtomicInteger(0)
+        val completionCallback = AtomicReference<Runnable?>()
+
+        fun complete() {
+            completionCallback.getAndSet(null)?.run()
+        }
+    }
 
     @Volatile
-    private var completionCallback = AtomicReference<Runnable>()
+    private var round = Round()
 
     /**
      * Registers a task that we should wait for
      * @return a runnable that should be invoked when the task is finished
      */
     fun registerTask(name: String): Runnable {
-        pendingTasksCount.incrementAndGet()
+        val taskRound = round
+        taskRound.pendingTasksCount.incrementAndGet()
         Trace.beginAsyncSection("PendingTasksContainer#$name", 0)
 
         return Runnable {
             Trace.endAsyncSection("PendingTasksContainer#$name", 0)
-            if (pendingTasksCount.decrementAndGet() == 0) {
-                val onComplete = completionCallback.getAndSet(null)
-                onComplete?.run()
+            if (taskRound.pendingTasksCount.decrementAndGet() == 0) {
+                taskRound.complete()
             }
         }
     }
 
     /**
-     * Clears state and initializes the container
+     * Clears state and initializes the container. Tasks of earlier rounds that finish later neither
+     * count down this round nor run its callback.
      */
     fun reset() {
-        // Create new objects in case if there are pending callbacks from the previous invocations
-        completionCallback = AtomicReference()
-        pendingTasksCount = AtomicInteger(0)
+        round.completionCallback.set(null)
+        round = Round()
     }
 
     /**
@@ -62,17 +69,16 @@ class PendingTasksContainer {
      * When all registered tasks complete it will invoke the [onComplete] callback
      */
     fun onTasksComplete(onComplete: Runnable) {
-        completionCallback.set(onComplete)
+        val currentRound = round
+        currentRound.completionCallback.set(onComplete)
 
-        if (pendingTasksCount.get() == 0) {
-            val currentOnComplete = completionCallback.getAndSet(null)
-            currentOnComplete?.run()
+        if (currentRound.pendingTasksCount.get() == 0) {
+            currentRound.complete()
         }
     }
 
     /**
      * Returns current pending tasks count
      */
-    fun getPendingCount(): Int = pendingTasksCount.get()
+    fun getPendingCount(): Int = round.pendingTasksCount.get()
 }
-
