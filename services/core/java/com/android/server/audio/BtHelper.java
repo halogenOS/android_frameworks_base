@@ -872,9 +872,8 @@ public class BtHelper {
     }
 
     /**
-     * Asks the Bluetooth stack to run the A2DP codec used by {@code device} at the sample rate and
-     * bit depth of {@code trackFormat}, each where the codec offers it. The running value applies
-     * for a value not offered by the codec.
+     * Asks the Bluetooth stack to run the A2DP codec used by {@code device} at the PCM format that
+     * the codec offers for {@code trackFormat}.
      */
     /*package*/ void requestA2dpPcmFormat(
             @NonNull AudioDeviceAttributes device, @NonNull AudioFormat trackFormat) {

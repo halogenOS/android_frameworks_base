@@ -1178,9 +1178,10 @@ static jint android_media_AudioTrack_get_output_sample_rate(JNIEnv *env,  jobjec
         break;
     }
 
-    status_t status = AudioSystem::getOutputSamplingRate(&afSamplingRate, nativeStreamType);
+    status_t status =
+            AudioSystem::getOutputSampleRateReportedToApps(&afSamplingRate, nativeStreamType);
     if (status != NO_ERROR) {
-        ALOGE("Error %d in AudioSystem::getOutputSamplingRate() for stream type %d "
+        ALOGE("Error %d in AudioSystem::getOutputSampleRateReportedToApps() for stream type %d "
               "in AudioTrack JNI", status, nativeStreamType);
         return DEFAULT_OUTPUT_SAMPLE_RATE;
     } else {
