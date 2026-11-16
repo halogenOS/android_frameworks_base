@@ -433,7 +433,8 @@ class MobileIconInteractorKairosTest : SysuiTestCase() {
 
         assertThat(latest).isEqualTo(NetworkNameModel.IntentDerived(testOperatorName))
 
-        // Default network name, operator name is null, uses the default
+        // Default network name, operator name is null, out of service, uses the default
+        connectionRepo.isInService.setValue(false)
         connectionRepo.operatorAlphaShort.setValue(null)
 
         assertThat(latest).isEqualTo(DEFAULT_NAME_MODEL)

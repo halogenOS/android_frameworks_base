@@ -87,14 +87,7 @@ interface MobileIconInteractorKairos {
     /** True if this connection is satellite-based */
     val isNonTerrestrial: State<Boolean>
 
-    /**
-     * Provider name for this network connection. The name can be one of 3 values:
-     * 1. The default network name, if one is configured
-     * 2. A derived name based off of the intent [ACTION_SERVICE_PROVIDERS_UPDATED]
-     * 3. Or, in the case where the repository sends us the default network name, we check for an
-     *    override in [connectionInfo.operatorAlphaShort], a value that is derived from
-     *    [ServiceState]
-     */
+    /** Provider name for this network connection, picked as [MobileIconInteractor.networkName]. */
     val networkName: State<NetworkNameModel>
 
     /**
@@ -161,14 +154,18 @@ class MobileIconInteractorKairosImpl(
         get() = connectionRepository.carrierNetworkChangeActive
 
     override val networkName: State<NetworkNameModel> =
-        combine(connectionRepository.operatorAlphaShort, connectionRepository.networkName) {
-            operatorAlphaShort,
-            networkName ->
-            if (networkName is NetworkNameModel.Default && operatorAlphaShort != null) {
-                NetworkNameModel.IntentDerived(operatorAlphaShort)
-            } else {
-                networkName
-            }
+        combine(
+            connectionRepository.networkName,
+            connectionRepository.operatorAlphaShort,
+            connectionRepository.isInService,
+            connectionRepository.carrierName,
+        ) { networkName, operatorAlphaShort, isInService, carrierName ->
+            pickNetworkName(
+                networkName = networkName,
+                operatorAlphaShort = operatorAlphaShort,
+                isInService = isInService,
+                carrierName = carrierName,
+            )
         }
 
     override val carrierName: State<String> =

@@ -489,7 +489,8 @@ abstract class MobileIconInteractorTestBase : SysuiTestCase() {
 
             assertThat(latest).isEqualTo(NetworkNameModel.IntentDerived(testOperatorName))
 
-            // Default network name, operator name is null, uses the default
+            // Default network name, operator name is null, out of service, uses the default
+            connectionRepository.isInService.value = false
             connectionRepository.operatorAlphaShort.value = null
 
             assertThat(latest).isEqualTo(DEFAULT_NAME_MODEL)

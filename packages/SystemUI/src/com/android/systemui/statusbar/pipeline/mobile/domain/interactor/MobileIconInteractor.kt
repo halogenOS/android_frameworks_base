@@ -93,12 +93,11 @@ interface MobileIconInteractor {
     val isNonTerrestrial: Flow<Boolean>
 
     /**
-     * Provider name for this network connection. The name can be one of 3 values:
-     * 1. The default network name, if one is configured
-     * 2. A derived name based off of the intent [ACTION_SERVICE_PROVIDERS_UPDATED]
-     * 3. Or, in the case where the repository sends us the default network name, we check for an
-     *    override in [connectionInfo.operatorAlphaShort], a value that is derived from
-     *    [ServiceState]
+     * Provider name for this network connection, the first non-empty one of:
+     * 1. A derived name based off of the intent [ACTION_SERVICE_PROVIDERS_UPDATED]
+     * 2. The name of the registered network, [MobileConnectionRepository.operatorAlphaShort]
+     * 3. The SIM carrier name, [MobileConnectionRepository.carrierName], while in service
+     * 4. The default network name
      */
     val networkName: Flow<NetworkNameModel>
 
@@ -173,15 +172,13 @@ class MobileIconInteractorImpl(
             .stateIn(scope, SharingStarted.WhileSubscribed(), false)
 
     override val networkName =
-        combine(connectionRepository.operatorAlphaShort, connectionRepository.networkName) {
-                operatorAlphaShort,
-                networkName ->
-                if (networkName is NetworkNameModel.Default && operatorAlphaShort != null) {
-                    NetworkNameModel.IntentDerived(operatorAlphaShort)
-                } else {
-                    networkName
-                }
-            }
+        combine(
+                connectionRepository.networkName,
+                connectionRepository.operatorAlphaShort,
+                connectionRepository.isInService,
+                connectionRepository.carrierName,
+                ::pickNetworkName,
+            )
             .stateIn(
                 scope,
                 SharingStarted.WhileSubscribed(),
@@ -414,3 +411,21 @@ class MobileIconInteractorImpl(
             .stateIn(scope, SharingStarted.WhileSubscribed(), initial)
     }
 }
+
+/**
+ * Picks the network name described at [MobileIconInteractor.networkName]. The operator name comes
+ * before the SIM carrier name, so a roaming phone shows the visited network. The SIM carrier name
+ * would show the home carrier there.
+ */
+internal fun pickNetworkName(
+    networkName: NetworkNameModel,
+    operatorAlphaShort: String?,
+    isInService: Boolean,
+    carrierName: NetworkNameModel,
+): NetworkNameModel =
+    when {
+        networkName !is NetworkNameModel.Default -> networkName
+        !operatorAlphaShort.isNullOrEmpty() -> NetworkNameModel.IntentDerived(operatorAlphaShort)
+        isInService && carrierName.name.isNotEmpty() -> carrierName
+        else -> networkName
+    }
