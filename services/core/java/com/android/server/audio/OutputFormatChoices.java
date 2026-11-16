@@ -19,9 +19,6 @@ import java.util.List;
  * were first seen. Callers synchronize the calls.
  */
 final class OutputFormatChoices {
-    /** Product decision: a device seen for the first time switches its format. */
-    private static final boolean FORMAT_SWITCHING_OF_NEW_DEVICE = true;
-
     private final @NonNull OutputFormatChoiceStore mStore;
     /** The stored devices. Replaced only once a change is stored. */
     private @NonNull LinkedHashMap<OutputFormatDeviceId, RememberedDevice> mDevices =
@@ -43,7 +40,15 @@ final class OutputFormatChoices {
     /** Whether the device with {@code id} switches format, also when it was never seen. */
     boolean isFormatSwitchingEnabled(@NonNull OutputFormatDeviceId id) {
         RememberedDevice known = mDevices.get(id);
-        return known == null ? FORMAT_SWITCHING_OF_NEW_DEVICE : known.formatSwitchingEnabled();
+        return known == null ? switchesFormatWhenNew(id) : known.formatSwitchingEnabled();
+    }
+
+    /**
+     * Product decision: a device seen for the first time switches its format, except a Bluetooth
+     * device, where each switch pauses playback briefly.
+     */
+    private static boolean switchesFormatWhenNew(@NonNull OutputFormatDeviceId id) {
+        return id.getTag() != OutputFormatDeviceId.bluetoothAddress;
     }
 
     /**
