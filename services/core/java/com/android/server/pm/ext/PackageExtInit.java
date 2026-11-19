@@ -4,12 +4,14 @@ import android.annotation.Nullable;
 import android.content.pm.SigningDetails;
 import android.content.pm.parsing.result.ParseInput;
 import android.content.pm.parsing.result.ParseResult;
+import android.content.pm.parsing.result.ParseTypeImpl;
 import android.ext.AppInfoExtFlag;
 import android.ext.PackageId;
 import android.os.Bundle;
 import android.util.Slog;
 
 import com.android.internal.pm.parsing.pkg.PackageImpl;
+import com.android.internal.pm.parsing.pkg.ParsedPackage;
 import com.android.internal.pm.pkg.parsing.ParsingPackage;
 import com.android.internal.pm.pkg.parsing.ParsingPackageUtils;
 
@@ -33,6 +35,15 @@ public class PackageExtInit implements ParsingPackageUtils.PackageExtInitIface {
         this.parsingPackage = parsingPackage;
         this.pkg = (PackageImpl) parsingPackage;
         this.isSystem = isSystem;
+    }
+
+    /**
+     * Sets the extension of a package from the certificates that the package manager collected for
+     * it. The package parser cache does not store the extension. A package read from the cache has
+     * none until this runs.
+     */
+    public static void initWithCollectedCertificates(ParsedPackage pkg, boolean isSystem) {
+        new PackageExtInit(ParseTypeImpl.forDefaultParsing(), (PackageImpl) pkg, isSystem).run();
     }
 
     @Nullable

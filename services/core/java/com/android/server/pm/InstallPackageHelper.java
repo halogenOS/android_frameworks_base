@@ -181,6 +181,7 @@ import com.android.internal.util.CollectionUtils;
 import com.android.server.EventLogTags;
 import com.android.server.IoThread;
 import com.android.server.criticalevents.CriticalEventLog;
+import com.android.server.pm.ext.PackageExtInit;
 import com.android.server.pm.parsing.PackageCacher;
 import com.android.server.pm.parsing.pkg.AndroidPackageUtils;
 import com.android.server.pm.permission.Permission;
@@ -4716,6 +4717,7 @@ final class InstallPackageHelper {
             ScanPackageUtils.collectCertificatesLI(pkgSetting, parsedPackage,
                     mPm.getSettingsVersionForPackage(parsedPackage), forceCollect, skipVerify,
                     mPm.isPreNMR1Upgrade());
+            PackageExtInit.initWithCollectedCertificates(parsedPackage, scanSystemPartition);
 
             // Populate the InitAppScanMetrics object since all the variables are defined now.
             metrics.setIsFsiEnabled(forceCollect)
