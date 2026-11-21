@@ -53,6 +53,16 @@ public class PduParser {
      */
     private static final int THE_FIRST_PART = 0;
     private static final int THE_LAST_PART = 1;
+    /**
+     * Maximum nesting depth allowed when parsing recursive multipart parts.
+     * Prevents malicious payloads from causing a StackOverflowError.
+     * Value 30 is chosen because real-world MMS nesting depth is typically
+     * less than 5, leaving a safe margin while avoiding stack exhaustions.
+     * Android background thread stacks are limited (256KB-512KB). A recursion
+     * depth of 30 prevents crashes from StackOverflowError.
+     */
+    private static final int MAX_PARSING_DEPTH = 30;
+
 
     /**
      * The pdu data.
@@ -836,7 +846,15 @@ public class PduParser {
      * @return parts in PduBody structure
      */
     protected PduBody parseParts(ByteArrayInputStream pduDataStream) {
+        return parseParts(pduDataStream, 0);
+    }
+
+    private PduBody parseParts(ByteArrayInputStream pduDataStream, int depth) {
         if (pduDataStream == null) {
+            return null;
+        }
+        if (depth > MAX_PARSING_DEPTH) {
+            Log.e(LOG_TAG, "parseParts: recursion depth limit exceeded (depth: " + depth + ")");
             return null;
         }
 
@@ -900,12 +918,24 @@ public class PduParser {
 
             /* get part's data */
             if (dataLength > 0) {
+                // Ensure the declared data length does not exceed actual available stream bytes.
+                // Prevents OutOfMemoryError allocations or ArrayIndexOutOfBoundsException.
+                if (dataLength > pduDataStream.available()) {
+                    Log.e(LOG_TAG, "parseParts: dataLength " + dataLength
+                            + " exceeds available stream bytes: " + pduDataStream.available());
+                    return null;
+                }
                 byte[] partData = new byte[dataLength];
                 String partContentType = new String(part.getContentType());
                 pduDataStream.read(partData, 0, dataLength);
                 if (partContentType.equalsIgnoreCase(ContentType.MULTIPART_ALTERNATIVE)) {
                     // parse "multipart/vnd.wap.multipart.alternative".
-                    PduBody childBody = parseParts(new ByteArrayInputStream(partData));
+                    PduBody childBody = parseParts(new ByteArrayInputStream(partData), depth + 1);
+                    if (childBody == null || childBody.getPartsNum() == 0) {
+                        Log.e(LOG_TAG, "parseParts: nested multipart alternative "
+                                + "parsing failed or empty");
+                        return null;
+                    }
                     // take the first part of children.
                     part = childBody.getPart(0);
                 } else {
@@ -1401,7 +1431,9 @@ public class PduParser {
 
                         if (index < PduContentTypes.contentTypes.length) {
                             byte[] type = (PduContentTypes.contentTypes[index]).getBytes();
-                            map.put(PduPart.P_TYPE, type);
+                            if (map != null) {
+                                map.put(PduPart.P_TYPE, type);
+                            }
                         } else {
                             //not support this type, ignore it.
                         }
@@ -1464,14 +1496,16 @@ public class PduParser {
                             (END_STRING_FLAG == firstValue)) {
                         //Text-String (extension-charset)
                         byte[] charsetStr = parseWapString(pduDataStream, TYPE_TEXT_STRING);
-                        try {
-                            int charsetInt = CharacterSets.getMibEnumValue(
-                                    new String(charsetStr));
-                            map.put(PduPart.P_CHARSET, charsetInt);
-                        } catch (UnsupportedEncodingException e) {
-                            // Not a well-known charset, use "*".
-                            Log.e(LOG_TAG, Arrays.toString(charsetStr), e);
-                            map.put(PduPart.P_CHARSET, CharacterSets.ANY_CHARSET);
+                        if (charsetStr != null && map != null) {
+                            try {
+                                int charsetInt = CharacterSets.getMibEnumValue(
+                                        new String(charsetStr));
+                                map.put(PduPart.P_CHARSET, charsetInt);
+                            } catch (UnsupportedEncodingException e) {
+                                // Not a well-known charset, use "*".
+                                Log.e(LOG_TAG, Arrays.toString(charsetStr), e);
+                                map.put(PduPart.P_CHARSET, CharacterSets.ANY_CHARSET);
+                            }
                         }
                     } else {
                         //Well-known-charset
@@ -1550,7 +1584,7 @@ public class PduParser {
         if (cur < TEXT_MIN) {
             int length = parseValueLength(pduDataStream);
             int startPos = pduDataStream.available();
-            if (length > startPos) {
+            if (length < 0 || length > startPos) {
                 Log.e(LOG_TAG, "parseContentType: Invalid length " + length
                         + " when available bytes are " + startPos);
                 return (PduContentTypes.contentTypes[0]).getBytes(); //"*/*"
@@ -1590,8 +1624,15 @@ public class PduParser {
         } else if (cur <= TEXT_MAX) {
             contentType = parseWapString(pduDataStream, TYPE_TEXT_STRING);
         } else {
-            contentType =
-                (PduContentTypes.contentTypes[parseShortInteger(pduDataStream)]).getBytes();
+            // Parse the content type index from the stream (returns a value 0-127).
+            int index = parseShortInteger(pduDataStream);
+            // Ensure the index is within the bounds of the well-known content types table (0-82).
+            if (index < PduContentTypes.contentTypes.length) {
+                contentType = (PduContentTypes.contentTypes[index]).getBytes();
+            } else {
+                // Fallback to default "*/*" if the index is out of bounds to prevent AIOOBE crash.
+                contentType = (PduContentTypes.contentTypes[0]).getBytes();
+            }
         }
 
         return contentType;

@@ -1962,6 +1962,10 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
             return mScreenUnlockedFunctions;
         }
 
+        protected boolean isScreenLocked() {
+            return mScreenLocked;
+        }
+
         public int getUsbSpeed() {
             return mUsbSpeed;
         }
@@ -2552,8 +2556,13 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
                     Slog.e(TAG, "Set functions timed out! no reply from usb hal"
                                 + " ,operationId:" + operationId);
                     if (msg.arg1 != 1) {
-                        // Set this since default function may be selected from Developer options
-                        setEnabledFunctions(mScreenUnlockedFunctions, false, operationId);
+                        // If the screen is locked, we must not enable default data functions
+                        // on timeout to prevent lock-screen bypass.
+                        if (!isScreenLocked()) {
+                            setEnabledFunctions(mScreenUnlockedFunctions, false, operationId);
+                        } else {
+                            setEnabledFunctions(UsbManager.FUNCTION_NONE, false, operationId);
+                        }
                     }
                     break;
                 case MSG_GET_CURRENT_USB_FUNCTIONS:
@@ -2585,9 +2594,13 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
                         if (mCurrentFunctions == UsbManager.FUNCTION_ACCESSORY) {
                             notifyAccessoryModeExit(operationId);
                         } else {
-                            // Set this since default function may be selected from Developer
-                            // options
-                            setEnabledFunctions(mScreenUnlockedFunctions, false, operationId);
+                            // If the screen is locked, we must not enable default
+                            // data functions on timeout to prevent bypass.
+                            if (!isScreenLocked()) {
+                                setEnabledFunctions(mScreenUnlockedFunctions, false, operationId);
+                            } else {
+                                setEnabledFunctions(UsbManager.FUNCTION_NONE, false, operationId);
+                            }
                         }
                     }
                     break;

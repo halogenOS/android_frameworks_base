@@ -425,6 +425,17 @@ class ActivityStarter {
         String intentCreatorPackage;
         int startFlags;
         SafeActivityOptions activityOptions;
+        /**
+         * Set to {@code true} for system-delegated activity launches (such as {@link
+         * ActivityTaskManagerService#startActivityAsCaller}) or internal system UI redirects (such
+         * as rerouting to {@link HeavyWeightSwitcherActivity} in {@link
+         * #resolveToHeavyWeightSwitcherIfNeeded}) to bypass target component permission and
+         * exported checks in {@link ActivityTaskSupervisor#checkStartAnyActivityPermission}.
+         *
+         * <p>Note: this field has no effect on Background Activity Launch (BAL) evaluation or
+         * Intent Firewall enforcements. Its scope should not be expanded without carefully
+         * reviewing all security implications and use cases.
+         */
         boolean ignoreTargetSecurity;
         boolean componentSpecified;
         boolean avoidMoveToFront;
@@ -639,21 +650,6 @@ class ActivityStarter {
                 intent.setComponent(null /* component */);
             }
 
-            resolveInfo = supervisor.resolveIntent(intent, resolvedType, userId,
-                    0 /* matchFlags */,
-                    computeResolveFilterUid(callingUid, realCallingUid, filterCallingUid),
-                    realCallingPid);
-            if (resolveInfo == null) {
-                // Special case for profiles: If attempting to launch non-crypto aware app in a
-                // locked profile or launch an app in a profile that is stopped by quiet mode from
-                // an unlocked parent, allow it to resolve as user will be sent via confirm
-                // credentials to unlock the profile.
-                resolveInfo = resolveIntentForLockedOrStoppedProfiles(supervisor);
-            }
-
-            // Collect information about the target of the Intent.
-            activityInfo = supervisor.resolveActivity(intent, resolveInfo, startFlags,
-                    profilerInfo);
             // Check if the Intent was redirected
             if ((intent.getExtendedFlags() & Intent.EXTENDED_FLAG_MISSING_CREATOR_OR_INVALID_TOKEN)
                     != 0) {
@@ -670,6 +666,22 @@ class ActivityStarter {
                 }
                 // leave intentCreatorUid as -1 if the intent creator is the same as the launcher
             }
+
+            resolveInfo = supervisor.resolveIntent(intent, resolvedType, userId,
+                    0 /* matchFlags */,
+                    computeResolveFilterUid(callingUid, realCallingUid, filterCallingUid),
+                    realCallingPid);
+            if (resolveInfo == null) {
+                // Special case for profiles: If attempting to launch non-crypto aware app in a
+                // locked profile or launch an app in a profile that is stopped by quiet mode from
+                // an unlocked parent, allow it to resolve as user will be sent via confirm
+                // credentials to unlock the profile.
+                resolveInfo = resolveIntentForLockedOrStoppedProfiles(supervisor);
+            }
+
+            // Collect information about the target of the Intent.
+            activityInfo = supervisor.resolveActivity(intent, resolveInfo, startFlags,
+                    profilerInfo);
             // Carefully collect grants without holding lock
             if (activityInfo != null) {
                 if (android.security.Flags.contentUriPermissionApis()) {
@@ -687,10 +699,11 @@ class ActivityStarter {
                                             UserHandle.getUserId(activityInfo.getUid()),
                                             activityInfo.requireContentUriPermissionFromCaller,
                                             /* requestHashCode */ this.hashCode());
-                            if (intentGrants == null) {
-                                intentGrants = creatorIntentGrants;
-                            } else {
-                                intentGrants.merge(creatorIntentGrants);
+                            // Only both calling UID and creator UID has permission to grant uri,
+                            // then we grant uri permission to intentGrants. Otherwise, we clear
+                            // intentGrants.
+                            if (intentGrants == null || creatorIntentGrants == null) {
+                                intentGrants = null;
                             }
                         } catch (SecurityException securityException) {
                             logAndThrowExceptionForIntentRedirect(supervisor.mService.mContext,
@@ -711,10 +724,11 @@ class ActivityStarter {
                                             activityInfo.applicationInfo.packageName,
                                             UserHandle.getUserId(
                                                     activityInfo.getUid()));
-                            if (intentGrants == null) {
-                                intentGrants = creatorIntentGrants;
-                            } else {
-                                intentGrants.merge(creatorIntentGrants);
+                            // Only both calling UID and creator UID has permission to grant uri,
+                            // then we grant uri permission to intentGrants. Otherwise, we clear
+                            // intentGrants.
+                            if (intentGrants == null || creatorIntentGrants == null) {
+                                intentGrants = null;
                             }
                         } catch (SecurityException securityException) {
                             logAndThrowExceptionForIntentRedirect(supervisor.mService.mContext,
@@ -1014,10 +1028,13 @@ class ActivityStarter {
         }
 
         int appCallingUid = mRequest.callingUid;
+        int appCallingPid = mRequest.callingPid;
         if (mRequest.caller != null) {
-            WindowProcessController callerApp = mService.getProcessController(mRequest.caller);
+            final WindowProcessController callerApp =
+                    mService.getProcessController(mRequest.caller);
             if (callerApp != null) {
                 appCallingUid = callerApp.mUid;
+                appCallingPid = callerApp.getPid();
             } else {
                 Slog.w(TAG, "Unable to find app for caller " + mRequest.caller + " (pid="
                         + mRequest.callingPid + ") when starting: " + mRequest.intent.toString());
@@ -1049,8 +1066,11 @@ class ActivityStarter {
         mRequest.intent = newIntent;
         mRequest.resolvedType = null;
         mRequest.caller = null;
-        mRequest.callingUid = Binder.getCallingUid();
-        mRequest.callingPid = Binder.getCallingPid();
+        // Preserve original calling UID/PID for BAL evaluation and ignore target security to
+        // permit starting the non-exported system activity in checkStartAnyActivityPermission.
+        mRequest.callingUid = appCallingUid;
+        mRequest.callingPid = appCallingPid;
+        mRequest.ignoreTargetSecurity = true;
         mRequest.componentSpecified = true;
         mRequest.resolveInfo = mSupervisor.resolveIntent(mRequest.intent, null /* resolvedType */,
                 mRequest.userId, 0 /* matchFlags */,
@@ -3872,7 +3892,7 @@ class ActivityStarter {
         }
     }
 
-    private static boolean logAndAbortForIntentRedirect(@NonNull Context context,
+    static boolean logAndAbortForIntentRedirect(@NonNull Context context,
             @IntentRedirectErrorCode int errorCode, @NonNull Intent intent, int intentCreatorUid,
             @Nullable String intentCreatorPackage, int callingUid,
             @Nullable String callingPackage) {

@@ -101,6 +101,7 @@ import android.graphics.Insets;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Region;
+import android.gui.TouchOcclusionMode;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -257,6 +258,18 @@ public class WindowStateTests extends WindowTestsBase {
         verify(overlayWindow).hide(true /* doAnimation */, true /* requestAnim */);
         overlayWindow.setHiddenWhileSuspended(false);
         verify(overlayWindow).show(true /* doAnimation */, true /* requestAnim */);
+    }
+
+    @Test
+    public void testSubWindowHiddenWhenSuspended() {
+        final WindowState parent = newWindowBuilder("parent", TYPE_APPLICATION_OVERLAY).build();
+        final WindowState subWindow = spy(
+                newWindowBuilder("subWindow", TYPE_APPLICATION_PANEL).setParent(parent).build());
+
+        subWindow.setHiddenWhileSuspended(true);
+        verify(subWindow).hide(true /* doAnimation */, true /* requestAnim */);
+        subWindow.setHiddenWhileSuspended(false);
+        verify(subWindow).show(true /* doAnimation */, true /* requestAnim */);
     }
 
     @Test
@@ -1574,6 +1587,24 @@ public class WindowStateTests extends WindowTestsBase {
         assertFalse(overlay.isReadyToDispatchInsetsState());
         mDisplayContent.getInsetsStateController().notifyInsetsChanged();
         assertFalse(overlay.getWindowFrames().hasInsetsChanged());
+    }
+
+    @SetupWindows(addWindows = { W_INPUT_METHOD })
+    @Test
+    public void testGetTouchOcclusionModeOfImeWindow() {
+        final var app = newWindowBuilder("app", TYPE_APPLICATION).build();
+        makeWindowVisibleAndDrawn(mImeWindow);
+
+        final InsetsStateController controller = mDisplayContent.getInsetsStateController();
+        final ImeInsetsSourceProvider imeProvider = controller.getImeSourceProvider();
+        imeProvider.setWindow(mImeWindow, null, null);
+        imeProvider.updateControlForTarget(app, false, null);
+
+        app.setAnimatingTypes(0, null);
+        assertEquals(TouchOcclusionMode.BLOCK_UNTRUSTED, mImeWindow.getTouchOcclusionMode());
+
+        app.setAnimatingTypes(WindowInsets.Type.ime(), null);
+        assertEquals(TouchOcclusionMode.USE_OPACITY, mImeWindow.getTouchOcclusionMode());
     }
 
     @SetupWindows(addWindows = { W_INPUT_METHOD, W_ACTIVITY })

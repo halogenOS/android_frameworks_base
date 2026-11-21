@@ -1250,10 +1250,20 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         if (WindowManager.LayoutParams.isSystemAlertWindowType(mAttrs.type)) {
             return TouchOcclusionMode.USE_OPACITY;
         }
-        if (isAnimating(PARENTS, ANIMATION_TYPE_ALL) || inTransition()) {
+        if (isAnimating(PARENTS, ANIMATION_TYPE_ALL) || inTransition() || inInsetsAnimation()) {
             return TouchOcclusionMode.USE_OPACITY;
         }
         return TouchOcclusionMode.BLOCK_UNTRUSTED;
+    }
+
+    private boolean inInsetsAnimation() {
+        if (mControllableInsetProvider != null) {
+            @InsetsType
+            final int insetsType = mControllableInsetProvider.getSource().getType();
+            final InsetsControlTarget target = mControllableInsetProvider.getControlTarget();
+            return target != null && (target.getAnimatingTypes() & insetsType) != 0;
+        }
+        return false;
     }
 
     void updateGlobalScale() {
@@ -2895,8 +2905,10 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
             boolean allowTheaterMode = mWmService.mAllowTheaterModeWakeFromLayout
                     || Settings.Global.getInt(mWmService.mContext.getContentResolver(),
                             Settings.Global.THEATER_MODE_ON, 0) == 0;
-            boolean canTurnScreenOn = mActivityRecord == null || mActivityRecord.currentLaunchCanTurnScreenOn();
-
+            final boolean canTurnScreenOn =
+                    getDisplayContent() != null && getDisplayContent().isTrusted()
+                            && (mActivityRecord == null
+                                    || mActivityRecord.currentLaunchCanTurnScreenOn());
             if (allowTheaterMode && canTurnScreenOn
                     && (mWmService.mAtmService.isDreaming()
                             || !mWmService.mPowerManager.isInteractive(getDisplayId()))) {
@@ -3232,8 +3244,9 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
     }
 
     void setHiddenWhileSuspended(boolean hide) {
+        final int baseType = getBaseType();
         if (mOwnerCanAddInternalSystemWindow
-                || (!isSystemAlertWindowType(mAttrs.type) && mAttrs.type != TYPE_TOAST)) {
+                || (!isSystemAlertWindowType(baseType) && baseType != TYPE_TOAST)) {
             return;
         }
         if (mHiddenWhileSuspended == hide) {

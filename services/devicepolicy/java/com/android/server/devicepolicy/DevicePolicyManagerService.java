@@ -778,6 +778,15 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
     private static final int UNATTENDED_MANAGED_KIOSK_MS = 30000;
 
     /**
+     * The maximum number of packages that can have active application restrictions simultaneously.
+     * This limit is enforced globally per-user, meaning it applies cumulatively across
+     * all admins for a given user.
+     * In addition, different admins setting restrictions on the same target app will be considered
+     * independent entries for this limit.
+     */
+    private static final int MAX_PACKAGES_WITH_APP_RESTRICTIONS = 1000;
+
+    /**
      * Strings logged with {@link
      * MetricsProto.MetricsEvent#PROVISIONING_ENTRY_POINT_ADB},
      * {@link DevicePolicyEnums#PROVISIONING_ENTRY_POINT_ADB},
@@ -2062,6 +2071,7 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
 
             mDeviceAdmins.removeUserData(userHandle);
 
+            deleteUserTransferOwnershipMetadataFileLocked(userHandle);
             File policyFile =
                     new File(mPathProvider.getUserSystemDirectory(userHandle), DEVICE_POLICIES_XML);
             policyFile.delete();
@@ -11248,6 +11258,22 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
         return delegatePackages.size() > 0 ? delegatePackages.get(0) : null;
     }
 
+    private void enforceMaxRestrictedPackagesForEngine(
+            EnforcingAdmin admin, int userId, String packageName, Bundle restrictions) {
+        if (restrictions == null || restrictions.isEmpty()) {
+            return;
+        }
+        Set<PolicyKey> restrictedPackages = mDevicePolicyEngine.getLocalPolicyKeysSetByAllAdmins(
+                PolicyDefinition.GENERIC_APPLICATION_RESTRICTIONS, userId);
+        if (restrictedPackages.size() >= MAX_PACKAGES_WITH_APP_RESTRICTIONS
+                && !restrictedPackages.contains(new PackagePolicyKey(
+                        DevicePolicyIdentifiers.APPLICATION_RESTRICTIONS_POLICY, packageName))) {
+            throw new IllegalStateException("Cannot set application restrictions on more than "
+                    + MAX_PACKAGES_WITH_APP_RESTRICTIONS + " packages");
+        }
+    }
+
+
     @Override
     public boolean isCallerApplicationRestrictionsManagingPackage(String callerPackage) {
         return isCallerDelegate(callerPackage, getCallerIdentity().getUid(),
@@ -11288,15 +11314,23 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
         }
         EnforcingAdmin enforcingAdmin = getEnforcingAdmin(caller);
 
-        mDevicePolicyEngine.setOrRemoveLocalPolicy(
-                PolicyDefinition.APPLICATION_RESTRICTIONS(packageName), enforcingAdmin,
-                affectedUserId, BundlePolicyValue.createIfNotNullOrEmpty(restrictions))
-                .thenAccept((result) -> {
-                    if (com.android.internal.telephony.flags.Flags.secureAccessToRestrictedRcsMessages()
-                            && (result == RESULT_POLICY_SET || result == RESULT_POLICY_CLEARED)) {
-                        mRcsArchivalAppTracker.onRestrictionsChanged(packageName, affectedUserId);
-                    }
-                });
+        synchronized (getLockObject()) {
+            enforceMaxRestrictedPackagesForEngine(
+                    enforcingAdmin, affectedUserId, packageName, restrictions);
+
+            mDevicePolicyEngine.setOrRemoveLocalPolicy(
+                    PolicyDefinition.APPLICATION_RESTRICTIONS(packageName), enforcingAdmin,
+                    affectedUserId, BundlePolicyValue.createIfNotNullOrEmpty(restrictions))
+                    .thenAccept((result) -> {
+                        if (com.android.internal.telephony.flags.Flags
+                                .secureAccessToRestrictedRcsMessages()
+                                && (result == RESULT_POLICY_SET
+                                        || result == RESULT_POLICY_CLEARED)) {
+                            mRcsArchivalAppTracker.onRestrictionsChanged(
+                                    packageName, affectedUserId);
+                        }
+                    });
+        }
 
         DevicePolicyEventLogger
                 .createEvent(DevicePolicyEnums.SET_APPLICATION_RESTRICTIONS)
@@ -16558,6 +16592,10 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
             throws RemoteException {
         Objects.requireNonNull(callback);
 
+        Preconditions.checkArgument(grantState == PERMISSION_GRANT_STATE_GRANTED
+                || grantState == DevicePolicyManager.PERMISSION_GRANT_STATE_DENIED
+                || grantState == PERMISSION_GRANT_STATE_DEFAULT);
+
         final CallerIdentity caller = getCallerIdentity(admin, callerPackage);
         checkCanExecuteOrThrowUnsafe(DevicePolicyManager.OPERATION_SET_PERMISSION_GRANT_STATE);
 
@@ -19665,6 +19703,15 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
         return deviceOwner.endUserSessionMessage;
     }
 
+    private void deleteUserTransferOwnershipMetadataFileLocked(int userHandle) {
+        if (mTransferOwnershipMetadataManager.metadataFileExists()) {
+            final var metadata = mTransferOwnershipMetadataManager.loadMetadataFile();
+            if (metadata != null && metadata.userId == userHandle) {
+                deleteTransferOwnershipMetadataFileLocked();
+            }
+        }
+    }
+
     private void deleteTransferOwnershipMetadataFileLocked() {
         mTransferOwnershipMetadataManager.deleteMetadataFile();
     }
@@ -21357,13 +21404,19 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
                     Slogf.i(LOG_TAG, "Disallowed package [" + packageName + "]");
                 }
             }
-
-            userInfo = mUserManager.createProfileForUserEvenWhenDisallowed(
-                    provisioningParams.getProfileName(),
-                    UserManager.USER_TYPE_PROFILE_MANAGED,
-                    UserInfo.FLAG_DISABLED,
-                    caller.getUserId(),
-                    nonRequiredApps.toArray(new String[nonRequiredApps.size()]));
+            try {
+                userInfo = mUserManagerInternal.createProfileForUserEvenWhenDisallowed(
+                        provisioningParams.getProfileName(),
+                        UserManager.USER_TYPE_PROFILE_MANAGED,
+                        UserInfo.FLAG_DISABLED,
+                        caller.getUserId(),
+                        nonRequiredApps.toArray(new String[nonRequiredApps.size()]),
+                        /* token= */ null,
+                        UserRestrictionsUtils.getDefaultEnabledForManagedProfiles()
+                                .toArray(new String[0]));
+            } catch (UserManager.CheckedUserOperationException e) {
+                userInfo = null;
+            }
             if (userInfo == null) {
                 throw new ServiceSpecificException(
                         ERROR_PROFILE_CREATION_FAILED,
@@ -21513,12 +21566,19 @@ public class DevicePolicyManagerService extends IDevicePolicyManager.Stub
                 Slogf.i(LOG_TAG, "Disallowed package [" + packageName + "]");
             }
         }
-        return mUserManager.createProfileForUserEvenWhenDisallowed(
-                params.getProfileName(),
-                UserManager.USER_TYPE_PROFILE_MANAGED,
-                UserInfo.FLAG_DISABLED,
-                userId,
-                nonRequiredApps.toArray(new String[nonRequiredApps.size()]));
+        try {
+            return mUserManagerInternal.createProfileForUserEvenWhenDisallowed(
+                    params.getProfileName(),
+                    UserManager.USER_TYPE_PROFILE_MANAGED,
+                    UserInfo.FLAG_DISABLED,
+                    userId,
+                    nonRequiredApps.toArray(new String[nonRequiredApps.size()]),
+                    /* token= */ null,
+                    UserRestrictionsUtils.getDefaultEnabledForManagedProfiles()
+                            .toArray(new String[0]));
+        } catch (UserManager.CheckedUserOperationException e) {
+            return null;
+        }
     }
 
     @Override

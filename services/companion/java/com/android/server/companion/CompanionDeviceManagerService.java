@@ -367,6 +367,21 @@ public class CompanionDeviceManagerService extends SystemService {
             enforceCallerCanManageAssociationsForPackage(getContext(), userId, packageName,
                     "create associations");
 
+            final int callingUid = Binder.getCallingUid();
+            // Foreground check is bypassed if the caller is system, or it is a self-managed
+            // association, or the caller has the privileged MANAGE_COMPANION_DEVICES permission.
+            if (!(callingUid == SYSTEM_UID
+                    || request.isSelfManaged()
+                    || getContext().checkCallingPermission(MANAGE_COMPANION_DEVICES)
+                            == PERMISSION_GRANTED)) {
+                ActivityManagerInternal amInternal = LocalServices.getService(
+                        ActivityManagerInternal.class);
+                int procState = amInternal.getUidProcessState(callingUid);
+                if (procState != ActivityManager.PROCESS_STATE_TOP) {
+                    throw new SecurityException("Caller must be in foreground to associate");
+                }
+            }
+
             if (request.isSkipRoleGrant()) {
                 checkCallerCanSkipRoleGrant();
                 mAssociationRequestsProcessor.createAssociation(userId, packageName,
@@ -670,23 +685,19 @@ public class CompanionDeviceManagerService extends SystemService {
         }
 
         @Override
-        public PendingIntent buildPermissionTransferUserConsentIntent(String packageName,
-                int userId, int associationId) {
-            return mSystemDataTransferProcessor.buildPermissionTransferUserConsentIntent(
-                    packageName, userId, associationId);
+        public PendingIntent buildPermissionTransferUserConsentIntent(int associationId) {
+            return mSystemDataTransferProcessor.buildPermissionTransferUserConsentIntent(associationId);
         }
 
         @Override
-        public boolean isPermissionTransferUserConsented(String packageName, int userId,
-                int associationId) {
+        public boolean isPermissionTransferUserConsented(int associationId) {
             return mSystemDataTransferProcessor.isPermissionTransferUserConsented(associationId);
         }
 
         @Override
-        public void startSystemDataTransfer(String packageName, int userId, int associationId,
+        public void startSystemDataTransfer(int associationId,
                 ISystemDataTransferCallback callback) {
-            mSystemDataTransferProcessor.startSystemDataTransfer(packageName, userId,
-                    associationId, callback);
+            mSystemDataTransferProcessor.startSystemDataTransfer(associationId, callback);
         }
 
         @Override
