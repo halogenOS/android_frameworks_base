@@ -216,13 +216,14 @@ public final class BackgroundWindowManager extends WindowlessWindowManager {
     int getThemeColorForBackground() {
         final int origThemeColor = getThemeColor();
         return android.graphics.Color.argb(Color.alpha(origThemeColor),
-                Color.red(origThemeColor) - THEME_COLOR_OFFSET,
-                Color.green(origThemeColor) - THEME_COLOR_OFFSET,
-                Color.blue(origThemeColor) - THEME_COLOR_OFFSET);
+                darkenChannel(Color.red(origThemeColor)),
+                darkenChannel(Color.green(origThemeColor)),
+                darkenChannel(Color.blue(origThemeColor)));
     }
 
-    private float adjustColor(int origColor) {
-        return Math.max(origColor - THEME_COLOR_OFFSET, 0) / 255.0f;
+    // Color.argb does not mask channels: a negative channel sets every higher bit.
+    private static int darkenChannel(int channel) {
+        return Math.max(channel - THEME_COLOR_OFFSET, 0);
     }
 
     void dump(@NonNull PrintWriter pw) {
