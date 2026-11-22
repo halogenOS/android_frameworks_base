@@ -420,7 +420,6 @@ final class UpdatableFontDir {
             newConfig.fontFamilies.addAll(familyMap.values());
             newConfig.prioritizedFamilyList.addAll(curConfig.prioritizedFamilyList);
             newConfig.customFontFamilies.addAll(curConfig.customFontFamilies);
-            newConfig.activeCustomFontFamilyByUser.putAll(curConfig.activeCustomFontFamilyByUser);
             writePersistentConfig(newConfig);
             mConfigVersion++;
             success = true;
@@ -748,7 +747,6 @@ final class UpdatableFontDir {
         }
         newConfig.fontFamilies.addAll(curConfig.fontFamilies);
         newConfig.customFontFamilies.addAll(customFamilyMap.values());
-        newConfig.activeCustomFontFamilyByUser.putAll(curConfig.activeCustomFontFamilyByUser);
         writePersistentConfig(newConfig);
     }
 
@@ -1415,26 +1413,6 @@ final class UpdatableFontDir {
 
     /* package */ int getConfigVersion() {
         return mConfigVersion;
-    }
-
-    /* package */ @Nullable String getActiveCustomFontFamily(int userId) {
-        return readPersistentConfig().activeCustomFontFamilyByUser.get(userId);
-    }
-
-    /* package */ Map<Integer, String> getActiveCustomFontFamiliesByUser() {
-        return new HashMap<>(readPersistentConfig().activeCustomFontFamilyByUser);
-    }
-
-    /* package */ void setActiveCustomFontFamily(int userId, @Nullable String familyName)
-            throws SystemFontException {
-        PersistentSystemFontConfig.Config config = readPersistentConfig();
-        if (familyName == null) {
-            config.activeCustomFontFamilyByUser.remove(userId);
-        } else {
-            config.activeCustomFontFamilyByUser.put(userId, familyName);
-        }
-        writePersistentConfig(config);
-        mConfigVersion++;
     }
 
     public Map<String, FontConfig.NamedFamilyList> getFontFamilyMap() {

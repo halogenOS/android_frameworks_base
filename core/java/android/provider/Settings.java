@@ -13219,6 +13219,14 @@ public final class Settings {
                 "theme_customization_overlay_packages";
 
         /**
+         * Font family name for the system font, picked by the user, or {@code null} for the
+         * default font.
+         *
+         * @hide
+         */
+        public static final String CUSTOM_FONT_FAMILY = "custom_font_family";
+
+        /**
          * Indicates whether the nav bar is forced to always be visible, even in immersive mode.
          * <p>Type: int (0 for false, 1 for true)
          *

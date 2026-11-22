@@ -201,6 +201,7 @@ public class SecureSettings {
         Settings.Secure.DARK_THEME_CUSTOM_END_TIME,
         Settings.Secure.SKIP_DIRECTION,
         Settings.Secure.THEME_CUSTOMIZATION_OVERLAY_PACKAGES,
+        Settings.Secure.CUSTOM_FONT_FAMILY,
         Settings.Secure.BACK_GESTURE_INSET_SCALE_LEFT,
         Settings.Secure.BACK_GESTURE_INSET_SCALE_RIGHT,
         Settings.Secure.NAVIGATION_MODE,
