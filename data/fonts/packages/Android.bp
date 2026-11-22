@@ -5,13 +5,24 @@ package {
     default_applicable_licenses: ["frameworks_base_data_fonts_license"],
 }
 
-// Defaults for font packages. A font package is an android_app that contains only resources and
-// its font files, directly under assets/fonts/. The defaults add the manifest property that marks
-// the font package for FontManagerService.
+// Defaults for font packages. A font package is an android_app on the product partition that
+// contains only resources and its font files, directly under assets/fonts/. The defaults add the
+// manifest property that marks the font package for FontManagerService.
 java_defaults {
     name: "custom_font_package_defaults",
     sdk_version: "current",
+    product_specific: true,
     additional_manifests: [":custom_font_package_manifest"],
+}
+
+// Defaults for the genrule that a font package names in its assets. The genrule declares each font
+// file as fonts/<name>, which the app puts directly under assets/fonts/. The build checks that each
+// declared output exists but drops undeclared ones silently, so the command fails when it copies
+// more files than the genrule declares.
+genrule_defaults {
+    name: "custom_font_package_assets_defaults",
+    cmd: "cp $(in) $(genDir)/fonts/ && " +
+        "test $$(ls $(genDir)/fonts | wc -l) -eq $$(echo $(out) | wc -w)",
 }
 
 filegroup {
