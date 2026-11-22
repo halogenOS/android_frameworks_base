@@ -71,4 +71,6 @@
   <java-symbol type="integer" name="config_darkToneSurfaceContainer" />
   <java-symbol type="integer" name="config_darkToneSurfaceContainerHigh" />
   <java-symbol type="integer" name="config_darkToneSurfaceContainerHighest" />
+
+  <java-symbol type="string" name="config_dimOverlayPackage" />
 </resources>

@@ -105,6 +105,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -184,6 +185,9 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
     private final UserScopedService<UiModeManager> mUiModeManagerProvider;
     private ColorScheme mDarkColorScheme;
     private ColorScheme mLightColorScheme;
+    // Tones the overlays were built from, for night mode off and on.
+    private ShadeTones mDayShadeTones;
+    private ShadeTones mNightShadeTones;
 
     // Defers changing themes until Setup Wizard is done.
     private boolean mDeferredThemeEvaluation;
@@ -499,39 +503,6 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         mBroadcastDispatcher.registerReceiver(mBroadcastReceiver, filter, mMainExecutor,
                 UserHandle.ALL);
 
-        IntentFilter overlayFilter = new IntentFilter(Intent.ACTION_OVERLAY_CHANGED);
-        overlayFilter.addDataScheme("package");
-        overlayFilter.addDataSchemeSpecificPart("android",
-                android.os.PatternMatcher.PATTERN_LITERAL);
-        mContext.registerReceiver(new BroadcastReceiver() {
-            private String mLastOverlayState = getExternalOverlayState();
-
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                String current = getExternalOverlayState();
-                if (current.equals(mLastOverlayState)) {
-                    return;
-                }
-                mLastOverlayState = current;
-                Log.d(TAG, "External overlay changed on android, re-evaluating theme");
-                // The main thread applies the new overlay to mResources; the tones are read there.
-                mMainExecutor.execute(() -> reevaluateSystemTheme(true /* forceReload */));
-            }
-
-            private String getExternalOverlayState() {
-                StringBuilder sb = new StringBuilder();
-                android.content.om.OverlayManager om = mContext.getSystemService(
-                        android.content.om.OverlayManager.class);
-                for (android.content.om.OverlayInfo info :
-                        om.getOverlayInfosForTarget("android", UserHandle.SYSTEM)) {
-                    if (!info.isFabricated()) {
-                        sb.append(info.getOverlayIdentifier()).append('=')
-                                .append(info.isEnabled()).append(';');
-                    }
-                }
-                return sb.toString();
-            }
-        }, overlayFilter, null, mBgHandler);
         mSecureSettings.registerContentObserverForUserSync(
                 Settings.Secure.THEME_CUSTOMIZATION_OVERLAY_PACKAGES,
                 false,
@@ -569,6 +540,18 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
 
         mUserTracker.addCallback(mUserTrackerCallback, mMainExecutor);
         mDeviceProvisionedController.addCallback(mDeviceProvisionedListener);
+        IntentFilter overlayFilter = new IntentFilter(Intent.ACTION_OVERLAY_CHANGED);
+        overlayFilter.addDataScheme("package");
+        overlayFilter.addDataSchemeSpecificPart("android",
+                android.os.PatternMatcher.PATTERN_LITERAL);
+        mContext.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                // The main thread applies the new overlay to mResources; the tones are read there.
+                mMainExecutor.execute(
+                        ThemeOverlayController.this::reevaluateSystemThemeIfShadeTonesChanged);
+            }
+        }, overlayFilter, null, mBgHandler);
 
 
         // Condition only applies when booting to Setup Wizard.
@@ -668,6 +651,15 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         }
     }
 
+    private void reevaluateSystemThemeIfShadeTonesChanged() {
+        if (readShadeTones(Configuration.UI_MODE_NIGHT_NO).equals(mDayShadeTones)
+                && readShadeTones(Configuration.UI_MODE_NIGHT_YES).equals(mNightShadeTones)) {
+            return;
+        }
+        Log.d(TAG, "An overlay on android changed the shade tones, re-evaluating theme");
+        reevaluateSystemTheme(true /* forceReload */);
+    }
+
     private void reevaluateSystemTheme(boolean forceReload) {
         final WallpaperColors currentColors = mCurrentColors.get(mUserTracker.getUserId());
         final int mainColor;
@@ -723,62 +715,62 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         return usercontext.getSystemService(UserManager.class).isPrivateProfile();
     }
 
+    @VisibleForTesting
+    protected Resources getResourcesForNightMode(int nightMode) {
+        Configuration nightModeOverride = new Configuration();
+        nightModeOverride.uiMode = nightMode;
+        return mContext.createConfigurationContext(nightModeOverride).getResources();
+    }
+
+    private ShadeTones readShadeTones(int nightMode) {
+        return ShadeTones.read(getResourcesForNightMode(nightMode));
+    }
+
     private void createOverlays(int color) {
-        int[] toneMapping = mResources.getIntArray(
-                com.android.internal.R.array.config_paletteShadeTones);
-        Log.d(TAG, "createOverlays: config_paletteShadeTones length=" + toneMapping.length
-                + " values=" + java.util.Arrays.toString(toneMapping));
-        if (toneMapping.length == 0) toneMapping = null;
+        mDayShadeTones = readShadeTones(Configuration.UI_MODE_NIGHT_NO);
+        mNightShadeTones = readShadeTones(Configuration.UI_MODE_NIGHT_YES);
+        Log.d(TAG, "createOverlays: day " + mDayShadeTones + ", night " + mNightShadeTones);
 
         mDarkColorScheme = new ColorScheme(color, true /* isDark */, mThemeStyle, mContrast,
-                toneMapping);
+                mNightShadeTones.palette());
         mLightColorScheme = new ColorScheme(color, false /* isDark */, mThemeStyle, mContrast,
-                toneMapping);
+                mDayShadeTones.palette());
         mColorScheme = isNightMode() ? mDarkColorScheme : mLightColorScheme;
 
         mAccentOverlay = newFabricatedOverlay("accent");
-        assignColorsToOverlay(mAccentOverlay, DynamicColors.getAllAccentPalette(toneMapping));
+        assignColorsToOverlay(mAccentOverlay,
+                getColors(DynamicColors.getAllAccentPalette(mDayShadeTones.palette())),
+                getColors(DynamicColors.getAllAccentPalette(mNightShadeTones.palette())));
 
         mNeutralOverlay = newFabricatedOverlay("neutral");
-        assignColorsToOverlay(mNeutralOverlay, DynamicColors.getAllNeutralPalette(toneMapping));
+        assignColorsToOverlay(mNeutralOverlay,
+                getColors(DynamicColors.getAllNeutralPalette(mDayShadeTones.palette())),
+                getColors(DynamicColors.getAllNeutralPalette(mNightShadeTones.palette())));
 
         mDynamicOverlay = newFabricatedOverlay("dynamic");
+        Map<String, Integer> dynamicColors = new LinkedHashMap<>();
         // Themed Colors
-        assignColorsToOverlay(mDynamicOverlay, DynamicColors.getAllDynamicColorsMapped());
+        dynamicColors.putAll(getColors(DynamicColors.getAllDynamicColorsMapped()));
         // Fixed Colors
-        assignColorsToOverlay(mDynamicOverlay, DynamicColors.getFixedColorsMapped());
+        dynamicColors.putAll(getColors(DynamicColors.getFixedColorsMapped()));
         // Custom Colors
-        assignColorsToOverlay(mDynamicOverlay, DynamicColors.getCustomColorsMapped());
-
-        assignDarkSurfaceToneOverrides(mDynamicOverlay);
+        dynamicColors.putAll(getColors(DynamicColors.getCustomColorsMapped()));
+        assignColorsToOverlay(mDynamicOverlay,
+                withDarkSurfaceTones(dynamicColors, mDayShadeTones),
+                withDarkSurfaceTones(dynamicColors, mNightShadeTones));
     }
 
-    private void assignDarkSurfaceToneOverrides(FabricatedOverlay overlay) {
-        final int[] defaultTones = {4, 4, 4, 18, 0, 6, 9, 12, 15};
-        final int[] configIds = {
-                com.android.internal.R.integer.config_darkToneSurface,
-                com.android.internal.R.integer.config_darkToneSurfaceDim,
-                com.android.internal.R.integer.config_darkToneSurface, // background = surface
-                com.android.internal.R.integer.config_darkToneSurfaceBright,
-                com.android.internal.R.integer.config_darkToneSurfaceContainerLowest,
-                com.android.internal.R.integer.config_darkToneSurfaceContainerLow,
-                com.android.internal.R.integer.config_darkToneSurfaceContainer,
-                com.android.internal.R.integer.config_darkToneSurfaceContainerHigh,
-                com.android.internal.R.integer.config_darkToneSurfaceContainerHighest,
-        };
-        final String[] colorNames = {
-                "surface", "surface_dim", "background", "surface_bright",
-                "surface_container_lowest", "surface_container_low", "surface_container",
-                "surface_container_high", "surface_container_highest",
-        };
-
+    private Map<String, Integer> withDarkSurfaceTones(Map<String, Integer> colors,
+            ShadeTones shadeTones) {
+        Map<String, Integer> result = new LinkedHashMap<>(colors);
         DynamicScheme darkScheme = mDarkColorScheme.getMaterialScheme();
 
-        for (int i = 0; i < configIds.length; i++) {
-            int configuredTone = mResources.getInteger(configIds[i]);
-            if (configuredTone != defaultTones[i]) {
+        for (int i = 0; i < DARK_SURFACE_TONES.size(); i++) {
+            DarkSurfaceTone surface = DARK_SURFACE_TONES.get(i);
+            int configuredTone = shadeTones.darkSurfaces()[i];
+            if (configuredTone != surface.defaultTone()) {
                 DynamicColor dc = new DynamicColor(
-                        /* name= */ colorNames[i],
+                        /* name= */ surface.colorName(),
                         /* palette= */ (s) -> s.neutralPalette,
                         /* tone= */ (s) -> (double) configuredTone,
                         /* isBackground= */ true,
@@ -786,21 +778,33 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
                         /* secondBackground= */ null,
                         /* contrastCurve= */ null,
                         /* toneDeltaPair= */ null);
-                overlay.setResourceValue("android:color/system_" + colorNames[i] + "_dark",
-                        TYPE_INT_COLOR_ARGB8, dc.getArgb(darkScheme), null);
+                result.put("android:color/system_" + surface.colorName() + "_dark",
+                        dc.getArgb(darkScheme));
             }
         }
+        return result;
     }
 
-    private void assignColorsToOverlay(FabricatedOverlay overlay,
-            List<Pair<String, DynamicColor>> colors) {
+    private Map<String, Integer> getColors(List<Pair<String, DynamicColor>> colors) {
+        Map<String, Integer> result = new LinkedHashMap<>();
         colors.forEach(p -> {
             String prefix = "android:color/system_" + p.first;
 
-            overlay.setResourceValue(prefix + "_light", TYPE_INT_COLOR_ARGB8,
-                    p.second.getArgb(mLightColorScheme.getMaterialScheme()), null);
-            overlay.setResourceValue(prefix + "_dark", TYPE_INT_COLOR_ARGB8,
-                    p.second.getArgb(mDarkColorScheme.getMaterialScheme()), null);
+            result.put(prefix + "_light", p.second.getArgb(mLightColorScheme.getMaterialScheme()));
+            result.put(prefix + "_dark", p.second.getArgb(mDarkColorScheme.getMaterialScheme()));
+        });
+        return result;
+    }
+
+    private static void assignColorsToOverlay(FabricatedOverlay overlay,
+            Map<String, Integer> dayColors, Map<String, Integer> nightColors) {
+        dayColors.forEach((name, dayColor) -> {
+            overlay.setResourceValue(name, TYPE_INT_COLOR_ARGB8, dayColor, null);
+            Integer nightColor = nightColors.get(name);
+            if (!dayColor.equals(nightColor)) {
+                overlay.setResourceValue(name, TYPE_INT_COLOR_ARGB8, nightColor,
+                        NIGHT_CONFIGURATION);
+            }
         });
     }
 
@@ -1084,5 +1088,63 @@ public class ThemeOverlayController implements CoreStartable, Dumpable {
         pw.println("mAcceptColorEvents=" + mAcceptColorEvents);
         pw.println("mDeferredThemeEvaluation=" + mDeferredThemeEvaluation);
         pw.println("mThemeStyle=" + mThemeStyle);
+    }
+
+    private static final String NIGHT_CONFIGURATION = "night";
+
+    /** A dark surface color whose tone a framework resource sets. */
+    private record DarkSurfaceTone(String colorName, int toneConfig, int defaultTone) {}
+
+    private static final List<DarkSurfaceTone> DARK_SURFACE_TONES = List.of(
+            new DarkSurfaceTone("surface",
+                    com.android.internal.R.integer.config_darkToneSurface, 4),
+            new DarkSurfaceTone("surface_dim",
+                    com.android.internal.R.integer.config_darkToneSurfaceDim, 4),
+            new DarkSurfaceTone("background", // background = surface
+                    com.android.internal.R.integer.config_darkToneSurface, 4),
+            new DarkSurfaceTone("surface_bright",
+                    com.android.internal.R.integer.config_darkToneSurfaceBright, 18),
+            new DarkSurfaceTone("surface_container_lowest",
+                    com.android.internal.R.integer.config_darkToneSurfaceContainerLowest, 0),
+            new DarkSurfaceTone("surface_container_low",
+                    com.android.internal.R.integer.config_darkToneSurfaceContainerLow, 6),
+            new DarkSurfaceTone("surface_container",
+                    com.android.internal.R.integer.config_darkToneSurfaceContainer, 9),
+            new DarkSurfaceTone("surface_container_high",
+                    com.android.internal.R.integer.config_darkToneSurfaceContainerHigh, 12),
+            new DarkSurfaceTone("surface_container_highest",
+                    com.android.internal.R.integer.config_darkToneSurfaceContainerHighest, 15));
+
+    /**
+     * Tones that the framework resources set for one night mode state: one per palette shade, or
+     * null for the stock tones, and one per entry of {@link #DARK_SURFACE_TONES}.
+     */
+    private record ShadeTones(int[] palette, int[] darkSurfaces) {
+        static ShadeTones read(Resources resources) {
+            int[] palette = resources.getIntArray(
+                    com.android.internal.R.array.config_paletteShadeTones);
+            return new ShadeTones(palette.length == 0 ? null : palette,
+                    DARK_SURFACE_TONES.stream()
+                            .mapToInt(surface -> resources.getInteger(surface.toneConfig()))
+                            .toArray());
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof ShadeTones tones
+                    && Arrays.equals(palette, tones.palette)
+                    && Arrays.equals(darkSurfaces, tones.darkSurfaces);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(palette) + Arrays.hashCode(darkSurfaces);
+        }
+
+        @Override
+        public String toString() {
+            return "palette=" + Arrays.toString(palette)
+                    + " darkSurfaces=" + Arrays.toString(darkSurfaces);
+        }
     }
 }
