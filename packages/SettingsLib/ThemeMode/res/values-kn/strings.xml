@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ಥೀಮ್"</string>
+    <string name="theme_mode_light">"ಲೈಟ್"</string>
+    <string name="theme_mode_dark">"ಡಾರ್ಕ್"</string>
+    <string name="theme_mode_dim">"ಮಂದ"</string>
+    <string name="theme_mode_night_mode_refused">"ಡಾರ್ಕ್ ಥೀಮ್ ಅನ್ನು ಬದಲಾಯಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮಲಗುವ ಸಮಯದಲ್ಲಿ ಅದು ಆನ್ ಆಗುತ್ತಿದ್ದರೆ, ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಡಿಸ್‌ಪ್ಲೇ > ಡಾರ್ಕ್ ಥೀಮ್ ನಲ್ಲಿ ಅದರ ವೇಳಾಪಟ್ಟಿಯನ್ನು ಬದಲಾಯಿಸಿ."</string>
+    <string name="theme_mode_dim_overlay_refused">"ಮಂದ ಥೀಮ್ ಅನ್ನು ಬದಲಾಯಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದೋಷವನ್ನು ಲಾಗ್ ಮಾಡಲಾಗಿದೆ."</string>
+</resources>

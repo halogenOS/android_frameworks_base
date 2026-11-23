@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"主题"</string>
+    <string name="theme_mode_light">"浅色"</string>
+    <string name="theme_mode_dark">"深色"</string>
+    <string name="theme_mode_dim">"暗淡"</string>
+    <string name="theme_mode_night_mode_refused">"无法更改深色主题。如果深色主题在就寝时间开启，请在“设置”>“显示”>“深色主题”中更改其时间表。"</string>
+    <string name="theme_mode_dim_overlay_refused">"无法更改暗淡主题。系统已记录此错误。"</string>
+</resources>

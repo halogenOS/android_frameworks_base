@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Mavzu"</string>
+    <string name="theme_mode_light">"Yorqin"</string>
+    <string name="theme_mode_dark">"Tungi"</string>
+    <string name="theme_mode_dim">"Xira"</string>
+    <string name="theme_mode_night_mode_refused">"Tungi mavzuni almashtirib boʻlmadi. Agar u uyqu vaqtida yoqilsa, jadvalini Sozlamalar > Ekran > Tungi mavzu boʻlimida oʻzgartiring."</string>
+    <string name="theme_mode_dim_overlay_refused">"Xira mavzuni almashtirib boʻlmadi. Xatolik qayd qilindi."</string>
+</resources>

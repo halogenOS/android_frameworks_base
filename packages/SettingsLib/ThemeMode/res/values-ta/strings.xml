@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"தீம்"</string>
+    <string name="theme_mode_light">"லைட்"</string>
+    <string name="theme_mode_dark">"டார்க்"</string>
+    <string name="theme_mode_dim">"மங்கல்"</string>
+    <string name="theme_mode_night_mode_refused">"டார்க் தீமை மாற்ற முடியவில்லை. உறங்கும் நேரத்தில் அது இயக்கப்பட்டால், அமைப்புகள் > டிஸ்ப்ளே > டார்க் தீம் என்பதில் அதன் அட்டவணையை மாற்றவும்."</string>
+    <string name="theme_mode_dim_overlay_refused">"மங்கல் தீமை மாற்ற முடியவில்லை. பிழை பதிவுசெய்யப்பட்டது."</string>
+</resources>

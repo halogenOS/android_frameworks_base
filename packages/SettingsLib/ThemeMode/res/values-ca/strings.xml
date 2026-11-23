@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Clar"</string>
+    <string name="theme_mode_dark">"Fosc"</string>
+    <string name="theme_mode_dim">"Atenuat"</string>
+    <string name="theme_mode_night_mode_refused">"No s'ha pogut canviar el tema fosc. Si s'activa a l'hora d'anar a dormir, canvia'n la programació a Configuració > Pantalla > Tema fosc."</string>
+    <string name="theme_mode_dim_overlay_refused">"No s'ha pogut canviar el tema atenuat. S'ha registrat l'error."</string>
+</resources>

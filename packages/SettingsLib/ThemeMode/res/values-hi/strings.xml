@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"थीम"</string>
+    <string name="theme_mode_light">"हल्की"</string>
+    <string name="theme_mode_dark">"गहरी"</string>
+    <string name="theme_mode_dim">"धुंधली"</string>
+    <string name="theme_mode_night_mode_refused">"गहरे रंग वाली थीम नहीं बदली जा सकी. अगर यह सोने के समय चालू होती है, तो सेटिंग > डिसप्ले > गहरे रंग वाली थीम में इसका शेड्यूल बदलें."</string>
+    <string name="theme_mode_dim_overlay_refused">"धुंधली थीम नहीं बदली जा सकी. गड़बड़ी को लॉग कर लिया गया है."</string>
+</resources>

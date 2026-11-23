@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Թեմա"</string>
+    <string name="theme_mode_light">"Բաց"</string>
+    <string name="theme_mode_dark">"Մուգ"</string>
+    <string name="theme_mode_dim">"Խամրած"</string>
+    <string name="theme_mode_night_mode_refused">"Չհաջողվեց փոխել մուգ թեման։ Եթե այն միանում է քնելու ժամին, փոխեք դրա ժամանակացույցը՝ Կարգավորումներ > Էկրան > Մուգ թեմա։"</string>
+    <string name="theme_mode_dim_overlay_refused">"Չհաջողվեց փոխել խամրած թեման։ Սխալը գրանցվել է։"</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Тақырып"</string>
+    <string name="theme_mode_light">"Ашық"</string>
+    <string name="theme_mode_dark">"Қараңғы"</string>
+    <string name="theme_mode_dim">"Күңгірт"</string>
+    <string name="theme_mode_night_mode_refused">"Қараңғы режимді өзгерту мүмкін болмады. Егер ол ұйқы уақытында қосылса, кестесін Параметрлер > Дисплей > Қараңғы режим бөлімінде өзгертіңіз."</string>
+    <string name="theme_mode_dim_overlay_refused">"Күңгірт режимді өзгерту мүмкін болмады. Қате тіркелді."</string>
+</resources>

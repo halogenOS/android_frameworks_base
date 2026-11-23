@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Svijetla"</string>
+    <string name="theme_mode_dark">"Tamna"</string>
+    <string name="theme_mode_dim">"Prigušena"</string>
+    <string name="theme_mode_night_mode_refused">"Nije moguće promijeniti tamnu temu. Ako se uključuje u vrijeme spavanja, promijenite raspored u Postavke > Prikaz > Tamna tema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Nije moguće promijeniti prigušenu temu. Greška je zabilježena."</string>
+</resources>

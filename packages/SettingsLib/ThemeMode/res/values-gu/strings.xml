@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"થીમ"</string>
+    <string name="theme_mode_light">"લાઇટ"</string>
+    <string name="theme_mode_dark">"ડાર્ક"</string>
+    <string name="theme_mode_dim">"ઝાંખી"</string>
+    <string name="theme_mode_night_mode_refused">"ડાર્ક થીમ બદલી શકાઈ નથી. જો તે સૂવાના સમયે ચાલુ થતી હોય, તો સેટિંગ > ડિસ્પ્લે > ડાર્ક થીમમાં તેનું શેડ્યૂલ બદલો."</string>
+    <string name="theme_mode_dim_overlay_refused">"ઝાંખી થીમ બદલી શકાઈ નથી. ભૂલ લૉગ કરવામાં આવી છે."</string>
+</resources>

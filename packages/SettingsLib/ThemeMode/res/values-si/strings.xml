@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"තේමාව"</string>
+    <string name="theme_mode_light">"ආලෝක"</string>
+    <string name="theme_mode_dark">"අඳුරු"</string>
+    <string name="theme_mode_dim">"මලානික"</string>
+    <string name="theme_mode_night_mode_refused">"අඳුරු තේමාව වෙනස් කළ නොහැකි විය. එය නින්දට යන වේලාවේ ක්‍රියාත්මක වේ නම්, සැකසීම් > සංදර්ශකය > අඳුරු තේමාව තුළ එහි කාලසටහන වෙනස් කරන්න."</string>
+    <string name="theme_mode_dim_overlay_refused">"මලානික තේමාව වෙනස් කළ නොහැකි විය. දෝෂය සටහන් කර ඇත."</string>
+</resources>

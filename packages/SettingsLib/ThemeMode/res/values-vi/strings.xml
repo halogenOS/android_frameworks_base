@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Giao diện"</string>
+    <string name="theme_mode_light">"Sáng"</string>
+    <string name="theme_mode_dark">"Tối"</string>
+    <string name="theme_mode_dim">"Mờ"</string>
+    <string name="theme_mode_night_mode_refused">"Không thay đổi được giao diện tối. Nếu giao diện này bật vào giờ đi ngủ, hãy thay đổi lịch biểu trong Cài đặt > Màn hình > Giao diện tối."</string>
+    <string name="theme_mode_dim_overlay_refused">"Không thay đổi được giao diện mờ. Đã ghi lại lỗi."</string>
+</resources>

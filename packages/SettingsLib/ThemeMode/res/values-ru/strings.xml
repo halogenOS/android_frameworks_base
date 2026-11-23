@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Тема"</string>
+    <string name="theme_mode_light">"Светлая"</string>
+    <string name="theme_mode_dark">"Тёмная"</string>
+    <string name="theme_mode_dim">"Тусклая"</string>
+    <string name="theme_mode_night_mode_refused">"Не удалось изменить тёмную тему. Если она включается во время сна, измените расписание в разделе Настройки > Экран > Тёмная тема."</string>
+    <string name="theme_mode_dim_overlay_refused">"Не удалось изменить тусклую тему. Ошибка записана в журнал."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Lig"</string>
+    <string name="theme_mode_dark">"Donker"</string>
+    <string name="theme_mode_dim">"Gedemp"</string>
+    <string name="theme_mode_night_mode_refused">"Kon nie die donkertema verander nie. As dit met slaaptyd aanskakel, verander die skedule in Instellings > Skerm > Donkertema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Kon nie Gedemp verander nie. Die fout is aangeteken."</string>
+</resources>

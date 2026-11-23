@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Тема"</string>
+    <string name="theme_mode_light">"Светла"</string>
+    <string name="theme_mode_dark">"Тамна"</string>
+    <string name="theme_mode_dim">"Пригушена"</string>
+    <string name="theme_mode_night_mode_refused">"Промена тамне теме није успела. Ако се укључује у време за спавање, промените распоред у Подешавања > Екран > Тамна тема."</string>
+    <string name="theme_mode_dim_overlay_refused">"Промена пригушене теме није успела. Грешка је забележена."</string>
+</resources>

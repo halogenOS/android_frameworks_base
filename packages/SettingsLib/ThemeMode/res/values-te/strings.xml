@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"థీమ్"</string>
+    <string name="theme_mode_light">"లైట్"</string>
+    <string name="theme_mode_dark">"డార్క్"</string>
+    <string name="theme_mode_dim">"మసక"</string>
+    <string name="theme_mode_night_mode_refused">"డార్క్ థీమ్‌ను మార్చడం సాధ్యపడలేదు. ఇది నిద్రవేళలో ఆన్ అవుతుంటే, సెట్టింగ్‌లు > డిస్‌ప్లే > డార్క్ థీమ్‌లో దాని షెడ్యూల్‌ను మార్చండి."</string>
+    <string name="theme_mode_dim_overlay_refused">"మసక థీమ్‌ను మార్చడం సాధ్యపడలేదు. ఎర్రర్ లాగ్ చేయబడింది."</string>
+</resources>

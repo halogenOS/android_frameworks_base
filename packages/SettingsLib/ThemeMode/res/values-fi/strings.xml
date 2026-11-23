@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Teema"</string>
+    <string name="theme_mode_light">"Vaalea"</string>
+    <string name="theme_mode_dark">"Tumma"</string>
+    <string name="theme_mode_dim">"Himmeä"</string>
+    <string name="theme_mode_night_mode_refused">"Tummaa teemaa ei voitu vaihtaa. Jos se menee päälle nukkumaanmenoaikaan, muuta aikataulua kohdassa Asetukset > Näyttö > Tumma teema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Himmeää teemaa ei voitu vaihtaa. Virhe kirjattiin."</string>
+</resources>

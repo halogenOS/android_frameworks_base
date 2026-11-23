@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Itimu"</string>
+    <string name="theme_mode_light">"Ekhanyayo"</string>
+    <string name="theme_mode_dark">"Emnyama"</string>
+    <string name="theme_mode_dim">"Efiphele"</string>
+    <string name="theme_mode_night_mode_refused">"Ayikwazanga ukushintsha itimu emnyama. Uma ivuleka ngesikhathi sokulala, shintsha ishejuli yayo ku-Izilungiselelo > Bonisa > Itimu emnyama."</string>
+    <string name="theme_mode_dim_overlay_refused">"Ayikwazanga ukushintsha itimu efiphele. Iphutha lirekhodiwe."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Θέμα"</string>
+    <string name="theme_mode_light">"Φωτεινό"</string>
+    <string name="theme_mode_dark">"Σκούρο"</string>
+    <string name="theme_mode_dim">"Αχνό"</string>
+    <string name="theme_mode_night_mode_refused">"Δεν ήταν δυνατή η αλλαγή του σκούρου θέματος. Αν ενεργοποιείται την ώρα του ύπνου, αλλάξτε το πρόγραμμά του στις Ρυθμίσεις > Οθόνη > Σκούρο θέμα."</string>
+    <string name="theme_mode_dim_overlay_refused">"Δεν ήταν δυνατή η αλλαγή του αχνού θέματος. Το σφάλμα καταγράφηκε."</string>
+</resources>

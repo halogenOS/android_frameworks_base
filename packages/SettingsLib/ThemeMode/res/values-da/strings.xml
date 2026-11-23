@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Lyst"</string>
+    <string name="theme_mode_dark">"Mørkt"</string>
+    <string name="theme_mode_dim">"Dæmpet"</string>
+    <string name="theme_mode_night_mode_refused">"Det mørke tema kunne ikke ændres. Hvis det aktiveres ved sengetid, kan du ændre planen i Indstillinger > Skærm > Mørkt tema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Det dæmpede tema kunne ikke ændres. Fejlen er logget."</string>
+</resources>

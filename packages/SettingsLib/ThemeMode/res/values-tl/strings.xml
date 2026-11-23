@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Maliwanag"</string>
+    <string name="theme_mode_dark">"Madilim"</string>
+    <string name="theme_mode_dim">"Malamlam"</string>
+    <string name="theme_mode_night_mode_refused">"Hindi mabago ang madilim na tema. Kung nag-o-on ito sa oras ng pagtulog, baguhin ang iskedyul nito sa Mga Setting > Display > Madilim na tema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Hindi mabago ang malamlam na tema. Na-log ang error."</string>
+</resources>

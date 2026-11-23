@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ଥିମ"</string>
+    <string name="theme_mode_light">"ଲାଇଟ"</string>
+    <string name="theme_mode_dark">"ଡାର୍କ"</string>
+    <string name="theme_mode_dim">"ମଳିନ"</string>
+    <string name="theme_mode_night_mode_refused">"ଡାର୍କ ଥିମ ପରିବର୍ତ୍ତନ କରାଯାଇପାରିଲା ନାହିଁ। ଯଦି ଏହା ଶୋଇବା ସମୟରେ ଚାଲୁ ହୁଏ, ତେବେ ସେଟିଂସ > ଡିସପ୍ଲେ > ଡାର୍କ ଥିମରେ ଏହାର ସିଡୁଲ ପରିବର୍ତ୍ତନ କରନ୍ତୁ।"</string>
+    <string name="theme_mode_dim_overlay_refused">"ମଳିନ ଥିମ ପରିବର୍ତ୍ତନ କରାଯାଇପାରିଲା ନାହିଁ। ତ୍ରୁଟିକୁ ଲଗ କରାଯାଇଛି।"</string>
+</resources>

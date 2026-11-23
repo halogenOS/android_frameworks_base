@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"थीम"</string>
+    <string name="theme_mode_light">"फिकट"</string>
+    <string name="theme_mode_dark">"गडद"</string>
+    <string name="theme_mode_dim">"मंद"</string>
+    <string name="theme_mode_night_mode_refused">"गडद थीम बदलता आली नाही. ती झोपेच्या वेळी सुरू होत असल्यास, सेटिंग्ज > डिस्प्ले > गडद थीम मध्ये तिचे शेड्यूल बदला."</string>
+    <string name="theme_mode_dim_overlay_refused">"मंद थीम बदलता आली नाही. एरर लॉग केली आहे."</string>
+</resources>

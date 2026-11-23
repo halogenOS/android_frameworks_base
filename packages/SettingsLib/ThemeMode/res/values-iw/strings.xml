@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"עיצוב"</string>
+    <string name="theme_mode_light">"בהיר"</string>
+    <string name="theme_mode_dark">"כהה"</string>
+    <string name="theme_mode_dim">"מעומעם"</string>
+    <string name="theme_mode_night_mode_refused">"לא ניתן לשנות את העיצוב הכהה. אם הוא מופעל בשעת השינה, צריך לשנות את לוח הזמנים שלו בהגדרות > תצוגה > עיצוב כהה."</string>
+    <string name="theme_mode_dim_overlay_refused">"לא ניתן לשנות את העיצוב המעומעם. השגיאה נרשמה."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"테마"</string>
+    <string name="theme_mode_light">"밝게"</string>
+    <string name="theme_mode_dark">"어둡게"</string>
+    <string name="theme_mode_dim">"흐리게"</string>
+    <string name="theme_mode_night_mode_refused">"어두운 테마를 변경할 수 없습니다. 취침 시간에 사용 설정되는 경우 설정 > 디스플레이 > 어두운 테마에서 일정을 변경하세요."</string>
+    <string name="theme_mode_dim_overlay_refused">"흐린 테마를 변경할 수 없습니다. 오류가 기록되었습니다."</string>
+</resources>

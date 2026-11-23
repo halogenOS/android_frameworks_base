@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"زمینه"</string>
+    <string name="theme_mode_light">"روشن"</string>
+    <string name="theme_mode_dark">"تیره"</string>
+    <string name="theme_mode_dim">"کم‌نور"</string>
+    <string name="theme_mode_night_mode_refused">"زمینه تاریک تغییر نکرد. اگر هنگام خواب روشن می‌شود، زمان‌بندی آن را در تنظیمات > نمایشگر > زمینه تاریک تغییر دهید."</string>
+    <string name="theme_mode_dim_overlay_refused">"زمینه کم‌نور تغییر نکرد. خطا ثبت شد."</string>
+</resources>

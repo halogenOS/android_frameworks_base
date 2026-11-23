@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Chiaro"</string>
+    <string name="theme_mode_dark">"Scuro"</string>
+    <string name="theme_mode_dim">"Tenue"</string>
+    <string name="theme_mode_night_mode_refused">"Impossibile modificare il tema scuro. Se si attiva quando vai a dormire, modificane la pianificazione in Impostazioni > Display > Tema scuro."</string>
+    <string name="theme_mode_dim_overlay_refused">"Impossibile modificare il tema tenue. L'errore è stato registrato."</string>
+</resources>

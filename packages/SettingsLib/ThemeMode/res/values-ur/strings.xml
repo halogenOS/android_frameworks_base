@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"تھیم"</string>
+    <string name="theme_mode_light">"ہلکی"</string>
+    <string name="theme_mode_dark">"گہری"</string>
+    <string name="theme_mode_dim">"مدھم"</string>
+    <string name="theme_mode_night_mode_refused">"گہری تھیم تبدیل نہیں کی جا سکی۔ اگر یہ سونے کے وقت آن ہوتی ہے تو ترتیبات > ڈسپلے > گہری تھیم میں اس کا شیڈول تبدیل کریں۔"</string>
+    <string name="theme_mode_dim_overlay_refused">"مدھم تھیم تبدیل نہیں کی جا سکی۔ خرابی لاگ کر دی گئی ہے۔"</string>
+</resources>

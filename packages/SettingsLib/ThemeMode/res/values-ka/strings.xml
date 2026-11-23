@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"თემა"</string>
+    <string name="theme_mode_light">"ღია"</string>
+    <string name="theme_mode_dark">"მუქი"</string>
+    <string name="theme_mode_dim">"მკრთალი"</string>
+    <string name="theme_mode_night_mode_refused">"მუქი თემის შეცვლა ვერ მოხერხდა. თუ ის ძილის დროს ირთვება, შეცვალეთ განრიგი აქ: პარამეტრები > ეკრანი > მუქი თემა."</string>
+    <string name="theme_mode_dim_overlay_refused">"მკრთალი თემის შეცვლა ვერ მოხერხდა. შეცდომა ჩაიწერა."</string>
+</resources>

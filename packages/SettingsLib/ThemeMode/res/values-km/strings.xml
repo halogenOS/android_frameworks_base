@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ទម្រង់រចនា"</string>
+    <string name="theme_mode_light">"ភ្លឺ"</string>
+    <string name="theme_mode_dark">"ងងឹត"</string>
+    <string name="theme_mode_dim">"ស្រអាប់"</string>
+    <string name="theme_mode_night_mode_refused">"មិនអាចប្ដូរទម្រង់រចនាងងឹតបានទេ។ ប្រសិនបើវាបើកនៅម៉ោងចូលគេង សូមប្ដូរកាលវិភាគរបស់វានៅក្នុង ការ​កំណត់ > ការបង្ហាញ > ទម្រង់រចនាងងឹត។"</string>
+    <string name="theme_mode_dim_overlay_refused">"មិនអាចប្ដូរទម្រង់រចនាស្រអាប់បានទេ។ បញ្ហាត្រូវបានកត់ត្រាទុក។"</string>
+</resources>

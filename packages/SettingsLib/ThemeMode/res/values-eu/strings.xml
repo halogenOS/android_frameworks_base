@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Gaia"</string>
+    <string name="theme_mode_light">"Argia"</string>
+    <string name="theme_mode_dark">"Iluna"</string>
+    <string name="theme_mode_dim">"Ilundua"</string>
+    <string name="theme_mode_night_mode_refused">"Ezin izan da aldatu gai iluna. Lo egiteko orduan aktibatzen bada, aldatu programazioa hemen: Ezarpenak > Pantaila > Gai iluna."</string>
+    <string name="theme_mode_dim_overlay_refused">"Ezin izan da aldatu gai ilundua. Errorea erregistratu da."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Thema"</string>
+    <string name="theme_mode_light">"Licht"</string>
+    <string name="theme_mode_dark">"Donker"</string>
+    <string name="theme_mode_dim">"Gedimd"</string>
+    <string name="theme_mode_night_mode_refused">"Kan het donkere thema niet wijzigen. Als het aangaat bij bedtijd, wijzig je de planning via Instellingen > Scherm > Donker thema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Kan het gedimde thema niet wijzigen. De fout is gelogd."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Teema"</string>
+    <string name="theme_mode_light">"Hele"</string>
+    <string name="theme_mode_dark">"Tume"</string>
+    <string name="theme_mode_dim">"Hämar"</string>
+    <string name="theme_mode_night_mode_refused">"Tumedat teemat ei õnnestunud muuta. Kui see lülitub sisse magamaminekuajal, muutke ajakava jaotises Seaded > Kuvamine > Tume teema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Hämarat teemat ei õnnestunud muuta. Viga logiti."</string>
+</resources>

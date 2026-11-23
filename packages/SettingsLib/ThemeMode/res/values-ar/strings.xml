@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"المظهر"</string>
+    <string name="theme_mode_light">"فاتح"</string>
+    <string name="theme_mode_dark">"داكن"</string>
+    <string name="theme_mode_dim">"خافت"</string>
+    <string name="theme_mode_night_mode_refused">"تعذّر تغيير المظهر الداكن. إذا كان يتم تفعيله وقت النوم، غيِّر جدوله في الإعدادات > الشاشة > المظهر الداكن."</string>
+    <string name="theme_mode_dim_overlay_refused">"تعذّر تغيير الوضع الخافت. تم تسجيل الخطأ."</string>
+</resources>

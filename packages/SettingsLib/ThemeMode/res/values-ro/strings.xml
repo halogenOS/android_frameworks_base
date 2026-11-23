@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Temă"</string>
+    <string name="theme_mode_light">"Deschisă"</string>
+    <string name="theme_mode_dark">"Închisă"</string>
+    <string name="theme_mode_dim">"Estompată"</string>
+    <string name="theme_mode_night_mode_refused">"Tema întunecată nu a putut fi schimbată. Dacă se activează la ora de culcare, schimbă-i programul din Setări > Ecran > Temă întunecată."</string>
+    <string name="theme_mode_dim_overlay_refused">"Tema estompată nu a putut fi schimbată. Eroarea a fost înregistrată."</string>
+</resources>

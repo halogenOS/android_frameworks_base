@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Загвар"</string>
+    <string name="theme_mode_light">"Цайвар"</string>
+    <string name="theme_mode_dark">"Бараан"</string>
+    <string name="theme_mode_dim">"Бүдэг"</string>
+    <string name="theme_mode_night_mode_refused">"Бараан загварыг өөрчилж чадсангүй. Хэрэв энэ нь унтах цагаар асдаг бол хуваарийг нь Тохиргоо > Дэлгэц > Бараан загвар хэсэгт өөрчилнө үү."</string>
+    <string name="theme_mode_dim_overlay_refused">"Бүдэг загварыг өөрчилж чадсангүй. Алдааг бүртгэсэн."</string>
+</resources>

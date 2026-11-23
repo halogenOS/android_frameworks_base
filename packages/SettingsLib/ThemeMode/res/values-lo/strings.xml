@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ຮູບແບບສີສັນ"</string>
+    <string name="theme_mode_light">"ແຈ້ງ"</string>
+    <string name="theme_mode_dark">"ມືດ"</string>
+    <string name="theme_mode_dim">"ມົວ"</string>
+    <string name="theme_mode_night_mode_refused">"ບໍ່ສາມາດປ່ຽນຮູບແບບສີສັນມືດໄດ້. ຫາກມັນເປີດໃນເວລານອນ, ໃຫ້ປ່ຽນກຳນົດເວລາຂອງມັນໃນ ການຕັ້ງຄ່າ > ຈໍສະແດງຜົນ > ຮູບແບບສີສັນມືດ."</string>
+    <string name="theme_mode_dim_overlay_refused">"ບໍ່ສາມາດປ່ຽນຮູບແບບສີສັນມົວໄດ້. ບັນທຶກຂໍ້ຜິດພາດໄວ້ແລ້ວ."</string>
+</resources>

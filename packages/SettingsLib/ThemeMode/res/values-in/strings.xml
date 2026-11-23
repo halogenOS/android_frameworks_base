@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Terang"</string>
+    <string name="theme_mode_dark">"Gelap"</string>
+    <string name="theme_mode_dim">"Redup"</string>
+    <string name="theme_mode_night_mode_refused">"Tidak dapat mengubah tema gelap. Jika tema aktif saat waktu tidur, ubah jadwalnya di Setelan > Layar > Tema gelap."</string>
+    <string name="theme_mode_dim_overlay_refused">"Tidak dapat mengubah tema redup. Error telah dicatat."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Téma"</string>
+    <string name="theme_mode_light">"Világos"</string>
+    <string name="theme_mode_dark">"Sötét"</string>
+    <string name="theme_mode_dim">"Tompa"</string>
+    <string name="theme_mode_night_mode_refused">"Nem sikerült módosítani a sötét témát. Ha alvásidőben kapcsol be, módosítsa az ütemezését itt: Beállítások > Kijelző > Sötét téma."</string>
+    <string name="theme_mode_dim_overlay_refused">"Nem sikerült módosítani a tompa témát. A hibát naplóztuk."</string>
+</resources>

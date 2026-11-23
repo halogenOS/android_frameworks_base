@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ธีม"</string>
+    <string name="theme_mode_light">"สว่าง"</string>
+    <string name="theme_mode_dark">"มืด"</string>
+    <string name="theme_mode_dim">"หรี่แสง"</string>
+    <string name="theme_mode_night_mode_refused">"เปลี่ยนธีมมืดไม่ได้ หากธีมเปิดขึ้นในเวลาเข้านอน ให้เปลี่ยนกำหนดการใน การตั้งค่า > จอแสดงผล > ธีมมืด"</string>
+    <string name="theme_mode_dim_overlay_refused">"เปลี่ยนธีมหรี่แสงไม่ได้ บันทึกข้อผิดพลาดไว้แล้ว"</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Claro"</string>
+    <string name="theme_mode_dark">"Escuro"</string>
+    <string name="theme_mode_dim">"Atenuado"</string>
+    <string name="theme_mode_night_mode_refused">"Não foi possível alterar o tema escuro. Se for ativado à hora de dormir, altere o horário em Definições > Ecrã > Tema escuro."</string>
+    <string name="theme_mode_dim_overlay_refused">"Não foi possível alterar o tema atenuado. O erro foi registado."</string>
+</resources>

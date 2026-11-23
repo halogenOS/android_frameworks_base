@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Šviesi"</string>
+    <string name="theme_mode_dark">"Tamsi"</string>
+    <string name="theme_mode_dim">"Blanki"</string>
+    <string name="theme_mode_night_mode_refused">"Nepavyko pakeisti tamsiosios temos. Jei ji įjungiama miego laiku, pakeiskite jos tvarkaraštį skiltyje Nustatymai > Ekranas > Tamsioji tema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Nepavyko pakeisti blankios temos. Klaida užregistruota."</string>
+</resources>

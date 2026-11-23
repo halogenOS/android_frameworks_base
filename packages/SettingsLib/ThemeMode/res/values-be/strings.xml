@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Тэма"</string>
+    <string name="theme_mode_light">"Светлая"</string>
+    <string name="theme_mode_dark">"Цёмная"</string>
+    <string name="theme_mode_dim">"Цьмяная"</string>
+    <string name="theme_mode_night_mode_refused">"Не ўдалося змяніць цёмную тэму. Калі яна ўключаецца ў час сну, змяніце расклад у Налады > Дысплэй > Цёмная тэма."</string>
+    <string name="theme_mode_dim_overlay_refused">"Не ўдалося змяніць цьмяную тэму. Памылка запісана."</string>
+</resources>

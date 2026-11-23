@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Design"</string>
+    <string name="theme_mode_light">"Hell"</string>
+    <string name="theme_mode_dark">"Dunkel"</string>
+    <string name="theme_mode_dim">"Gedimmt"</string>
+    <string name="theme_mode_night_mode_refused">"Das dunkle Design konnte nicht geändert werden. Wenn es zur Schlafenszeit aktiviert wird, ändere den Zeitplan unter Einstellungen > Display > Dunkles Design."</string>
+    <string name="theme_mode_dim_overlay_refused">"Das gedimmte Design konnte nicht geändert werden. Der Fehler wurde protokolliert."</string>
+</resources>

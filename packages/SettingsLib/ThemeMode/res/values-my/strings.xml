@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"အပြင်အဆင်"</string>
+    <string name="theme_mode_light">"အလင်း"</string>
+    <string name="theme_mode_dark">"အမှောင်"</string>
+    <string name="theme_mode_dim">"မှိန်"</string>
+    <string name="theme_mode_night_mode_refused">"အမှောင်အပြင်အဆင်ကို ပြောင်း၍မရပါ။ ၎င်းသည် အိပ်ချိန်တွင် ပွင့်ပါက ဆက်တင်များ > ပြသမှု > အမှောင်အပြင်အဆင် တွင် အချိန်ဇယားကို ပြောင်းပါ။"</string>
+    <string name="theme_mode_dim_overlay_refused">"မှိန်သည့်အပြင်အဆင်ကို ပြောင်း၍မရပါ။ အမှားကို မှတ်တမ်းတင်ထားသည်။"</string>
+</resources>

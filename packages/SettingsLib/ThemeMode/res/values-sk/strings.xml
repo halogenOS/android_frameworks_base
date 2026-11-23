@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Motív"</string>
+    <string name="theme_mode_light">"Svetlý"</string>
+    <string name="theme_mode_dark">"Tmavý"</string>
+    <string name="theme_mode_dim">"Stlmený"</string>
+    <string name="theme_mode_night_mode_refused">"Tmavý motív sa nepodarilo zmeniť. Ak sa zapína v čase spánku, zmeňte jeho plán v sekcii Nastavenia > Obrazovka > Tmavý motív."</string>
+    <string name="theme_mode_dim_overlay_refused">"Stlmený motív sa nepodarilo zmeniť. Chyba bola zaznamenaná."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ገጽታ"</string>
+    <string name="theme_mode_light">"ብርሃን"</string>
+    <string name="theme_mode_dark">"ጨለማ"</string>
+    <string name="theme_mode_dim">"ደብዛዛ"</string>
+    <string name="theme_mode_night_mode_refused">"ጨለማ ገጽታን መቀየር አልተቻለም። በመኝታ ሰዓት የሚበራ ከሆነ፣ መርሐግብሩን በቅንብሮች > ማሳያ > ጨለማ ገጽታ ውስጥ ይቀይሩ።"</string>
+    <string name="theme_mode_dim_overlay_refused">"ደብዛዛን መቀየር አልተቻለም። ስህተቱ ተመዝግቧል።"</string>
+</resources>

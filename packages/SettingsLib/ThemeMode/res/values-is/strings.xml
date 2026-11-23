@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Þema"</string>
+    <string name="theme_mode_light">"Ljóst"</string>
+    <string name="theme_mode_dark">"Dökkt"</string>
+    <string name="theme_mode_dim">"Deyft"</string>
+    <string name="theme_mode_night_mode_refused">"Ekki tókst að breyta dökku þema. Ef það kviknar við háttatíma skaltu breyta tímaáætluninni í Stillingar > Skjár > Dökkt þema."</string>
+    <string name="theme_mode_dim_overlay_refused">"Ekki tókst að breyta deyfðu þema. Villan var skráð."</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"E çelët"</string>
+    <string name="theme_mode_dark">"E errët"</string>
+    <string name="theme_mode_dim">"E zbehur"</string>
+    <string name="theme_mode_night_mode_refused">"Tema e errët nuk mund të ndryshohej. Nëse aktivizohet në orarin e gjumit, ndrysho orarin e saj te Cilësimet > Ekrani > Tema e errët."</string>
+    <string name="theme_mode_dim_overlay_refused">"Tema e zbehur nuk mund të ndryshohej. Gabimi u regjistrua."</string>
+</resources>

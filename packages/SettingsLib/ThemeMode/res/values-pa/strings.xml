@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"ਥੀਮ"</string>
+    <string name="theme_mode_light">"ਹਲਕਾ"</string>
+    <string name="theme_mode_dark">"ਗੂੜ੍ਹਾ"</string>
+    <string name="theme_mode_dim">"ਮੱਧਮ"</string>
+    <string name="theme_mode_night_mode_refused">"ਗੂੜ੍ਹਾ ਥੀਮ ਬਦਲਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ। ਜੇ ਇਹ ਸੌਣ ਦੇ ਸਮੇਂ ਚਾਲੂ ਹੁੰਦਾ ਹੈ, ਤਾਂ ਸੈਟਿੰਗਾਂ > ਡਿਸਪਲੇ > ਗੂੜ੍ਹਾ ਥੀਮ ਵਿੱਚ ਇਸਦੀ ਸਮਾਂ-ਸੂਚੀ ਬਦਲੋ।"</string>
+    <string name="theme_mode_dim_overlay_refused">"ਮੱਧਮ ਥੀਮ ਬਦਲਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ। ਗੜਬੜ ਨੂੰ ਲੌਗ ਕੀਤਾ ਗਿਆ ਹੈ।"</string>
+</resources>

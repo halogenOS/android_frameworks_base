@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"തീം"</string>
+    <string name="theme_mode_light">"ലൈറ്റ്"</string>
+    <string name="theme_mode_dark">"ഡാർക്ക്"</string>
+    <string name="theme_mode_dim">"മങ്ങിയ"</string>
+    <string name="theme_mode_night_mode_refused">"ഡാർക്ക് തീം മാറ്റാനായില്ല. ഉറക്കസമയത്ത് ഇത് ഓണാകുന്നുവെങ്കിൽ, ക്രമീകരണം > ഡിസ്‌പ്ലേ > ഡാർക്ക് തീം എന്നതിൽ ഇതിന്റെ ഷെഡ്യൂൾ മാറ്റുക."</string>
+    <string name="theme_mode_dim_overlay_refused">"മങ്ങിയ തീം മാറ്റാനായില്ല. പിശക് ലോഗ് ചെയ്തു."</string>
+</resources>

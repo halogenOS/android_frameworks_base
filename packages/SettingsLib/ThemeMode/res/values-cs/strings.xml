@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Motiv"</string>
+    <string name="theme_mode_light">"Světlý"</string>
+    <string name="theme_mode_dark">"Tmavý"</string>
+    <string name="theme_mode_dim">"Ztlumený"</string>
+    <string name="theme_mode_night_mode_refused">"Tmavý motiv se nepodařilo změnit. Pokud se zapíná při večerce, změňte jeho plán v Nastavení > Displej > Tmavý motiv."</string>
+    <string name="theme_mode_dim_overlay_refused">"Ztlumený motiv se nepodařilo změnit. Chyba byla zaznamenána."</string>
+</resources>

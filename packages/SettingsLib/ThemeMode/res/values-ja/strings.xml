@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"テーマ"</string>
+    <string name="theme_mode_light">"ライト"</string>
+    <string name="theme_mode_dark">"ダーク"</string>
+    <string name="theme_mode_dim">"ディム"</string>
+    <string name="theme_mode_night_mode_refused">"ダークモードを変更できませんでした。就寝時に ON になる場合は、[設定] > [ディスプレイ] > [ダークモード] でスケジュールを変更してください。"</string>
+    <string name="theme_mode_dim_overlay_refused">"ディムを変更できませんでした。エラーは記録されています。"</string>
+</resources>

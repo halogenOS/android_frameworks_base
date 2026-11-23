@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"থিম"</string>
+    <string name="theme_mode_light">"লাইট"</string>
+    <string name="theme_mode_dark">"ডার্ক"</string>
+    <string name="theme_mode_dim">"নিষ্প্রভ"</string>
+    <string name="theme_mode_night_mode_refused">"ডার্ক থিম পরিবর্তন করা যায়নি। এটি ঘুমের সময় চালু হলে, সেটিংস > ডিসপ্লে > ডার্ক থিম-এ এর সময়সূচি পরিবর্তন করুন।"</string>
+    <string name="theme_mode_dim_overlay_refused">"নিষ্প্রভ থিম পরিবর্তন করা যায়নি। ত্রুটিটি লগ করা হয়েছে।"</string>
+</resources>

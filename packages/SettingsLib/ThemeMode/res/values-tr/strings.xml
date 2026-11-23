@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Tema"</string>
+    <string name="theme_mode_light">"Açık"</string>
+    <string name="theme_mode_dark">"Koyu"</string>
+    <string name="theme_mode_dim">"Loş"</string>
+    <string name="theme_mode_night_mode_refused">"Koyu tema değiştirilemedi. Yatma vaktinde açılıyorsa planını Ayarlar > Ekran > Koyu tema bölümünden değiştirin."</string>
+    <string name="theme_mode_dim_overlay_refused">"Loş tema değiştirilemedi. Hata kaydedildi."</string>
+</resources>

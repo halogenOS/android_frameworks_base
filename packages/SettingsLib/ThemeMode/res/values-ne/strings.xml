@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"थिम"</string>
+    <string name="theme_mode_light">"उज्यालो"</string>
+    <string name="theme_mode_dark">"अँध्यारो"</string>
+    <string name="theme_mode_dim">"मधुरो"</string>
+    <string name="theme_mode_night_mode_refused">"अँध्यारो थिम बदल्न सकिएन। यो सुत्ने समयमा अन हुन्छ भने सेटिङहरू > डिस्प्ले > अँध्यारो थिम मा गएर यसको समयतालिका बदल्नुहोस्।"</string>
+    <string name="theme_mode_dim_overlay_refused">"मधुरो थिम बदल्न सकिएन। त्रुटि लग गरिएको छ।"</string>
+</resources>

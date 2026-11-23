@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"থীম"</string>
+    <string name="theme_mode_light">"পোহৰ"</string>
+    <string name="theme_mode_dark">"গাঢ়"</string>
+    <string name="theme_mode_dim">"অনুজ্জ্বল"</string>
+    <string name="theme_mode_night_mode_refused">"গাঢ় ৰঙৰ থীম সলনি কৰিব পৰা নগ'ল। যদি এইটো শোৱাৰ সময়ত অন হয়, তেন্তে ছেটিং > ডিছপ্লে’ > গাঢ় ৰঙৰ থীমত ইয়াৰ সময়সূচী সলনি কৰক।"</string>
+    <string name="theme_mode_dim_overlay_refused">"অনুজ্জ্বল থীম সলনি কৰিব পৰা নগ'ল। আসোঁৱাহটো লগ কৰা হৈছে।"</string>
+</resources>

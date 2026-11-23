@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <!-- Title of the row where the user picks Light, Dark or Dim for the whole system. [CHAR LIMIT=20] -->
+    <string name="theme_mode_title">Theme</string>
+    <!-- Button in the Theme row that turns the dark theme off. [CHAR LIMIT=8] -->
+    <string name="theme_mode_light">Light</string>
+    <!-- Button in the Theme row that turns the dark theme on, with dark gray surfaces. [CHAR LIMIT=8] -->
+    <string name="theme_mode_dark">Dark</string>
+    <!-- Button in the Theme row that turns the dark theme on, with black surfaces. [CHAR LIMIT=8] -->
+    <string name="theme_mode_dim">Dim</string>
+    <!-- Shown below the title of the Theme row when the system did not switch the dark theme, for example because its schedule turns it on at bedtime. Settings, Display and Dark theme schedule are the labels of the Settings app, its Display page and the row on that page that opens the dark theme schedule. [CHAR LIMIT=NONE] -->
+    <string name="theme_mode_night_mode_refused">Couldn\'t change the dark theme. If it turns on at bedtime, change its schedule in Settings > Display > Dark theme schedule.</string>
+    <!-- Shown below the title of the Theme row when the system did not turn Dim on or off. [CHAR LIMIT=NONE] -->
+    <string name="theme_mode_dim_overlay_refused">Couldn\'t change Dim. The error was logged.</string>
+</resources>

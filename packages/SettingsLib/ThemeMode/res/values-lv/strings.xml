@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Motīvs"</string>
+    <string name="theme_mode_light">"Gaišs"</string>
+    <string name="theme_mode_dark">"Tumšs"</string>
+    <string name="theme_mode_dim">"Blāvs"</string>
+    <string name="theme_mode_night_mode_refused">"Neizdevās mainīt tumšo motīvu. Ja tas ieslēdzas gulētiešanas laikā, mainiet tā grafiku sadaļā Iestatījumi > Attēlojums > Tumšais motīvs."</string>
+    <string name="theme_mode_dim_overlay_refused">"Neizdevās mainīt blāvo motīvu. Kļūda tika reģistrēta."</string>
+</resources>

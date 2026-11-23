@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Thème"</string>
+    <string name="theme_mode_light">"Clair"</string>
+    <string name="theme_mode_dark">"Sombre"</string>
+    <string name="theme_mode_dim">"Tamisé"</string>
+    <string name="theme_mode_night_mode_refused">"Impossible de modifier le thème sombre. S'il s'active à l'heure du coucher, modifiez sa programmation dans Paramètres > Écran > Thème sombre."</string>
+    <string name="theme_mode_dim_overlay_refused">"Impossible de modifier le thème tamisé. L'erreur a été enregistrée."</string>
+</resources>

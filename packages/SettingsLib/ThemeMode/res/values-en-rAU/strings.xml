@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: The halogenOS Project
+  SPDX-License-Identifier: Apache-2.0
+  -->
+<resources>
+    <string name="theme_mode_title">"Theme"</string>
+    <string name="theme_mode_light">"Light"</string>
+    <string name="theme_mode_dark">"Dark"</string>
+    <string name="theme_mode_dim">"Dim"</string>
+    <string name="theme_mode_night_mode_refused">"Couldn't change the dark theme. If it turns on at bedtime, change its schedule in Settings > Display > Dark theme."</string>
+    <string name="theme_mode_dim_overlay_refused">"Couldn't change Dim. The error was logged."</string>
+</resources>
