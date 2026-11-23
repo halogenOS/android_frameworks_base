@@ -508,6 +508,29 @@ final class DefaultPermissionGrantPolicy {
                     UserHandle.of(userId));
         }
 
+        releaseSystemFixedCoarseLocationOfNonSystemApps(pm, packages, userId);
+    }
+
+    // Earlier builds granted coarse location as system fixed to every app holding fine location,
+    // and a system fixed flag outlives the build that set it.
+    private void releaseSystemFixedCoarseLocationOfNonSystemApps(PackageManagerWrapper pm,
+            List<PackageInfo> packages, int userId) {
+        final UserHandle user = UserHandle.of(userId);
+        for (PackageInfo pkg : packages) {
+            if (pkg == null
+                    || pkg.applicationInfo.isSystemApp()
+                    || !ArrayUtils.contains(pkg.requestedPermissions,
+                            Manifest.permission.ACCESS_COARSE_LOCATION)
+                    || (pm.getPermissionFlags(Manifest.permission.ACCESS_COARSE_LOCATION, pkg, user)
+                            & PackageManager.FLAG_PERMISSION_SYSTEM_FIXED) == 0) {
+                continue;
+            }
+            pm.updatePermissionFlags(Manifest.permission.ACCESS_COARSE_LOCATION, pkg,
+                    PackageManager.FLAG_PERMISSION_SYSTEM_FIXED
+                            | PackageManager.FLAG_PERMISSION_GRANTED_BY_DEFAULT,
+                    0,
+                    user);
+        }
     }
 
     @SafeVarargs
