@@ -102,24 +102,13 @@ constructor(
      *   if enabled, falling back to config_screenshotEditor if that's non-empty.
      */
     suspend fun createEdit(rawUri: Uri): Intent {
-        return createEditOrView(rawUri, Intent(Intent.ACTION_EDIT))
-    }
-
-    /**
-     * @return an ACTION_VIEW intent for the given URI, directed to config_screenshotEditor if
-     *   available.
-     */
-    suspend fun createView(rawUri: Uri): Intent {
-        return createEditOrView(rawUri, Intent(Intent.ACTION_VIEW))
-    }
-
-    suspend fun createEditOrView(rawUri: Uri, intent: Intent): Intent {
         val uri = uriWithoutUserId(rawUri)
+        val editIntent = Intent(Intent.ACTION_EDIT)
 
         // Use the preferred editor if it's available, otherwise fall back to the default editor
-        intent.component = preferredEditor() ?: defaultEditor()
+        editIntent.component = preferredEditor() ?: defaultEditor()
 
-        return intent
+        return editIntent
             .setDataAndType(uri, "image/png")
             .putExtra(EXTRA_EDIT_SOURCE, EDIT_SOURCE_SCREENSHOT)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -127,6 +116,13 @@ constructor(
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
     }
+
+    /** @return an ACTION_VIEW intent for the given URI, for the app that views images. */
+    fun createView(rawUri: Uri): Intent =
+        Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uriWithoutUserId(rawUri), "image/png")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     fun createDelete(rawUri: Uri): PendingIntent {
         val intent = Intent(context, DeleteScreenshotReceiver::class.java).apply {
