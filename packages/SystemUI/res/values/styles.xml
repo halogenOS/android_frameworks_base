@@ -1376,6 +1376,7 @@
         <item name="android:fontFamily">@*android:string/config_bodyFontFamilyMedium</item>
         <item name="android:stateListAnimator">@null</item>
         <item name="android:minWidth">0dp</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="Widget.Dialog.Button.BorderButton">
